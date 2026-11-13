@@ -88,14 +88,41 @@ function person(x,z,name,coat=0x9a6845,role='wanderer'){
  if(role==='mage'||role==='ranger'){const hood=new THREE.Mesh(new THREE.ConeGeometry(.34,.72,8),mat(role==='mage'?0x403b59:coat));hood.position.y=.57;head.add(hood)}
  const arms=[],legs=[];
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.34,1.35,0);g.add(arm);const sleeve=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.42,6,10),mat(coat));sleeve.position.y=-.2;arm.add(sleeve);const hand=new THREE.Mesh(new THREE.SphereGeometry(.075,12,10),mat(0xc69a78));hand.position.y=-.46;arm.add(hand);arms.push(arm);const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.55,6,10),mat(role==='guard'?0x42483f:0x51483e));leg.position.set(side*.14,.38,.015);g.add(leg);legs.push(leg)}
- if(role==='guard'){const helm=new THREE.Mesh(new THREE.SphereGeometry(.29,16,12,0,Math.PI*2,0,Math.PI*.5),mat(0x777e78));helm.position.y=2.05;g.add(helm);const spear=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,2.7,8),mat(0x60452f));spear.position.set(.55,1.4,-.05);g.add(spear)}
+ if(role==='mage'){
+  const staff=new THREE.Group();const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,2.35,10),mat(0x65472f));shaft.position.y=1.25;staff.add(shaft);
+  const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.27,1),new THREE.MeshStandardMaterial({color:0x8bd8ef,emissive:0x267fa6,emissiveIntensity:1.6,metalness:.3,roughness:.18}));crystal.position.y=2.55;staff.add(crystal);staff.position.set(.58,0,.05);staff.rotation.z=-.12;g.add(staff);
+  const mantle=new THREE.Mesh(new THREE.ConeGeometry(.48,.9,12),mat(0x39354d));mantle.position.set(0,1.25,-.12);g.add(mantle);
+ }
+ if(role==='ranger'){
+  const bow=new THREE.Group();const arc=new THREE.Mesh(new THREE.TorusGeometry(.62,.045,8,24,Math.PI),mat(0x754b2d));arc.rotation.z=Math.PI/2;bow.add(arc);
+  const string=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,1.22,6),mat(0xd8c69b));string.position.x=.02;bow.add(string);bow.position.set(.48,1.2,.12);bow.rotation.z=-.1;g.add(bow);
+  const quiver=new THREE.Mesh(new THREE.CylinderGeometry(.13,.17,.8,10),mat(0x68472e));quiver.position.set(-.28,1.52,-.22);quiver.rotation.x=-.22;g.add(quiver);
+  for(let n=0;n<3;n++){const arrow=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.75,5),mat(0xcab58a));arrow.position.set(-.3+n*.07,1.95,-.22);arrow.rotation.x=-.22;g.add(arrow)}
+  const hood=new THREE.Mesh(new THREE.ConeGeometry(.37,.72,9),mat(0x405348));hood.position.set(0,2.25,-.04);g.add(hood);
+ }
+ if(role==='warrior'){
+  const sword=new THREE.Group();const blade=new THREE.Mesh(new THREE.BoxGeometry(.13,1.12,.045),new THREE.MeshStandardMaterial({color:0xbfc8c4,metalness:.8,roughness:.25}));blade.position.y=.72;sword.add(blade);
+  const guard=new THREE.Mesh(new THREE.BoxGeometry(.48,.09,.13),mat(0xb58b4c));guard.position.y=.16;sword.add(guard);
+  const grip=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.35,8),mat(0x493326));grip.position.y=-.06;sword.add(grip);
+  sword.position.set(.52,1.05,.08);sword.rotation.z=-.22;g.add(sword);
+  const shoulderCape=new THREE.Mesh(new THREE.ConeGeometry(.52,1.15,10),mat(0x713d32));shoulderCape.position.set(0,1.25,-.22);g.add(shoulderCape);
+ }
+ if(role==='mystic'){
+  const mask=new THREE.Mesh(new THREE.SphereGeometry(.255,20,16),mat(0x252a2c));mask.scale.set(.9,1.08,.72);mask.position.set(0,1.96,.04);g.add(mask);
+  const eyeMat=new THREE.MeshStandardMaterial({color:0xd7b46b,emissive:0x9c6825,emissiveIntensity:1.4});
+  for(const side of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,10,8),eyeMat);eye.position.set(side*.095,2.02,.25);g.add(eye)}
+  const hood=new THREE.Mesh(new THREE.ConeGeometry(.43,.85,9),mat(0x252b2d));hood.position.set(0,2.3,-.04);g.add(hood);
+  const spear=new THREE.Group();const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.045,.065,2.8,9),mat(0x44352b));shaft.position.y=1.4;spear.add(shaft);
+  const blade=new THREE.Mesh(new THREE.TetrahedronGeometry(.28,0),new THREE.MeshStandardMaterial({color:0xb6c0b5,metalness:.7,roughness:.25,emissive:0x263b37,emissiveIntensity:.35}));blade.scale.set(.7,2.2,.45);blade.position.y=2.92;spear.add(blade);spear.position.set(-.58,0,.05);spear.rotation.z=.13;g.add(spear);
+  const cloak=new THREE.Mesh(new THREE.ConeGeometry(.58,1.35,12),mat(0x252b2d));cloak.position.set(0,1.02,-.2);g.add(cloak);
+ }
  if(role==='elf')for(const side of [-1,1]){const ear=new THREE.Mesh(new THREE.ConeGeometry(.09,.42,8),mat(0xc69a78));ear.position.set(side*.29,1.98,0);ear.rotation.z=side*-1.15;g.add(ear)}
  g.position.set(x,y,z);scene.add(g);
  const c=document.createElement('canvas');c.width=256;c.height=64;const ctx=c.getContext('2d');ctx.fillStyle='#14231ee8';ctx.fillRect(0,0,256,64);ctx.fillStyle='#fff1c9';ctx.font='bold 28px Georgia';ctx.textAlign='center';ctx.fillText(name,128,42);
  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));sprite.position.set(x,y+2.8,z);sprite.scale.set(2.1,.52,1);scene.add(sprite);
  const torso=new THREE.Group();torso.position.y=1.08;g.add(torso);animatedActors.push({group:g,torso,arms,legs,head,phase:hash(x,z)*6.28,role});return g
 }
-person(CITY.x-18,CITY.z+4,'Arven',0x526b57,'elf');person(CITY.x+17,CITY.z-4,'Darian',0x7b5942,'guard');person(CITY.x-4,CITY.z+27,'Maelis',0x62517c,'mage');person(CITY.x+35,CITY.z+28,'Borin',0x8a6847,'wanderer');person(CITY.x-42,CITY.z-34,'Sentinella',0x59675c,'guard');person(-105,205,'Liora',0x637c83,'ranger');
+person(CITY.x-18,CITY.z+4,'Eldrin',0x514b73,'mage');person(CITY.x+17,CITY.z-4,'Lyra',0x536b4c,'ranger');person(CITY.x-4,CITY.z+27,'Kael',0x7b4438,'warrior');person(CITY.x+35,CITY.z+28,'Il Velato',0x343b3c,'mystic');
 const gateX=52,gateZ=-178,gateY=terrainY(gateX,gateZ),portalMat=new THREE.MeshStandardMaterial({color:0x9bc7c0,emissive:0x3b8578,emissiveIntensity:1.2,metalness:.35,roughness:.25});
 const portal=new THREE.Mesh(new THREE.TorusGeometry(2.2,.24,12,40),portalMat);portal.position.set(gateX,gateY+3,gateZ);scene.add(portal);
 for(const sx of [-2.6,2.6])box(scene,new THREE.BoxGeometry(.55,5.4,.65),mats.pale,gateX+sx,gateY+2.7,gateZ);
