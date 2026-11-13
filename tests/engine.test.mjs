@@ -81,3 +81,58 @@ test("a decade of simulation keeps core resources and social metrics finite", ()
     Number.isFinite(person.health) && Number.isFinite(person.wealth)
   ));
 });
+
+test("economic inequality creates measurable social strata", () => {
+  const world = createWorld();
+  const founders = world.population.slice();
+  for (let i = 0; i < 36; i++) {
+    const source = founders[i % founders.length];
+    world.population.push({
+      ...source,
+      id: 25 + i,
+      age: 30,
+      alive: true,
+      health: 95,
+      wealth: i < 4 ? 1000 : 0,
+      parents: [],
+      children: [],
+      traits: { ...source.traits }
+    });
+  }
+  world.nextPersonId = 61;
+  advance(world, 365);
+  const state = summary(world);
+  assert.ok(state.social.inequality > 0.2);
+  assert.equal(
+    Object.values(state.social.classes).reduce((sum, count) => sum + count, 0),
+    state.population
+  );
+});
+
+test("technologies are recorded in threshold order", () => {
+  const world = createWorld();
+  world.knowledge = 12000;
+  advance(world, 365);
+  assert.deepEqual(world.technology.slice(2), [
+    "Agricoltura", "Ceramica", "Metallurgia del rame", "Scrittura",
+    "Ruota", "Irrigazione", "Bronzo", "Moneta", "Ferro", "Calendario",
+    "Medicina organizzata", "Mulino ad acqua", "Amministrazione scritta",
+    "Scuola", "Macchine semplici", "Vetro"
+  ]);
+});
+
+test("settlement population and stores follow the actual residents", () => {
+  const world = createWorld();
+  world.settlements.push({
+    id: 2, name: "Nuovo Guado", x: 140, y: 100, kind: "villaggio",
+    homes: 12, fields: 6, stores: 0, water: 400, knownArea: 4, population: 0
+  });
+  world.nextSettlementId = 3;
+  for (const person of world.population.slice(0, 6)) person.settlementId = 2;
+  advance(world, 1);
+  const state = summary(world);
+  assert.equal(state.settlementDetails[0].population, 18);
+  assert.equal(state.settlementDetails[1].population, 6);
+  const allocated = state.settlementDetails.reduce((sum, site) => sum + site.stores, 0);
+  assert.ok(Math.abs(allocated - world.food) < 1e-8);
+});
