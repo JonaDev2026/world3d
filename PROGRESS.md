@@ -1,102 +1,29 @@
-# WORLD — Progress tracker
+# WORLD — Progressi
 
-> Documento operativo del Master. Aggiornare questo file a ogni sessione di sviluppo.
-> Ultimo aggiornamento: 2026-11-13
+## Nuova base del gioco — 2026-11-13
 
-## Visione
+### Direzione approvata
+- Ripartenza da zero: il vecchio prototipo esplorativo e la vecchia interfaccia non sono più la base del gioco.
+- Obiettivo visivo: videogioco 3D moderno, pulito, cinematografico; niente estetica voxel o Minecraft.
+- Prima priorità: identità grafica, menu principale, musica e selezione dei protagonisti.
 
-Creare un mondo esplorabile persistente, stilizzato con forme organiche e poligoni morbidi (non estetica Minecraft), con città, paesi, edifici, strade, paesaggi, vegetazione, oggetti e personaggi animati. Il mondo finale avrà un'estensione obiettivo di **300 km²**. La costruzione procederà per regioni e chunk: non si caricheranno 300 km² di geometria tutta insieme.
+### Implementato
+- [x] Nuovo menu principale con titolo della saga, call to action e navigazione essenziale.
+- [x] Nuova scena Three.js con quattro protagonisti 3D visibili insieme.
+- [x] Selezione individuale dei quattro eroi: Eldrin (mago), Lyra (arciera), Kael (spadaccino), Il Velato (lanciere).
+- [x] Scheda dinamica con ruolo, descrizione e arma del personaggio selezionato.
+- [x] Impostazioni audio con volume musica e predisposizione per gli effetti sonori.
+- [x] Riproduzione predisposta da assets/audio/music/main-theme.mp3; il browser richiede un'interazione prima dell'avvio audio.
+- [x] Rimossa dal percorso principale la vecchia interfaccia di creazione personaggio, HUD, mappa e prototipo del villaggio.
+- [x] Piano geografico vuoto di 300 km²: quadrato di circa 17.320,5 × 17.320,5 metri.
+- [x] Documentazione riallineata alla nuova ripartenza.
 
-## Stato attuale verificato nel repository
+### Stato reale
+Questa è una base grafica e una schermata di selezione, non ancora un gioco completo. Il terreno è vuoto: non ci sono ancora movimento, collisioni, città, missioni, combattimenti o salvataggi della nuova architettura. I personaggi sono prototipi 3D procedurali per definire silhouette e presentazione, da rifinire in seguito.
 
-- [x] Applicazione Three.js in `index.html`, `js/main.js`, `css/style.css`.
-- [x] Creazione personaggio con nome, lingua e palette base.
-- [x] Anteprima 3D del personaggio nella schermata di creazione.
-- [x] Prima persona predefinita e terza persona selezionabile.
-- [x] Menu pausa, mappa e controlli predisposti per musica/effetti.
-- [x] Traduzioni esterne IT / EN / ES / FR.
-- [x] Posizione, personaggio e segnaposto salvati in localStorage.
-- [x] Primo insediamento embrionale, due abitazioni, due NPC, portale e piccola valle segreta.
-- [ ] Test browser end-to-end: da eseguire sul sito Pages.
-- [x] Primo rig articolato del giocatore: busto, testa, spalle, gomiti, anche, ginocchia e piedi.
-- [x] Ciclo base di camminata/corsa e posa di salto con transizioni smussate.
-- [x] Animazioni idle NPC con respirazione, sguardo e piccoli gesti.
-- [ ] Cicli completi rifiniti: camminata, corsa, salto, atterraggio e svolta con blending avanzato.
-- [x] Primo passaggio di stile personaggi: proporzioni più curate, volto, sopracciglia, capelli, tunica, cintura, polsini e stivali.
-- [ ] Modelli personaggio con silhouette, volto, capelli, abiti e accessori più curati.
-- [ ] Sistema città: lotti, strade, piazze, quartieri, interni e arredi.
-- [ ] Sistema mondo a chunk con streaming e salvataggio dei cambiamenti.
-- [ ] Prima città completa in una regione iniziale di 1 km².
-- [ ] Progressiva espansione verso l'obiettivo di 300 km².
-
-## Dimensioni e scala
-
-Obiettivo: **300 km²** di superficie esplorabile. Per un mondo quadrato equivale a circa 17,32 km per lato. Convenzione proposta: 1 unità Three.js = 1 metro; quindi circa 17.321 × 17.321 unità. Non generare/caricare tutto in una volta.
-
-La scena attuale usa un terreno di 96 × 96 unità (circa 9.216 m² = 0,009216 km² con la scala proposta). È un prototipo, non ancora una mappa da 300 km².
-
-## Ultimo incremento — 2026-11-13
-
-- Corretta l'inizializzazione degli attori: la lista NPC esiste prima di creare i primi abitanti.
-- Sostituito il manichino semplice del giocatore con un rig articolato e dettagli estetici iniziali.
-- Aggiunto movimento alternato di gambe e braccia, piegamento delle ginocchia, movimento dei piedi e posa in salto.
-- Migliorata l'anteprima 3D per rispecchiare meglio il nuovo stile del personaggio.
-- Aggiunti idle NPC con respirazione, sguardo e gesti leggeri.
-- JavaScript controllato per sintassi e riferimenti; manca ancora il test visivo in browser.
-
-## Prossime tappe
-
-### Fase A — Fondamenta del giocatore
-1. Correggere e verificare l'ordine di inizializzazione degli attori.
-2. Rig articolato: bacino, busto, collo/testa, braccia, avambracci, mani, cosce, gambe e piedi.
-3. Cicli distinti: idle, camminata, corsa, salto, atterraggio e svolta; blending morbido.
-4. Animazione NPC con idle credibile, sguardo, gesti e camminate brevi.
-5. Migliorare stile e proporzioni dei personaggi senza voxel/cubi.
-
-### Fase B — Prima città
-1. Definire un'area iniziale pianeggiante e attraversabile.
-2. Disegnare planimetria urbana: centro, piazza, strade, quartieri residenziali, botteghe, servizi e margine agricolo.
-3. Edifici modulari con varietà regionale, tetti, finestre, porte, balconi e interni visitabili.
-4. Oggetti coerenti con il luogo: arredi urbani, insegne, lampioni, panchine, mercati, recinzioni, attrezzi, vegetazione.
-5. NPC con ruoli, routine, animazioni e dialoghi localizzati.
-
-### Fase C — Mondo 300 km²
-1. Chunk di terreno e biomi caricati in prossimità del giocatore.
-2. Dati geografici deterministici da seed: altitudine, acqua, foreste, campi e percorsi.
-3. Regioni con identità: città, paesi, borghi, campagne, boschi, fiumi, laghi e rilievi.
-4. Persistenza delle modifiche del giocatore e dei luoghi scoperti.
-5. Ottimizzazione LOD, istanze, ombre e caricamento progressivo.
-
-## Regole di sviluppo
-
-- Il Master aggiorna PROGRESS.md, DIARY.md e docs/WORLD_STRUCTURE.md quando cambia lo stato.
-- Non dichiarare completato ciò che non è stato provato nel browser.
-- Non sostituire o cancellare i salvataggi esistenti; mantenere compatibilità con `world3d-v02`.
-- Non creare un enorme terreno monolitico: chunk streaming e caricamento progressivo sono requisiti.
-- Prima città e dettagli devono avere una logica geografica e culturale coerente.
-- Preferire mesh morbide e dettagliate, materiali PBR leggeri e silhouette leggibili; evitare look Minecraft.
-
-
-## Direzione narrativa e protagonisti — 2026-11-13
-
-- [x] Definita la saga originale **La Corona delle Ceneri**, ambientata nei regni di Avarra.
-- [x] Creato il quartetto: Eldrin (mago), Lyra (arciera), Kael (spadaccino), Il Velato (lanciere mascherato).
-- [x] Inseriti nella prima regione i quattro personaggi con le rispettive armi distintive.
-- [ ] Creare modelli completi e silhouette cinematografiche, con volti, capelli, armature, mantelli e materiali dettagliati.
-- [ ] Animazioni individuali e mosse d'attacco per bastone magico, arco, spada e lancia.
-- [ ] Dialoghi, missioni personali e sistema per incontrare/reclutare il gruppo.
-- [ ] Definire cambio personaggio e combattimento prima di collegarli ai comandi di gioco.
-
-Il quarto protagonista usa una **lancia-reliquia**: differenzia il suo combattimento dagli altri tre e si lega al mistero della Soglia.
-
-
-## Interfaccia fantasy classica — 2026-11-13
-
-- [x] Introdotti Google Fonts **Cinzel** per titoli, menu e pulsanti e **Cormorant Garamond** per testi e descrizioni.
-- [x] Palette classica: pergamena, oro antico, verde bosco, legno scuro e bordeaux.
-- [x] Restilizzate schermata iniziale, creazione personaggio, pausa, impostazioni e mappa con cornici e pannelli ispirati a libri e ambienti fantasy.
-- [x] Aggiornato il testo introduttivo in italiano, inglese, spagnolo e francese.
-- [x] Aggiornato il nome visualizzato a **Terre Antiche · La Corona delle Ceneri**.
-- [ ] Verifica visiva nel browser dopo il deploy GitHub Pages.
-- [ ] Proseguire con l'implementazione delle meccaniche di gioco: interazione, missioni, combattimento e progressione dei quattro eroi.
-- [ ] Collegare i file musicali quando saranno presenti in `assets/audio/music/` e `assets/audio/ambient/`.
+### Prossime tappe
+1. Verificare menu e modelli sul browser dopo il deploy.
+2. Rifinire qualità e proporzioni dei quattro personaggi.
+3. Definire camera e ingresso nel mondo vuoto.
+4. Implementare movimento, terreno e sistema di streaming.
+5. Costruire regioni, città, NPC e storia solo dopo aver approvato la base visiva.
