@@ -27,6 +27,16 @@ Costruire un sistema di animazione articolato condiviso dal personaggio giocante
 
 ---
 
+## 2026-11-13 — Primo corpo articolato
+
+- **Realizzato:** corretto l'ordine di inizializzazione degli NPC; il personaggio giocante ora usa un rig con busto, testa, spalle, gomiti, anche, ginocchia, stinchi e piedi.
+- **Realizzato:** camminata e corsa muovono arti opposti, ginocchia e piedi; la transizione idle/movimento è smussata. Il salto ha una posa dedicata.
+- **Realizzato:** anteprima di creazione aggiornata con volto, sopracciglia, tunica, cintura, arti articolati e stivali.
+- **Realizzato:** gli abitanti respirano, muovono lo sguardo e fanno piccoli gesti.
+- **Verifiche:** controllo statico della sintassi JavaScript e dei riferimenti; nessun test grafico browser eseguito in questa sessione.
+- **Decisioni:** la prima città deve essere progettata prima come quartieri e percorsi, poi popolata con edifici e oggetti coerenti. Il target 300 km² richiede chunk streaming, non una singola mesh gigantesca.
+- **Prossimo passo:** costruire il sistema geografico a chunk e definire l'area della prima città, poi rifinire animazioni e modelli con un test visivo.
+
 ## Modello per le prossime annotazioni
 
 ### YYYY-MM-DD — Titolo
