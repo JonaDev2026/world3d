@@ -10,3 +10,6 @@
 - Corretto il testo della schermata mondo: Vaelmar, non Avarra.
 - La mappa è un fondale illustrativo, non la geografia navigabile. Il mondo giocabile resta una base vuota di 300 km².
 - Da verificare nel browser locale: leggibilità del titolo, resa della mappa, responsive e passaggio alla selezione eroi.
+
+
+- Menu semplificato: rimosso il sottomenu Impostazioni non necessario; volume musica iniziale impostato al 20%.

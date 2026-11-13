@@ -13,3 +13,7 @@ Il menu è stato ricostruito seguendo il riferimento fornito: antica mappa geogr
 - Da verificare nel browser locale: proporzioni del titolo, leggibilità, selezione eroi e resa mobile.
 
 La mappa è un fondale grafico, non il terreno di gioco né una rappresentazione definitiva in scala.
+
+
+## Menu essenziale
+Rimosso il pannello Impostazioni e il relativo pulsante. La musica introduttiva parte al 20% del volume.
