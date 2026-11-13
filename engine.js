@@ -7,7 +7,7 @@ export function createWorld(){
  const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:"Valle del Primo Fiume",x:0,y:0,kind:"accampamento",homes:6,fields:0,stores:180,water:1000,knownArea:12}],nextPersonId:25,nextSettlementId:2,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],religion:"Tradizioni orali",polity:"Comunità senza governo",laws:"Consuetudini condivise",economy:"Sussistenza collettiva",events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},neighbors:[{id:1,name:"Gente della Quercia",population:19,food:125,hostility:12,discovered:false,atWar:false,warDays:0,technology:0,x:-150,y:110},{id:2,name:"Clan delle Colline",population:14,food:95,hostility:8,discovered:false,atWar:false,warDays:0,technology:0,x:190,y:-135}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[]};
  const names=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const surnames=["della Riva","delle Selci","del Salice","della Valle","del Guado","della Quercia"];
- for(let i=0;i<24;i++){s.population.push({id:i+1,name:names[i],family:pick(s,surnames),age:8+Math.floor(random(s)*42),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
+ for(let i=0;i<24;i++){s.population.push({id:i+1,name:names[i],family:pick(s,surnames),age:8+Math.floor(random(s)*42),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",settlementId:1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
  addEvent(s,"Fondazione","Ventiquattro persone si stabiliscono nella valle del Primo Fiume. Comincia il calendario della comunità: Anno 0.", "society");
  return s;
 }
@@ -20,7 +20,7 @@ function addPerson(s,parents=[]){
  const first=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara","Evan","Sela","Rian","Talia"];
  const p1=s.population.find(p=>p.id===parents[0]),p2=s.population.find(p=>p.id===parents[1]);
  const surname=p1?.family||p2?.family||"della Valle";
- const person={id:s.nextPersonId++,name:pick(s,first),family:surname,age:0,sex:random(s)<.5?"F":"M",alive:true,health:90+random(s)*10,skill:.2+random(s)*.4,wealth:0,partner:null,parents,children:[],role:"bambino",belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}};
+ const person={id:s.nextPersonId++,name:pick(s,first),family:surname,age:0,sex:random(s)<.5?"F":"M",alive:true,health:90+random(s)*10,skill:.2+random(s)*.4,wealth:0,partner:null,parents,children:[],role:"bambino",settlementId:p1?.settlementId||p2?.settlementId||1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}};
  s.population.push(person);for(const id of parents){const p=s.population.find(x=>x.id===id);if(p)p.children.push(person.id);}s.stats.births++;return person;
 }
 function updateSocial(s){
@@ -118,6 +118,7 @@ function yearBoundary(s){
 }
 function daily(s){
  const people=living(s),n=people.length,sett=s.settlements[0];
+ for(const p of people)if(!p.settlementId)p.settlementId=sett.id;
  if(!n)return;
  // subsistence and production
  const farmers=people.filter(p=>p.role==="agricoltore").length;
@@ -206,7 +207,16 @@ function daily(s){
  // A settlement expands when its population and material base can sustain it.
  if(n>65&&sett.kind==="accampamento"){sett.kind="villaggio";sett.homes=18;addEvent(s,"L'accampamento diventa villaggio","Abitazioni più stabili e depositi comuni segnano il passaggio a un insediamento permanente.","settlement");}
  if(n>240&&sett.kind==="villaggio"){sett.kind="centro urbano";sett.homes=70;addEvent(s,"Nasce il primo centro urbano","L'insediamento si espande oltre il nucleo originario. Artigiani, depositi e spazi collettivi diventano permanenti.","settlement");}
- if(n>500&&s.settlements.length===1&&random(s)<.00004){s.settlements.push({id:s.nextSettlementId++,name:"Nuovo Guado",x:120+random(s)*160,y:90+random(s)*140,kind:"villaggio",homes:12,fields:6,stores:30,water:400,knownArea:4});s.stats.migrations++;addEvent(s,"Fondazione di un secondo insediamento","Un gruppo lascia la valle per stabilirsi presso un altro corso d'acqua. La comunità si distribuisce su più territori.","migration");}
+ if(n>500&&s.settlements.length===1&&random(s)<.00004){
+  const id=s.nextSettlementId++,newSite={id,name:"Nuovo Guado",x:120+random(s)*160,y:90+random(s)*140,kind:"villaggio",homes:12,fields:6,stores:0,water:400,knownArea:4,population:0};
+  s.settlements.push(newSite);
+  const candidates=people.filter(p=>p.age>=16&&p.settlementId===sett.id),migrantCount=Math.min(candidates.length,Math.max(12,Math.floor(n*.08)));
+  for(let i=0;i<migrantCount;i++){const migrant=pick(s,candidates);migrant.settlementId=id;candidates.splice(candidates.indexOf(migrant),1);}
+  s.stats.migrations++;addEvent(s,"Fondazione di un secondo insediamento","Un gruppo di famiglie lascia la valle e fonda Nuovo Guado. Le persone si dividono tra i due insediamenti, portando con sé competenze e legami familiari.","migration");
+ }
+ const settlementCounts=new Map(s.settlements.map(st=>[st.id,0]));
+ for(const p of people){if(!settlementCounts.has(p.settlementId))p.settlementId=sett.id;settlementCounts.set(p.settlementId,(settlementCounts.get(p.settlementId)||0)+1);}
+ for(const st of s.settlements){st.population=settlementCounts.get(st.id)||0;st.stores=n?s.food*st.population/n:0;}
  // seasonal turnover and annual records
  if(s.day%90===0&&random(s)<.08){const p=pick(s,people);if(p)p.skill+=.05;}
  if(climate.days>0){climate.days--;if(climate.days===0){s.climate={type:"normale",days:0,severity:0};addEvent(s,"Fine dell emergenza climatica","Le condizioni meteorologiche tornano gradualmente alla normalità. La comunità avvia il recupero delle risorse.","climate");}}
@@ -223,7 +233,7 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:people.find(p=>p.id===s.leadership?.personId)||null,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:people.find(p=>p.id===s.leadership?.personId)||null,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||s.version!==VERSION||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
@@ -232,6 +242,7 @@ export function validateWorld(s){
  if(!s.disease)s.disease={active:false,strain:0,days:0};
  if(!s.social)s.social={inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:living(s).length,agiati:0,"élite":0},medianWealth:0};
  if(!s.leadership)s.leadership={personId:null,termStarted:0,legitimacy:50};
- for(const p of s.population)if(!Number.isFinite(p.wealth))p.wealth=0;
+ for(const p of s.population){if(!Number.isFinite(p.wealth))p.wealth=0;if(!p.settlementId)p.settlementId=s.settlements[0].id;}
+ for(const st of s.settlements)if(!Number.isFinite(st.population))st.population=s.population.filter(p=>p.alive&&p.settlementId===st.id).length;
  return s;
 }
