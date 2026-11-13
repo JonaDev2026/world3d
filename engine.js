@@ -40,6 +40,17 @@ function yearBoundary(s){
  if(s.knowledge>=5000&&!s.technology.includes("Medicina organizzata")){s.technology.push("Medicina organizzata");s.institutions.push("Casa di cura");addEvent(s,"Primi guaritori riconosciuti","L'esperienza sulle ferite e sulle malattie viene raccolta e trasmessa da guaritori specializzati.","technology");}
  if(s.knowledge>=7000&&!s.technology.includes("Amministrazione scritta")){s.technology.push("Amministrazione scritta");s.polity="Consiglio e amministratori";addEvent(s,"Amministrazione stabile","Registri e incarichi permanenti rendono possibile coordinare un insediamento più ampio.","politics");}
  if(s.knowledge>=9500&&!s.technology.includes("Macchine semplici")){s.technology.push("Macchine semplici");addEvent(s,"Macchine e forza dell'acqua","Ruote idrauliche e dispositivi meccanici iniziano a svolgere parte del lavoro ripetitivo.","technology");}
+ if(s.knowledge>=2200&&!s.technology.includes("Irrigazione")){s.technology.push("Irrigazione");addEvent(s,"Canali e irrigazione","Vengono scavati canali per portare l'acqua ai campi. La produzione diventa meno dipendente dalle piogge.","technology");}
+ if(s.knowledge>=2800&&!s.technology.includes("Moneta")){s.technology.push("Moneta");s.economy="Mercati e scambi monetari";s.institutions.push("Luogo del mercato");addEvent(s,"Prime forme di moneta","Oggetti riconosciuti come unità di valore facilitano gli scambi e rendono più complessa la distribuzione della ricchezza.","economy");}
+ if(s.knowledge>=4200&&!s.technology.includes("Calendario")){s.technology.push("Calendario");s.institutions.push("Osservatori del cielo");addEvent(s,"Viene definito un calendario","L'osservazione delle stagioni permette di prevedere semine, raccolti e periodi di piena.","technology");}
+ if(s.knowledge>=5800&&!s.technology.includes("Mulino ad acqua")){s.technology.push("Mulino ad acqua");addEvent(s,"La forza del fiume","Un mulino ad acqua riduce il lavoro necessario per macinare i cereali e aumenta la capacità produttiva.","technology");}
+ if(s.knowledge>=8200&&!s.technology.includes("Scuola")){s.technology.push("Scuola");s.institutions.push("Scuola degli scribi");addEvent(s,"Istruzione organizzata","La trasmissione delle conoscenze viene affidata a insegnanti e apprendisti. La lettura non è più limitata agli amministratori.","technology");}
+ if(s.knowledge>=11000&&!s.technology.includes("Vetro")){s.technology.push("Vetro");addEvent(s,"La lavorazione del vetro","Artigiani specializzati producono contenitori e oggetti in vetro. Nuovi materiali entrano nella vita quotidiana.","technology");}
+ if(s.year>80&&s.knowledge>500&&s.religion==="Culto degli antenati"&&random(s)<.018){s.religion="Pantheon delle forze naturali";addEvent(s,"Si forma un pantheon","Le tradizioni locali si riuniscono in culti dedicati alle forze della natura e ai cicli agricoli.","culture");}
+ if(s.year>260&&s.knowledge>3500&&s.religion==="Pantheon delle forze naturali"&&random(s)<.004){s.religion="Tradizione del Sole";addEvent(s,"Una nuova corrente religiosa","Una comunità di sacerdoti e famiglie sviluppa una tradizione distinta dai culti locali.","culture");}
+ if(n>160&&!s.institutions.includes("Guardia civica")&&s.stats.crimes>=5){s.institutions.push("Guardia civica");s.order=clamp(s.order+8,0,100);addEvent(s,"Nasce una guardia civica","La comunità affida a un gruppo stabile il compito di proteggere i mercati, le riserve e le persone.","politics");}
+ if(n>250&&s.settlements.length>1&&s.economy==="Riserve e distribuzione organizzata"){s.economy="Scambi tra insediamenti";addEvent(s,"Si organizzano gli scambi interni","I villaggi coordinano la circolazione di cibo, utensili e materie prime.","economy");}
+ if(n>320&&!s.institutions.includes("Assemblea dei villaggi")){s.institutions.push("Assemblea dei villaggi");s.polity="Consiglio dei villaggi";addEvent(s,"Nasce un'assemblea territoriale","I rappresentanti dei diversi insediamenti si riuniscono per discutere risorse, confini e decisioni comuni.","politics");}
 }
 function daily(s){
  const people=living(s),n=people.length,sett=s.settlements[0];
@@ -62,7 +73,7 @@ function daily(s){
   if(p.age>55)p.health-=.012+(p.age-55)*.001;
   if(p.health<=0||p.age>82&&random(s)<.00035+(p.age-82)*.00022){p.alive=false;s.stats.deaths++;continue;}
   if(p.age>=15&&p.age<62&&p.role==="bambino")p.role=pick(s,["raccoglitore","cacciatore","artigiano"]);
-  if(p.age>18&&p.age<45&&p.sex==="F"&&random(s)<.0007&&n<5000){
+  if(p.age>18&&p.age<45&&p.sex==="F"&&random(s)<.00022&&n<5000){
    const candidates=people.filter(q=>q.sex==="M"&&q.age>=18&&q.age<55&&q.alive&&q.id!==p.id&&(!p.partner||p.partner===q.id));
    if(candidates.length){const mate=pick(s,candidates);if(random(s)<.4){addPerson(s,[p.id,mate.id]);}}
   }
@@ -103,6 +114,7 @@ function daily(s){
  s.knowledge+=learners*(.00007+(s.technology.length*.000011))*(s.cohesion/75);
  // theft and disputes emerge under scarcity and inequality
  if(s.food<n*2&&random(s)<.003){s.stats.crimes++;s.cohesion=clamp(s.cohesion-1,0,100);addEvent(s,"Furto di provviste","Una persona sottrae cibo dalle riserve comuni. Il conflitto sulla distribuzione mette alla prova la fiducia reciproca.","crime");}
+ if(n>70&&random(s)<.000025){s.stats.crimes++;s.cohesion=clamp(s.cohesion-.15,0,100);if(s.institutions.includes("Guardia civica"))s.order=clamp(s.order+.02,0,100);if(random(s)<.15)addEvent(s,"Violazione delle norme","Un abitante viene accusato di aver violato una regola della comunità. Il consiglio deve stabilire una risposta.","crime");}
  if(s.institutions.length&&random(s)<.00016){s.order=clamp(s.order-2,0,100);addEvent(s,"Controversia tra famiglie","Una disputa su risorse e responsabilità richiede la mediazione del consiglio.","politics");}
  // A settlement expands when its population and material base can sustain it.
  if(n>65&&sett.kind==="accampamento"){sett.kind="villaggio";sett.homes=18;addEvent(s,"L'accampamento diventa villaggio","Abitazioni più stabili e depositi comuni segnano il passaggio a un insediamento permanente.","settlement");}
