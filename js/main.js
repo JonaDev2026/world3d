@@ -116,11 +116,15 @@ const crystalMat=new THREE.MeshStandardMaterial({color:0x9b8cff,emissive:0x4934a
 for(let i=0;i<7;i++){const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.65+hash(i,8)*.55),crystalMat);crystal.position.set(34+(i%3)*2,terrainY(34+(i%3)*2,34+Math.floor(i/3)*2)+1.1+i*.22,34+Math.floor(i/3)*2);crystal.rotation.set(i*.4,i*.7,i*.2);scene.add(crystal)}
 sign(35,30,'VALLE DELLE STELLE',['Hai trovato il primo mondo segreto','Cerca i cristalli luminosi']);
 
-const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyM')toggleMap();if(e.code==='KeyP')saveMarker();if(e.code==='KeyE')useWorldGate()});addEventListener('keyup',e=>keys[e.code]=false);
+const keys={};addEventListener('keydown',e=>{
+ if(e.code==='Escape'){e.preventDefault();if(mapOpen)toggleMap();else if(pauseOpen)closePause();else openPause();return}
+ keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
+ if(e.code==='KeyM'&&!pauseOpen)toggleMap();if(e.code==='KeyP'&&!pauseOpen)saveMarker();if(e.code==='KeyE'&&!pauseOpen)useWorldGate();
+});addEventListener('keyup',e=>keys[e.code]=false);
 
 let yaw=0,pitch=.12,locked=false,velocityY=0,onGround=false;const player={x:0,z:8};const start=document.querySelector('#start');
 const playerData={name:'',language:'it',skin:'#d4a77d',hair:'#493326',shirt:'#496b91'};
-let playerModel=null,playerLabel=null,playerLift=0;
+let playerModel=null,playerLabel=null,playerLift=0,viewMode='first',pauseOpen=false;
 function makePlayer(){
  if(playerModel)scene.remove(playerModel);
  playerModel=new THREE.Group();
@@ -139,24 +143,57 @@ function makePlayer(){
  playerLabel=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false}));
  playerLabel.scale.set(2.2,.42,1);scene.add(playerLabel);
 }
+// Anteprima 3D indipendente: il modello ruota mentre si modificano i colori.
+const previewScene=new THREE.Scene();previewScene.background=new THREE.Color(0x263b30);
+previewScene.add(new THREE.HemisphereLight(0xe4f2ff,0x526044,2.1));
+const previewSun=new THREE.DirectionalLight(0xffe5bd,2.4);previewSun.position.set(-3,6,5);previewScene.add(previewSun);
+const previewCamera=new THREE.PerspectiveCamera(34,1,.1,30);previewCamera.position.set(0,2.1,6.4);previewCamera.lookAt(0,1.25,0);
+const previewRenderer=new THREE.WebGLRenderer({canvas:document.querySelector('#characterPreview'),antialias:true,alpha:false});
+previewRenderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+let previewModel=null;
+function buildPreview(){
+ if(previewModel)previewScene.remove(previewModel);
+ const read=id=>document.querySelector('#creator'+id).value;
+ const data={skin:read('Skin'),hair:read('Hair'),shirt:read('Shirt')};
+ const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.78});
+ previewModel=new THREE.Group();
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.58,7,14),mat(data.shirt));torso.position.y=1.25;previewModel.add(torso);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.29,24,18),mat(data.skin));head.position.y=1.98;previewModel.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.305,24,16,0,Math.PI*2,0,Math.PI*.55),mat(data.hair));hair.position.y=2.1;previewModel.add(hair);
+ for(const side of [-1,1]){
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.48,6,12),mat(data.shirt));arm.position.set(side*.43,1.23,0);arm.rotation.z=side*.12;previewModel.add(arm);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.43,6,12),mat(0x343b3b));leg.position.set(side*.17,.43,0);previewModel.add(leg);
+  const boot=new THREE.Mesh(new THREE.SphereGeometry(.16,16,12),mat(0x392b22));boot.scale.set(1,.58,1.4);boot.position.set(side*.17,.12,-.06);previewModel.add(boot);
+ }
+ const ground=new THREE.Mesh(new THREE.CircleGeometry(1.05,48),new THREE.MeshStandardMaterial({color:0x71866a,roughness:1}));
+ ground.rotation.x=-Math.PI/2;ground.position.y=.015;previewModel.add(ground);
+ previewScene.add(previewModel);
+}
+function resizePreview(){
+ const canvas=document.querySelector('#characterPreview'),w=canvas.clientWidth||320,h=canvas.clientHeight||210;
+ previewRenderer.setSize(w,h,false);previewCamera.aspect=w/h;previewCamera.updateProjectionMatrix();
+}
 function syncCreator(){
  document.querySelector('#creatorName').value=playerData.name;
  document.querySelector('#creatorLang').value=playerData.language;
  document.querySelector('#creatorSkin').value=playerData.skin;
  document.querySelector('#creatorHair').value=playerData.hair;
  document.querySelector('#creatorShirt').value=playerData.shirt;
+ buildPreview();resizePreview();
 }
 
 
 document.querySelector('#creatorLang').addEventListener('change',async e=>{playerData.language=e.target.value;await setLanguage(e.target.value);});
+['creatorSkin','creatorHair','creatorShirt'].forEach(id=>document.querySelector('#'+id).addEventListener('input',buildPreview));
+addEventListener('resize',resizePreview);
 document.querySelector('#createPlayer').onclick=()=>{
  playerData.name=document.querySelector('#creatorName').value.trim().slice(0,18)||'Explorer';
  playerData.language=document.querySelector('#creatorLang').value;
  playerData.skin=document.querySelector('#creatorSkin').value;
  playerData.hair=document.querySelector('#creatorHair').value;
  playerData.shirt=document.querySelector('#creatorShirt').value;
- saved.character={...playerData};persist();makePlayer();
- document.querySelector('#creator').style.display='none';start.style.display='none';renderer.domElement.requestPointerLock?.();
+ saved.character={...playerData};saved.settings={...(saved.settings||{}),viewMode};persist();makePlayer();
+ document.querySelector('#creator').style.display='none';start.style.display='none';pauseOpen=false;renderer.domElement.requestPointerLock?.();
 };
 
 document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
@@ -164,17 +201,47 @@ document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.00
 function terrainY(x,z){return heightAt(x,z)+.08}
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.opacity=0,1900)}
 
-const STORE='world3d-v02';let saved={markers:[],position:null,character:null};try{saved={...saved,...JSON.parse(localStorage.getItem(STORE)||localStorage.getItem('world3d-v01')||'{}')}}catch{}
+const STORE='world3d-v02';let saved={markers:[],position:null,character:null,settings:{}};try{saved={...saved,...JSON.parse(localStorage.getItem(STORE)||localStorage.getItem('world3d-v01')||'{}')}}catch{}
+viewMode=saved.settings?.viewMode==='third'?'third':'first';
 if(saved.character)Object.assign(playerData,saved.character);
 syncCreator();
 loadLanguage(playerData.language);
 
 if(saved.position){player.x=saved.position.x;player.z=saved.position.z}
-function persist(){saved.position={x:player.x,z:player.z};saved.character={...playerData};localStorage.setItem(STORE,JSON.stringify(saved))}
+function persist(){saved.position={x:player.x,z:player.z};saved.character={...playerData};saved.settings={...(saved.settings||{}),viewMode};localStorage.setItem(STORE,JSON.stringify(saved))}
 function saveMarker(){const name=prompt(t('markerPrompt'),t('discoveredPlace'));if(name===null)return;saved.markers.push({name:name.trim()||'Luogo senza nome',x:Math.round(player.x),z:Math.round(player.z)});persist();drawMap();toast(t('placeSaved'))}
 document.querySelector('#save').onclick=saveMarker;
-let mapOpen=false;function toggleMap(){mapOpen=!mapOpen;document.querySelector('#mapWrap').style.display=mapOpen?'flex':'none';if(mapOpen){if(locked)document.exitPointerLock();drawMap()}}
-document.querySelector('#mapBtn').onclick=toggleMap;document.querySelector('#closeMap').onclick=toggleMap;
+let mapOpen=false;
+function toggleMap(){
+ mapOpen=!mapOpen;
+ document.querySelector('#mapWrap').style.display=mapOpen?'flex':'none';
+ if(mapOpen){pauseOpen=true;document.querySelector('#pauseMenu').style.display='none';if(locked)document.exitPointerLock();drawMap();}
+ else{document.querySelector('#pauseMenu').style.display='flex';pauseOpen=true;}
+}
+document.querySelector('#closeMap').onclick=toggleMap;
+function openPause(){
+ if(start.style.display!=='none'||document.querySelector('#creator').style.display!=='none')return;
+ pauseOpen=true;document.querySelector('#pauseMenu').style.display='flex';
+ if(locked)document.exitPointerLock();
+}
+function closePause(){
+ pauseOpen=false;document.querySelector('#pauseMenu').style.display='none';
+ renderer.domElement.requestPointerLock?.();
+}
+document.querySelector('#pauseBtn').onclick=openPause;
+document.querySelector('#resumeBtn').onclick=closePause;
+document.querySelector('#closeSettings').onclick=closePause;
+document.querySelector('#menuMapBtn').onclick=()=>{mapOpen=false;toggleMap()};
+document.querySelector('#menuSettingsBtn').onclick=()=>document.querySelector('#settingsPanel').scrollIntoView({block:'nearest'});
+document.querySelector('#viewMode').value=viewMode;
+document.querySelector('#settingsLang').value=playerData.language;
+document.querySelector('#settingsLang').addEventListener('change',async e=>{playerData.language=e.target.value;await setLanguage(e.target.value);persist();});
+document.querySelector('#viewMode').addEventListener('change',e=>{viewMode=e.target.value;persist();});
+for(const id of ['musicEnabled','soundEnabled','musicVolume','soundVolume']){
+ const el=document.querySelector('#'+id),key=id;
+ if(saved.settings?.[key]!==undefined){if(el.type==='checkbox')el.checked=saved.settings[key];else el.value=saved.settings[key]}
+ el.addEventListener('input',()=>{saved.settings={...(saved.settings||{}),[key]:el.type==='checkbox'?el.checked:Number(el.value)};persist()});
+}
 function drawMap(){const c=document.querySelector('#map'),ctx=c.getContext('2d'),w=c.width;const img=ctx.createImageData(w,w);for(let px=0;px<w;px++)for(let pz=0;pz<w;pz++){let x=Math.floor(px/ w*96)-48,z=Math.floor(pz/w*96)-48,h=heightAt(x,z),col=h<3?[65,135,151]:h>10?[119,124,116]:[Math.max(45,105-h*2),Math.min(160,145-h*2),65];let i=(pz*w+px)*4;img.data.set([...col,255],i)}ctx.putImageData(img,0,0);const dot=(x,z,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc((x+48)/96*w,(z+48)/96*w,r,0,Math.PI*2);ctx.fill()};saved.markers.forEach(m=>dot(m.x,m.z,'#ffd45e',5));dot(player.x,player.z,'#fff',6);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(1,1,w-2,w-2);document.querySelector('#markerList').innerHTML=saved.markers.length?saved.markers.map(m=>'<span class="marker">◆ '+escapeHtml(m.name)+' ('+m.x+', '+m.z+')</span>').join(''):t('noMarkers')}
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -187,16 +254,21 @@ function useWorldGate(){
  else{player.x=gateX;player.z=gateZ+4;inStarValley=false;toast(t('returnedWorld'))}
  persist();
 }
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(!mapOpen){const prevX=player.x,prevZ=player.z;if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-46,46);player.z=THREE.MathUtils.clamp(player.z,-46,46);
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(previewModel){previewModel.rotation.y+=dt*.45;previewRenderer.render(previewScene,previewCamera)}if(!mapOpen&&!pauseOpen){const prevX=player.x,prevZ=player.z;if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-46,46);player.z=THREE.MathUtils.clamp(player.z,-46,46);
 if(heightAt(player.x,player.z)<SEA+.22|| (player.x>-16.2&&player.x<-9.8&&player.z>-10.7&&player.z<-5.3) || (player.x>-6.2&&player.x<.2&&player.z>-12.7&&player.z<-7.3)){player.x=prevX;player.z=prevZ}
 if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;
-playerLift+=velocityY*dt;const floor=terrainY(player.x,player.z);if(playerLift<=0){playerLift=0;velocityY=0;onGround=true}if(playerModel){playerModel.position.set(player.x,floor+playerLift,player.z);playerModel.rotation.y=yaw}
+playerLift+=velocityY*dt;const floor=terrainY(player.x,player.z);if(playerLift<=0){playerLift=0;velocityY=0;onGround=true}if(playerModel){playerModel.position.set(player.x,floor+playerLift,player.z);playerModel.rotation.y=yaw;playerModel.visible=viewMode==='third'}
 const bob=(Math.abs(forward)+Math.abs(side)>0)?Math.sin(performance.now()*.012)*.045:0;
-const back=6.1,camHeight=3.35+pitch*1.7;
-camera.position.set(player.x+Math.sin(yaw)*back, floor+playerLift+camHeight+bob, player.z+Math.cos(yaw)*back);
-camera.lookAt(player.x,floor+playerLift+1.25+pitch*1.4,player.z);
-if(playerLabel){playerLabel.position.set(player.x,floor+playerLift+3.05,player.z)}
+if(viewMode==='first'){
+ camera.position.set(player.x,floor+playerLift+1.62,player.z);
+ camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
+ }else{
+ const back=6.1,camHeight=3.35+pitch*1.7;
+ camera.position.set(player.x+Math.sin(yaw)*back,floor+playerLift+camHeight+bob,player.z+Math.cos(yaw)*back);
+ camera.lookAt(player.x,floor+playerLift+1.25+pitch*1.4,player.z);
+ }
+ if(playerLabel){playerLabel.visible=viewMode==='third';playerLabel.position.set(player.x,floor+playerLift+3.05,player.z)}
 document.querySelector('#coords').textContent='X '+Math.round(player.x)+' · Z '+Math.round(player.z);if(Math.random()<.025)persist()}renderer.render(scene,camera)}
-const clock=new THREE.Clock();makePlayer();animate();
+const clock=new THREE.Clock();makePlayer();buildPreview();resizePreview();animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 addEventListener('beforeunload',persist);drawMap();
