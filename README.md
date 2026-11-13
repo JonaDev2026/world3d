@@ -1,5 +1,7 @@
 # WORLD — Open Exploration
 
+![](preview.png)
+
 Prima versione giocabile di WORLD: un mondo 3D voxel da esplorare in prima persona.
 
 ## Avvio su Linux
