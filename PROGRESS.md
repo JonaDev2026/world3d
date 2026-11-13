@@ -21,14 +21,21 @@
 ### Fondamenta tempo di Vaelmar — 2026-11-13
 - [x] Modulo indipendente `js/world-time.js` per orologio e calendario, senza dipendenze Three.js.
 - [x] Giorno di gioco: 30 minuti reali; rapporto temporale 48:1.
-- [x] Calendario strutturale: 12 mesi × 30 giorni, 360 giorni per anno, quattro stagioni da tre mesi.
+- [x] Calendario Vaelmar definito: 12 mesi × 30 giorni, 360 giorni per anno, quattro stagioni da tre mesi.
+- [x] Nomi dei dodici mesi e delle quattro stagioni inseriti nel modulo e nella documentazione.
 - [x] Snapshot con anno, mese, giorno, stagione, ora, fase del giorno e avanzamento solare.
 - [x] Comandi start/pause, avanzamento, impostazione dell'ora, riposo fino a un'ora e serializzazione per i futuri salvataggi.
 - [x] Anteprima collegata alla scena Three.js: il tempo parte alle 06:00 quando si entra nella schermata di avvio del mondo e si ferma tornando al menu.
 - [x] Luce direzionale solare, luce lunare, sfere di sole/luna e colore di cielo/nebbia variano con l'ora.
 - [x] Orologio a schermo con data, ora e fase del giorno.
 - [ ] Collegare il tempo alla futura scena esplorabile, al meteo e alle routine del mondo.
-- [ ] Definire i nomi canonici dei dodici mesi e delle quattro stagioni con la lore.
+- [ ] Verificare la resa della data estesa nell'orologio durante il ciclo.
+
+### Calendario di Vaelmar — nomi definiti
+- Risveglio: Germoglio, Fioritura, Solealto.
+- Alta Luce: Ardore, Mietitura, Mezzaluce.
+- Caduta: Foglia d'Oro, Bruma, Cenere.
+- Lungo Inverno: Gelo Profondo, Notte Quieta, Ultima Fiamma.
 
 ### Stato reale
 Questa è una base grafica e una schermata di selezione, non ancora un gioco completo. La schermata di avvio del mondo funge per ora da anteprima del ciclo: non esistono ancora movimento, collisioni, città, missioni, combattimenti o salvataggi della nuova architettura. Il ciclo visivo non è stato ancora verificato nel browser locale.

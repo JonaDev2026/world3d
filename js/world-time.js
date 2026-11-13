@@ -17,6 +17,28 @@ export const VAELMAR_CALENDAR = Object.freeze({
   monthsPerSeason: 3
 });
 
+export const VAELMAR_MONTH_NAMES = Object.freeze([
+  'Germoglio',
+  'Fioritura',
+  'Solealto',
+  'Ardore',
+  'Mietitura',
+  'Mezzaluce',
+  "Foglia d'Oro",
+  'Bruma',
+  'Cenere',
+  'Gelo Profondo',
+  'Notte Quieta',
+  'Ultima Fiamma'
+]);
+
+export const VAELMAR_SEASON_NAMES = Object.freeze([
+  'Risveglio',
+  'Alta Luce',
+  'Caduta',
+  'Lungo Inverno'
+]);
+
 export const VAELMAR_DAY_PHASES = Object.freeze([
   { id: 'night', start: 22, end: 5 },
   { id: 'dawn', start: 5, end: 7 },
@@ -25,13 +47,6 @@ export const VAELMAR_DAY_PHASES = Object.freeze([
   { id: 'afternoon', start: 16, end: 19 },
   { id: 'sunset', start: 19, end: 20 },
   { id: 'twilight', start: 20, end: 22 }
-]);
-
-const SEASON_NAMES = Object.freeze([
-  'Stagione I',
-  'Stagione II',
-  'Stagione III',
-  'Stagione IV'
 ]);
 
 const SECONDS_PER_HOUR = 60 * 60;
@@ -63,19 +78,23 @@ export function getVaelmarCalendar(gameSeconds = 0) {
   const hour = Math.floor(secondsToday / SECONDS_PER_HOUR);
   const minute = Math.floor((secondsToday % SECONDS_PER_HOUR) / 60);
   const second = Math.floor(secondsToday % 60);
+  const year = Math.floor(absoluteDay / VAELMAR_CALENDAR.daysPerYear) + 1;
+  const monthName = VAELMAR_MONTH_NAMES[month - 1];
 
   return Object.freeze({
-    year: Math.floor(absoluteDay / VAELMAR_CALENDAR.daysPerYear) + 1,
+    year,
     dayOfYear: dayOfYear + 1,
     month,
+    monthName,
     day,
-    season: SEASON_NAMES[seasonIndex],
+    season: VAELMAR_SEASON_NAMES[seasonIndex],
     seasonNumber: seasonIndex + 1,
+    dayOfSeason: seasonIndex * 90 + ((month - 1) % 3) * 30 + day,
     hour,
     minute,
     second,
     time: [hour, minute, second].map(value => String(value).padStart(2, '0')).join(':'),
-    date: `Anno ${Math.floor(absoluteDay / VAELMAR_CALENDAR.daysPerYear) + 1} · Mese ${String(month).padStart(2, '0')} · Giorno ${String(day).padStart(2, '0')}`,
+    date: `Giorno ${String(day).padStart(2, '0')} · ${monthName} · Anno ${year}`,
     phase: phaseForHour(hour),
     dayProgress: secondsToday / SECONDS_PER_DAY,
     sunProgress: (secondsToday / SECONDS_PER_DAY + 0.25) % 1,

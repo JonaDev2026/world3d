@@ -15,8 +15,10 @@ Il progetto riparte da una base pulita. Il vecchio prototipo del villaggio, il s
 - Durata di un giorno completo: **30 minuti reali**.
 - Rapporto temporale: **48 secondi di Vaelmar per ogni secondo reale**; un'ora di Vaelmar dura 75 secondi reali.
 - Calendario: 12 mesi da 30 giorni, 360 giorni per anno.
-- Quattro stagioni strutturali, ciascuna composta da tre mesi. Nomi e caratteristiche stagionali canoniche sono ancora da definire.
-- Il modulo `js/world-time.js` calcola data, ora, fase del giorno e avanzamento solare; gestisce pausa, ripresa, avanzamento, riposo e serializzazione.
+- Quattro stagioni da 90 giorni, ciascuna composta da tre mesi.
+- Mesi, in ordine: **Germoglio**, **Fioritura**, **Solealto**, **Ardore**, **Mietitura**, **Mezzaluce**, **Foglia d'Oro**, **Bruma**, **Cenere**, **Gelo Profondo**, **Notte Quieta**, **Ultima Fiamma**.
+- Stagioni: **Risveglio** (mesi 1–3), **Alta Luce** (4–6), **Caduta** (7–9), **Lungo Inverno** (10–12).
+- Il modulo `js/world-time.js` calcola data, ora, nome del mese, stagione, giorno della stagione, fase del giorno e avanzamento solare; gestisce pausa, ripresa, avanzamento, riposo e serializzazione.
 - Fasce giornaliere provvisorie: alba 05:00–07:00; mattina 07:00–11:00; giorno 11:00–16:00; pomeriggio 16:00–19:00; tramonto 19:00–20:00; crepuscolo 20:00–22:00; notte 22:00–05:00.
 - Nell'anteprima attuale il clock parte alle 06:00 entrando nella schermata di avvio del mondo e si ferma tornando al menu.
 - La scena aggiorna luce solare e lunare, sfere di sole/luna e colore del cielo e della nebbia; un HUD mostra data, ora e fase.

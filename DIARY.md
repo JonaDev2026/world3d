@@ -25,8 +25,17 @@ Decisione: abbandonare il vecchio prototipo e ricostruire il gioco partendo dall
 - La scena Three.js ora usa il clock quando si entra nella schermata di avvio del mondo: il tempo parte alle 06:00 e si arresta tornando al menu.
 - La luce direzionale del sole, la luce lunare, gli indicatori sferici di sole/luna e i colori di cielo e nebbia cambiano con l'ora.
 - Aggiunto un piccolo orologio a schermo con data, ora e fase.
-- I mesi non hanno ancora nomi canonici; sono indicati numericamente. Le quattro stagioni hanno etichette provvisorie.
+- Definiti i dodici mesi: Germoglio, Fioritura, Solealto, Ardore, Mietitura, Mezzaluce, Foglia d'Oro, Bruma, Cenere, Gelo Profondo, Notte Quieta, Ultima Fiamma.
+- Definite le quattro stagioni: Risveglio, Alta Luce, Caduta e Lungo Inverno, ognuna di tre mesi.
+- Lo snapshot del calendario restituisce ora anche nome del mese, stagione nominata e giorno progressivo della stagione.
 - Questa è un'anteprima tecnica sulla scena attuale, non ancora il ciclo collegato a un mondo esplorabile. Il comportamento va verificato nel browser locale.
+
+### Calendario di Vaelmar — nomi definiti
+- **Risveglio:** Germoglio, Fioritura, Solealto.
+- **Alta Luce:** Ardore, Mietitura, Mezzaluce.
+- **Caduta:** Foglia d'Oro, Bruma, Cenere.
+- **Lungo Inverno:** Gelo Profondo, Notte Quieta, Ultima Fiamma.
+- Ogni mese dura 30 giorni; ogni stagione 90 giorni; l'anno 360 giorni.
 
 ### Verifiche e limiti
 - Verificati staticamente gli ID HTML usati dal nuovo JavaScript.
