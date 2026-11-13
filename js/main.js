@@ -1,21 +1,69 @@
 
 import * as THREE from 'three';
 import { loadLanguage, t, setLanguage } from './i18n.js';
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc4d1);scene.fog=new THREE.Fog(0x9bc4d1,48,125);
-const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,220);camera.position.set(0,8,12);
-const renderer=new THREE.WebGLRenderer({canvas:document.querySelector('#game'),antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=false;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc4d1);scene.fog=new THREE.Fog(0x9bc4d1,72,165);
+const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,240);camera.position.set(0,8,12);
+const renderer=new THREE.WebGLRenderer({canvas:document.querySelector('#game'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=false;
 scene.add(new THREE.HemisphereLight(0xd9efff,0x65734b,2.0));const sun=new THREE.DirectionalLight(0xffedc5,2.2);sun.position.set(-35,65,25);scene.add(sun);
-const mats={grass:0x6f9d4e,dirt:0x79563a,stone:0x858b83,sand:0xc6b77b,wood:0x765034,leaves:0x3e743e,leaf2:0x588947,water:0x4b9ca7,roof:0x70483a};
-const geo=new THREE.BoxGeometry(1,1,1);const buckets={};for(const [k,c] of Object.entries(mats)){buckets[k]=[]}
+const mats={grass:0x789d59,dirt:0x79563a,stone:0x858b83,sand:0xc6b77b,wood:0x765034,leaves:0x3e743e,leaf2:0x588947,water:0x4b9ca7,roof:0x70483a};
 function hash(x,z){let n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n)}
-function heightAt(x,z){const hills=Math.sin(x*.075)*2.7+Math.cos(z*.061)*2.2+Math.sin((x+z)*.035)*2;const ridge=Math.max(0,Math.sin((x-z*.55)*.035))*Math.max(0,Math.cos(z*.025))*7;return Math.floor(3+hills+ridge)}
-const HALF=48;
-for(let x=-HALF;x<HALF;x++)for(let z=-HALF;z<HALF;z++){let h=heightAt(x,z);let beach=(x>12&&x<25&&z> -22&&z<18);for(let y=0;y<h;y++)buckets[y===h-1?(beach?'sand':'grass'):(y<h-3?'stone':'dirt')].push([x,y,z]);if(h<3)buckets.water.push([x,2,z]);}
-function addStructure(x,z,type){const h=heightAt(x,z);if(type==='tree'){for(let y=0;y<4;y++)buckets.wood.push([x,h+y,z]);for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++)for(let dy=2;dy<=5;dy++){if(Math.abs(dx)+Math.abs(dz)+(dy===5?1:0)<5&&hash(x+dx*7,z+dz*9+dy)>.12)buckets[dy%2?'leaves':'leaf2'].push([x+dx,h+dy,z+dz])}}}
-for(let x=-HALF+3;x<HALF-3;x++)for(let z=-HALF+3;z<HALF-3;z++){if(hash(x,z)>.982&&Math.abs(x)<38&&Math.abs(z)<38)addStructure(x,z,'tree')}
-function house(x,z){const h=heightAt(x,z);for(let dx=0;dx<7;dx++)for(let dz=0;dz<6;dz++){buckets.wood.push([x+dx,h,z+dz]);if(dx===0||dx===6||dz===0||dz===5)for(let y=1;y<4;y++)if(!(dx===3&&dz===0&&y<3))buckets.wood.push([x+dx,h+y,z+dz]);}for(let dx=-1;dx<8;dx++)for(let dz=-1;dz<7;dz++)buckets.roof.push([x+dx,h+4,z+dz]);}
-house(-13,-8);house(-3,-10);
-
+const HALF=48,SEA=1.65;
+function smooth(a,b,v){const t=THREE.MathUtils.clamp((v-a)/(b-a),0,1);return t*t*(3-2*t)}
+function rawHeight(x,z){return 4.2+Math.sin(x*.075)*2.0+Math.cos(z*.061)*1.65+Math.sin((x+z)*.035)*1.3+Math.max(0,Math.sin((x-z*.55)*.035))*Math.max(0,Math.cos(z*.025))*4.2}
+function heightAt(x,z){
+ const raw=rawHeight(x,z);
+ const village=1-smooth(13,23,Math.hypot(x+5,z+8));
+ const spawn=1-smooth(6,13,Math.hypot(x,z-8));
+ const roadDist=Math.abs(x-(z*.28-2));
+ const road= (1-smooth(2.2,4.5,roadDist))*(1-smooth(5,48,Math.hypot(x,z+5)));
+ const flatten=Math.max(village,spawn,road*.88);
+ return raw+(4.35-raw)*flatten;
+}
+const terrainGeo=new THREE.PlaneGeometry(HALF*2,HALF*2,96,96);terrainGeo.rotateX(-Math.PI/2);
+const pos=terrainGeo.attributes.position,colors=[];
+for(let i=0;i<pos.count;i++){
+ const x=pos.getX(i),z=pos.getZ(i),h=heightAt(x,z);pos.setY(i,h);
+ const c=new THREE.Color(h<SEA+.25?0x9caa78:h>10?0x85877b:0x789d59);
+ colors.push(c.r,c.g,c.b);
+}
+terrainGeo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));terrainGeo.computeVertexNormals();
+const terrain=new THREE.Mesh(terrainGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:false}));
+terrain.receiveShadow=true;scene.add(terrain);
+const waterGeo=new THREE.PlaneGeometry(160,160,1,1);waterGeo.rotateX(-Math.PI/2);
+const water=new THREE.Mesh(waterGeo,new THREE.MeshPhysicalMaterial({color:0x4b9ca7,transparent:true,opacity:.72,roughness:.24,metalness:.08,clearcoat:.8}));
+water.position.y=SEA;scene.add(water);
+function makeTree(x,z,scale=1){
+ const y=heightAt(x,z),g=new THREE.Group();
+ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.22*scale,.38*scale,2.6*scale,9),new THREE.MeshStandardMaterial({color:0x725039,roughness:1}));
+ trunk.position.y=1.3*scale;g.add(trunk);
+ const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.55*scale,1),new THREE.MeshStandardMaterial({color:hash(x,z)>.5?0x477d43:0x5c914c,roughness:1,flatShading:false}));
+ crown.position.y=3.25*scale;crown.scale.set(1,1.12,.94);g.add(crown);
+ const crown2=new THREE.Mesh(new THREE.IcosahedronGeometry(.95*scale,1),new THREE.MeshStandardMaterial({color:0x659b50,roughness:1}));
+ crown2.position.set(.48*scale,3.8*scale,.08*scale);g.add(crown2);
+ g.position.set(x,y,z);scene.add(g);
+}
+for(let x=-HALF+4;x<HALF-4;x+=3)for(let z=-HALF+4;z<HALF-4;z+=3){
+ if(hash(x,z)>.84&&Math.hypot(x+5,z+8)>23&&Math.hypot(x,z-8)>13&&heightAt(x,z)>SEA+1)makeTree(x,z,.82+hash(z,x)*.42);
+}
+function house(x,z,scale=1){
+ const y=heightAt(x,z),g=new THREE.Group();
+ const wallMat=new THREE.MeshStandardMaterial({color:0xb69a72,roughness:.92});
+ const timberMat=new THREE.MeshStandardMaterial({color:0x69482f,roughness:1});
+ const roofMat=new THREE.MeshStandardMaterial({color:0x75493b,roughness:.88});
+ const add=(geo,mat,px,py,pz)=>{const m=new THREE.Mesh(geo,mat);m.position.set(px,py,pz);g.add(m);return m};
+ add(new THREE.BoxGeometry(6*scale,3.3*scale,5*scale),wallMat,0,1.65*scale,0);
+ add(new THREE.BoxGeometry(1.05*scale,2.1*scale,.12*scale),timberMat,0,1.05*scale,2.56*scale);
+ add(new THREE.BoxGeometry(1.1*scale,1.15*scale,.16*scale),new THREE.MeshStandardMaterial({color:0x3a2920}),0,.58*scale,2.64*scale);
+ for(const side of [-1,1]){
+  const roofGeo=new THREE.BufferGeometry();
+  const verts=side===-1?[-3,3,0,0,4.9,0,-3,3,-2.5, 0,4.9,0,0,4.9,-2.5,-3,3,-2.5]:[0,4.9,0,3,3,0,0,4.9,-2.5,3,3,0,3,3,-2.5,0,4.9,-2.5];
+  roofGeo.setAttribute('position',new THREE.Float32BufferAttribute(verts.map(v=>v*scale),3));roofGeo.computeVertexNormals();
+  const roof=new THREE.Mesh(roofGeo,roofMat);roof.material.side=THREE.DoubleSide;g.add(roof);
+ }
+ for(const dx of [-2.2,2.2]){add(new THREE.BoxGeometry(.14*scale,3.5*scale,.14*scale),timberMat,dx*scale,1.7*scale,2.53*scale)}
+ g.position.set(x,y,z);scene.add(g);
+}
+house(-13,-8,1);house(-3,-10,.88);
 // --- Il regno di WORLD: luoghi, abitanti e portali ---
 function solidBox(x,y,z,sx,sy,sz,color,opts={}) {
  const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),new THREE.MeshLambertMaterial({color,...opts}));
@@ -68,9 +116,6 @@ const crystalMat=new THREE.MeshStandardMaterial({color:0x9b8cff,emissive:0x4934a
 for(let i=0;i<7;i++){const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.65+hash(i,8)*.55),crystalMat);crystal.position.set(34+(i%3)*2,terrainY(34+(i%3)*2,34+Math.floor(i/3)*2)+1.1+i*.22,34+Math.floor(i/3)*2);crystal.rotation.set(i*.4,i*.7,i*.2);scene.add(crystal)}
 sign(35,30,'VALLE DELLE STELLE',['Hai trovato il primo mondo segreto','Cerca i cristalli luminosi']);
 
-for(const [k,arr] of Object.entries(buckets)){if(!arr.length)continue;const mesh=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:mats[k],transparent:k==='water',opacity:k==='water'?.78:1}),arr.length);const o=new THREE.Object3D();arr.forEach((p,i)=>{o.position.set(p[0],p[1]+.5,p[2]);o.updateMatrix();mesh.setMatrixAt(i,o.matrix)});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh)}
-// path and small settlement clearing
-const ground=new THREE.PlaneGeometry(200,200);const groundMesh=new THREE.Mesh(ground,new THREE.MeshLambertMaterial({color:0x567e42}));groundMesh.rotation.x=-Math.PI/2;groundMesh.position.y=-.52;scene.add(groundMesh);
 const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyM')toggleMap();if(e.code==='KeyP')saveMarker();if(e.code==='KeyE')useWorldGate()});addEventListener('keyup',e=>keys[e.code]=false);
 
 let yaw=0,pitch=.12,locked=false,velocityY=0,onGround=false;const player={x:0,z:8};const start=document.querySelector('#start');
@@ -79,14 +124,14 @@ let playerModel=null,playerLabel=null,playerLift=0;
 function makePlayer(){
  if(playerModel)scene.remove(playerModel);
  playerModel=new THREE.Group();
- const mat=c=>new THREE.MeshLambertMaterial({color:c});
- const torso=new THREE.Mesh(new THREE.BoxGeometry(.72,.92,.38),mat(playerData.shirt));torso.position.y=1.22;playerModel.add(torso);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.31,12,10),mat(playerData.skin));head.position.y=1.95;playerModel.add(head);
- const hair=new THREE.Mesh(new THREE.SphereGeometry(.325,12,7,0,Math.PI*2,0,Math.PI*.48),mat(playerData.hair));hair.position.y=2.08;playerModel.add(hair);
+ const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.82});
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.58,5,10),mat(playerData.shirt));torso.position.y=1.25;playerModel.add(torso);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.29,16,12),mat(playerData.skin));head.position.y=1.98;playerModel.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.305,16,10,0,Math.PI*2,0,Math.PI*.52),mat(playerData.hair));hair.position.y=2.1;playerModel.add(hair);
  for(const side of [-1,1]){
-  const arm=new THREE.Mesh(new THREE.BoxGeometry(.22,.78,.25),mat(playerData.shirt));arm.position.set(side*.49,1.22,0);playerModel.add(arm);
-  const leg=new THREE.Mesh(new THREE.BoxGeometry(.25,.72,.29),mat(0x343b3b));leg.position.set(side*.19,.36,0);playerModel.add(leg);
-  const boot=new THREE.Mesh(new THREE.BoxGeometry(.28,.18,.4),mat(0x392b22));boot.position.set(side*.19,.09,-.045);playerModel.add(boot);
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.48,4,8),mat(playerData.shirt));arm.position.set(side*.43,1.23,0);arm.rotation.z=side*.12;playerModel.add(arm);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.43,4,8),mat(0x343b3b));leg.position.set(side*.17,.43,0);playerModel.add(leg);
+  const boot=new THREE.Mesh(new THREE.SphereGeometry(.16,12,8),mat(0x392b22));boot.scale.set(1,.58,1.4);boot.position.set(side*.17,.12,-.06);playerModel.add(boot);
  }
  playerModel.position.set(player.x,terrainY(player.x,player.z)+playerLift,player.z);scene.add(playerModel);
  const c=document.createElement('canvas');c.width=512;c.height=96;const g=c.getContext('2d');
@@ -116,7 +161,7 @@ document.querySelector('#createPlayer').onclick=()=>{
 
 document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
 document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.0022;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0022))});
-function terrainY(x,z){return heightAt(Math.round(x),Math.round(z))+.15}
+function terrainY(x,z){return heightAt(x,z)+.08}
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.opacity=0,1900)}
 
 const STORE='world3d-v02';let saved={markers:[],position:null,character:null};try{saved={...saved,...JSON.parse(localStorage.getItem(STORE)||localStorage.getItem('world3d-v01')||'{}')}}catch{}
@@ -142,10 +187,10 @@ function useWorldGate(){
  else{player.x=gateX;player.z=gateZ+4;inStarValley=false;toast(t('returnedWorld'))}
  persist();
 }
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(!mapOpen){if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-47,47);player.z=THREE.MathUtils.clamp(player.z,-47,47);if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(!mapOpen){if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-46,46);player.z=THREE.MathUtils.clamp(player.z,-46,46);if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;
 playerLift+=velocityY*dt;const floor=terrainY(player.x,player.z);if(playerLift<=0){playerLift=0;velocityY=0;onGround=true}if(playerModel){playerModel.position.set(player.x,floor+playerLift,player.z);playerModel.rotation.y=yaw}
 const bob=(Math.abs(forward)+Math.abs(side)>0)?Math.sin(performance.now()*.012)*.045:0;
-const back=5.2,camHeight=3.05+pitch*2.0;
+const back=6.1,camHeight=3.35+pitch*1.7;
 camera.position.set(player.x+Math.sin(yaw)*back, floor+playerLift+camHeight+bob, player.z+Math.cos(yaw)*back);
 camera.lookAt(player.x,floor+playerLift+1.25+pitch*1.4,player.z);
 if(playerLabel){playerLabel.position.set(player.x,floor+playerLift+3.05,player.z)}
