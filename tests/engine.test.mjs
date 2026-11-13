@@ -136,3 +136,16 @@ test("settlement population and stores follow the actual residents", () => {
   const allocated = state.settlementDetails.reduce((sum, site) => sum + site.stores, 0);
   assert.ok(Math.abs(allocated - world.food) < 1e-8);
 });
+
+test("agriculture creates specialized farmers", () => {
+  const world = createWorld();
+  world.knowledge = 100;
+  advance(world, 365);
+  const state = summary(world);
+  assert.ok(state.roles.agricoltore > 0);
+  assert.equal(
+    Object.values(state.roles).reduce((sum, count) => sum + count, 0),
+    state.workers
+  );
+  assert.ok(world.specializations.includes("agricoltore"));
+});
