@@ -75,7 +75,7 @@ const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','Ar
 
 let yaw=0,pitch=.12,locked=false,velocityY=0,onGround=false;const player={x:0,z:8};const start=document.querySelector('#start');
 const playerData={name:'',language:'it',skin:'#d4a77d',hair:'#493326',shirt:'#496b91'};
-let playerModel=null,playerLabel=null;
+let playerModel=null,playerLabel=null,playerLift=0;
 function makePlayer(){
  if(playerModel)scene.remove(playerModel);
  playerModel=new THREE.Group();
@@ -88,7 +88,7 @@ function makePlayer(){
   const leg=new THREE.Mesh(new THREE.BoxGeometry(.25,.72,.29),mat(0x343b3b));leg.position.set(side*.19,.36,0);playerModel.add(leg);
   const boot=new THREE.Mesh(new THREE.BoxGeometry(.28,.18,.4),mat(0x392b22));boot.position.set(side*.19,.09,-.045);playerModel.add(boot);
  }
- playerModel.position.set(player.x,terrainY(player.x,player.z),player.z);scene.add(playerModel);
+ playerModel.position.set(player.x,terrainY(player.x,player.z)+playerLift,player.z);scene.add(playerModel);
  const c=document.createElement('canvas');c.width=512;c.height=96;const g=c.getContext('2d');
  g.fillStyle='#101a18dd';g.fillRect(0,0,512,96);g.fillStyle='#fff0c9';g.font='bold 48px system-ui';g.textAlign='center';g.fillText(playerData.name||'Explorer',256,65);
  playerLabel=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false}));
@@ -119,7 +119,7 @@ document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.00
 function terrainY(x,z){return heightAt(Math.round(x),Math.round(z))+.15}
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.opacity=0,1900)}
 
-const STORE='world3d-v02';let saved={markers:[],position:null,character:null};try{saved={...saved,...JSON.parse(localStorage.getItem(STORE)||'{}')}}catch{}
+const STORE='world3d-v02';let saved={markers:[],position:null,character:null};try{saved={...saved,...JSON.parse(localStorage.getItem(STORE)||localStorage.getItem('world3d-v01')||'{}')}}catch{}
 if(saved.character)Object.assign(playerData,saved.character);
 syncCreator();
 loadLanguage(playerData.language);
@@ -143,12 +143,12 @@ function useWorldGate(){
  persist();
 }
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(!mapOpen){if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-47,47);player.z=THREE.MathUtils.clamp(player.z,-47,47);if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;
-const floor=terrainY(player.x,player.z);if(playerModel){playerModel.position.set(player.x,floor,player.z);playerModel.rotation.y=yaw}
+playerLift+=velocityY*dt;const floor=terrainY(player.x,player.z);if(playerLift<=0){playerLift=0;velocityY=0;onGround=true}if(playerModel){playerModel.position.set(player.x,floor+playerLift,player.z);playerModel.rotation.y=yaw}
 const bob=(Math.abs(forward)+Math.abs(side)>0)?Math.sin(performance.now()*.012)*.045:0;
 const back=5.2,camHeight=3.05+pitch*2.0;
-camera.position.set(player.x+Math.sin(yaw)*back, floor+camHeight+bob, player.z+Math.cos(yaw)*back);
-camera.lookAt(player.x,floor+1.25+pitch*1.4,player.z);
-if(playerLabel){playerLabel.position.set(player.x,floor+3.05,player.z)}
+camera.position.set(player.x+Math.sin(yaw)*back, floor+playerLift+camHeight+bob, player.z+Math.cos(yaw)*back);
+camera.lookAt(player.x,floor+playerLift+1.25+pitch*1.4,player.z);
+if(playerLabel){playerLabel.position.set(player.x,floor+playerLift+3.05,player.z)}
 document.querySelector('#coords').textContent='X '+Math.round(player.x)+' · Z '+Math.round(player.z);if(Math.random()<.025)persist()}renderer.render(scene,camera)}
 const clock=new THREE.Clock();makePlayer();animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
