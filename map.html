@@ -117,8 +117,38 @@ if(kind==='guild'){box(g,0,h+.5,d/2+.35,w*.48,.35,.25,gold)}
 return g}
 // Quartieri irregolari: lotti sfalsati, orientamenti e altezze non ripetitivi
 let bcount=0;let seedRand=9173;function rnd(){seedRand=(seedRand*16807)%2147483647;return (seedRand-1)/2147483646}
-const districts=[[-278,-228,4],[-168,-274,3],[28,-250,5],[218,-268,4],[-286,-112,3],[263,-145,4],[-242,118,5],[278,168,3],[-208,268,4],[-72,226,4],[118,278,3],[254,238,5],[-272,22,3],[236,48,4],[-142,112,3],[172,-92,4],[-184,-62,3],[126,128,3]];
-for(const [cx,cz,n] of districts){for(let k=0;k<n;k++){const x=cx+(rnd()-.5)*48,z=cz+(rnd()-.5)*43;const w=8+rnd()*12,d=7+rnd()*10,h=5.2+rnd()*7.2;const seed=Math.floor(rnd()*plaster.length),kind=bcount%17===0?'inn':bcount%7===0?'shop':bcount%19===0?'guild':'house';house(x,z,w,d,h,seed,kind,(rnd()-.5)*.52);if(rnd()>.58){const aw=2.2+rnd()*3.2,ad=2.5+rnd()*3;box(city,x+(rnd()-.5)*w*.65,.9,z+(rnd()-.5)*d*.65,aw,1.8,ad,plaster[Math.floor(rnd()*plaster.length)]);}bcount++}}
+// Isolati compatti: facciate ravvicinate lungo strade e vicoli, lotti irregolari
+const streetRows=[-238,-150,-48,52,148,238];
+for(let row=0;row<streetRows.length;row++){
+ const z=streetRows[row];
+ for(const side of [-1,1]){
+  let x=-274+((row+side+2)%3)*5;
+  while(x<270){
+   const w=10+rnd()*7,d=9+rnd()*5,h=6+rnd()*6.5;
+   const gap=1.2+rnd()*2.2;
+   const xx=x+w/2;
+   // Riserva piazza e cattedrale: qui le facciate si aprono in slarghi
+   const nearSquare=Math.abs(xx)<52&&Math.abs(z)<48;
+   const nearCathedral=Math.abs(xx)<42&&z>-126&&z<-18;
+   if(!nearSquare&&!nearCathedral){
+    const seed=Math.floor(rnd()*plaster.length);
+    const kind=bcount%13===0?'inn':bcount%5===0?'shop':bcount%17===0?'guild':'house';
+    house(xx,z+side*(8.5+d/2),w,d,h,seed,kind,side===1?0:Math.PI);
+    bcount++;
+   }
+   x+=w+gap;
+  }
+ }
+}
+// Piccoli edifici trasversali chiudono gli isolati, lasciando passaggi pedonali
+for(const bx of [-245,-155,155,245]){
+ for(const bz of [-190,-95,95,190]){
+  if(Math.abs(bx)<70&&Math.abs(bz)<130)continue;
+  const w=11+rnd()*6,d=9+rnd()*5,h=6+rnd()*5;
+  house(bx+(rnd()-.5)*8,bz+(rnd()-.5)*8,w,d,h,Math.floor(rnd()*plaster.length),'house',(rnd()-.5)*.28);
+  bcount++;
+ }
+}
 // central cathedral and civic square
 const square=mat(0xaaa18e);plane(city,0,.08,0,82,76,square);
 for(let i=-3;i<=3;i++){for(let j=-3;j<=3;j++){if((i+j)%2===0)box(city,i*18,.16,j*18,17,.16,17,stoneLight,false)}}
