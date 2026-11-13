@@ -75,3 +75,16 @@ La scena attuale usa un terreno di 96 × 96 unità (circa 9.216 m² = 0,009216 k
 - Non creare un enorme terreno monolitico: chunk streaming e caricamento progressivo sono requisiti.
 - Prima città e dettagli devono avere una logica geografica e culturale coerente.
 - Preferire mesh morbide e dettagliate, materiali PBR leggeri e silhouette leggibili; evitare look Minecraft.
+
+
+## Direzione narrativa e protagonisti — 2026-11-13
+
+- [x] Definita la saga originale **La Corona delle Ceneri**, ambientata nei regni di Avarra.
+- [x] Creato il quartetto: Eldrin (mago), Lyra (arciera), Kael (spadaccino), Il Velato (lanciere mascherato).
+- [x] Inseriti nella prima regione i quattro personaggi con le rispettive armi distintive.
+- [ ] Creare modelli completi e silhouette cinematografiche, con volti, capelli, armature, mantelli e materiali dettagliati.
+- [ ] Animazioni individuali e mosse d'attacco per bastone magico, arco, spada e lancia.
+- [ ] Dialoghi, missioni personali e sistema per incontrare/reclutare il gruppo.
+- [ ] Definire cambio personaggio e combattimento prima di collegarli ai comandi di gioco.
+
+Il quarto protagonista usa una **lancia-reliquia**: differenzia il suo combattimento dagli altri tre e si lega al mistero della Soglia.
