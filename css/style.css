@@ -23,3 +23,27 @@ button{font:600 12px inherit;color:#f3f2e9;background:#243b32;border:1px solid #
 .creatorGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:11px;color:#b7cbb9;letter-spacing:.08em}.field input,.field select{width:100%;min-width:0;padding:11px;border-radius:8px;border:1px solid #ffffff35;background:#0f1c16;color:#fff;font:inherit}
 #creatorCard .wide{grid-column:1/-1}#creatorCard button{width:100%;padding:14px}
 #playerName{position:fixed;z-index:2;pointer-events:none;color:#fff4d5;font:bold 12px system-ui;text-shadow:0 2px 5px #000;transform:translate(-50%,-100%);white-space:nowrap;display:none}
+
+/* Character creation: live 3D preview */
+#creatorCard{width:min(96vw,760px);max-height:94vh;overflow:auto}
+.previewStage{height:210px;position:relative;overflow:hidden;border:1px solid #ffffff25;border-radius:14px;background:radial-gradient(ellipse at 50% 65%,#55715a,#182a21 72%);margin:16px 0 8px}
+#characterPreview{width:100%;height:100%;display:block}
+.previewStage span{position:absolute;left:12px;top:10px;font-size:10px;letter-spacing:.16em;color:#d8e6d2;background:#101a18aa;padding:6px 9px;border-radius:6px;pointer-events:none}
+.creatorGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:640px){.creatorGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.previewStage{height:180px}#creatorCard{padding:18px}}
+/* Pause and settings */
+#pauseBtn{font-size:18px;min-width:46px;padding:8px 14px}
+.overlayMenu{display:none;position:fixed;inset:0;z-index:8;align-items:center;justify-content:center;padding:18px;background:#07100edb;backdrop-filter:blur(10px);pointer-events:auto}
+.menuCard{width:min(94vw,520px);background:#17271f;border:1px solid #ffffff30;border-radius:18px;padding:22px;box-shadow:0 24px 90px #0009}
+.menuCard header,.menuCard footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.menuCard h2{margin:0;letter-spacing:.2em;font-size:23px}.menuCard header p{margin:5px 0 0;color:#a9c5a9;font-size:11px;letter-spacing:.2em}
+.menuTabs{display:flex;gap:8px;margin:20px 0 14px}.menuTabs button{flex:1}
+#settingsPanel{display:grid;gap:12px}
+#settingsPanel>label,.audioSetting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #ffffff20;border-radius:10px;background:#ffffff08}
+#settingsPanel select{min-width:155px;max-width:55%;padding:9px;border:1px solid #ffffff35;border-radius:8px;background:#0f1c16;color:#fff}
+.audioSetting{display:grid;grid-template-columns:1fr 1fr;align-items:center}
+.audioSetting label{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.audioSetting input[type=range]{width:100%;accent-color:#91b878}
+.audioSetting small{grid-column:1/-1;color:#9eb49d;font-size:10px}
+.menuCard footer{margin-top:18px;color:#9eb49d;font-size:11px}
+#mapWrap{z-index:9}
