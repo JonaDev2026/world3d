@@ -4,7 +4,7 @@ function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|
 const pick=(s,a)=>a[Math.floor(random(s)*a.length)];
 const alive=p=>p.alive;
 export function createWorld(){
- const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:"Valle del Primo Fiume",x:0,y:0,kind:"accampamento",homes:6,fields:0,stores:180,water:1000,knownArea:12}],nextPersonId:25,nextSettlementId:2,food:180,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],religion:"Tradizioni orali",polity:"Comunità senza governo",laws:"Consuetudini condivise",economy:"Sussistenza collettiva",events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},neighbors:[{id:1,name:"Gente della Quercia",population:19,food:125,hostility:12,discovered:false,atWar:false,warDays:0,technology:0,x:-150,y:110},{id:2,name:"Clan delle Colline",population:14,food:95,hostility:8,discovered:false,atWar:false,warDays:0,technology:0,x:190,y:-135}],disease:{active:false,strain:0,days:0},nextEventId:1,history:[]};
+ const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:"Valle del Primo Fiume",x:0,y:0,kind:"accampamento",homes:6,fields:0,stores:180,water:1000,knownArea:12}],nextPersonId:25,nextSettlementId:2,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],religion:"Tradizioni orali",polity:"Comunità senza governo",laws:"Consuetudini condivise",economy:"Sussistenza collettiva",events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},neighbors:[{id:1,name:"Gente della Quercia",population:19,food:125,hostility:12,discovered:false,atWar:false,warDays:0,technology:0,x:-150,y:110},{id:2,name:"Clan delle Colline",population:14,food:95,hostility:8,discovered:false,atWar:false,warDays:0,technology:0,x:190,y:-135}],disease:{active:false,strain:0,days:0},nextEventId:1,history:[]};
  const names=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const surnames=["della Riva","delle Selci","del Salice","della Valle","del Guado","della Quercia"];
  for(let i=0;i<24;i++){s.population.push({id:i+1,name:names[i],family:pick(s,surnames),age:8+Math.floor(random(s)*42),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
@@ -48,7 +48,7 @@ function daily(s){
  const farmers=people.filter(p=>p.role==="agricoltore").length;
  const gatherers=people.filter(p=>["raccoglitore","cacciatore"].includes(p.role)).length;
  const producers=Math.max(1,Math.floor(n*.27)+farmers*0.28);
- let production=(gatherers*.17+farmers*.48+producers*.08)*(s.technology.includes("Agricoltura")?1.25:1);
+ let production=(gatherers*.20+farmers*.58+producers*.16)*(s.technology.includes("Agricoltura")?1.35:1);
  if(s.year>0&&s.year%17===0&&s.day===1&&random(s)<.035){production*=.25;addEvent(s,"Raccolto compromesso","Una stagione sfavorevole riduce le riserve alimentari. La comunità deve razionare le scorte.","crisis");}
  s.food=Math.max(0,s.food+production-n*.105);
  sett.stores=s.food;
