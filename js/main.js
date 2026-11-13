@@ -107,7 +107,7 @@ function person(x,z,name,coat=0x9a6845) {
  g.fillStyle='#14231ee8';g.fillRect(0,0,256,64);g.fillStyle='#fff1c9';g.font='bold 30px sans-serif';g.textAlign='center';g.fillText(name,128,43);
  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));
  sprite.position.set(x,y+2.65,z);sprite.scale.set(2.1,.52,1);scene.add(sprite);
- const actor={group,arms,legs,head:headPivot,phase:Math.random()*Math.PI*2,walk:false,originX:x,originZ:z,name};
+ const actor={group,torso,arms,legs,head:headPivot,phase:Math.random()*Math.PI*2,walk:false,originX:x,originZ:z,name};
  animatedActors.push(actor);
  return group;
 }
@@ -310,7 +310,18 @@ function useWorldGate(){
  persist();
 }
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(previewModel){previewModel.rotation.y+=dt*.45;previewRenderer.render(previewScene,previewCamera)}
-for(const actor of animatedActors){const p=performance.now()*.001+actor.phase;actor.legs[0].rotation.x=Math.sin(p*.8)*.07;actor.legs[1].rotation.x=-Math.sin(p*.8)*.07;actor.arms[0].rotation.x=-Math.sin(p*.8)*.05;actor.arms[1].rotation.x=Math.sin(p*.8)*.05;actor.head.rotation.x=Math.sin(p*.55)*.025;}
+for(const actor of animatedActors){
+ const p=performance.now()*.001+actor.phase;
+ const breath=Math.sin(p*1.15);
+ actor.legs[0].rotation.x=Math.sin(p*.8)*.035;actor.legs[1].rotation.x=-Math.sin(p*.8)*.035;
+ actor.arms[0].rotation.x=-.045+Math.sin(p*.7)*.035;actor.arms[1].rotation.x=.045-Math.sin(p*.7)*.035;
+ actor.arms[0].rotation.z=-.035+Math.max(0,Math.sin(p*.31+actor.phase))*.10;
+ actor.arms[1].rotation.z=.035-Math.max(0,Math.sin(p*.31+actor.phase+1.8))*.07;
+ actor.torso.position.y=1.08+breath*.012;
+ actor.torso.rotation.z=Math.sin(p*.45)*.012;
+ actor.head.rotation.x=Math.sin(p*.55)*.025;
+ actor.head.rotation.y=Math.sin(p*.32)*.11;
+}
 if(!mapOpen&&!pauseOpen){const prevX=player.x,prevZ=player.z;if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-46,46);player.z=THREE.MathUtils.clamp(player.z,-46,46);
 if(heightAt(player.x,player.z)<SEA+.22|| (player.x>-16.2&&player.x<-9.8&&player.z>-10.7&&player.z<-5.3) || (player.x>-6.2&&player.x<.2&&player.z>-12.7&&player.z<-7.3)){player.x=prevX;player.z=prevZ}
 if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;
