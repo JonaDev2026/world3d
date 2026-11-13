@@ -20,5 +20,17 @@
   "markerPrompt": "Nome di questo luogo:",
   "discoveredPlace": "Luogo scoperto",
   "placeSaved": "Luogo salvato sulla mappa",
-  "noMarkers": "Nessun luogo salvato. Premi P durante l’esplorazione."
+  "noMarkers": "Nessun luogo salvato. Premi P durante l’esplorazione.",
+  "previewLabel": "ANTEPRIMA 3D",
+  "paused": "PAUSA",
+  "resume": "RIPRENDI",
+  "settings": "IMPOSTAZIONI",
+  "viewMode": "Visuale",
+  "firstPerson": "Prima persona",
+  "thirdPerson": "Terza persona",
+  "music": "Musica",
+  "sounds": "Effetti sonori",
+  "audioSoon": "Controlli pronti · audio in arrivo",
+  "pauseHint": "ESC per tornare al gioco",
+  "close": "CHIUDI"
 }
