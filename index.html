@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#11140f">
+<title>L’Alba dei Cinque Sigilli — Le Cronache di Vaelmar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="game-shell" id="game">
+  <div class="world-art" aria-hidden="true">
+    <svg class="landscape" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#111b20"/><stop offset=".52" stop-color="#39433c"/><stop offset="1" stop-color="#b18b58"/></linearGradient>
+        <linearGradient id="sun" x2="0" y2="1"><stop stop-color="#f2d7a0" stop-opacity=".8"/><stop offset="1" stop-color="#d9a96b" stop-opacity="0"/></linearGradient>
+        <linearGradient id="mountain" x2="0" y2="1"><stop stop-color="#53605a"/><stop offset="1" stop-color="#202b27"/></linearGradient>
+        <linearGradient id="valley" x2="0" y2="1"><stop stop-color="#34483a"/><stop offset="1" stop-color="#101a16"/></linearGradient>
+        <linearGradient id="river" x2="0" y2="1"><stop stop-color="#b8a27a" stop-opacity=".6"/><stop offset="1" stop-color="#5b786d" stop-opacity=".1"/></linearGradient>
+        <radialGradient id="glow"><stop stop-color="#e7c58c" stop-opacity=".34"/><stop offset="1" stop-color="#e7c58c" stop-opacity="0"/></radialGradient>
+        <filter id="blur"><feGaussianBlur stdDeviation="24"/></filter>
+      </defs>
+      <rect width="1920" height="1080" fill="url(#sky)"/>
+      <circle cx="1370" cy="345" r="340" fill="url(#glow)"/>
+      <circle cx="1370" cy="345" r="95" fill="#e8d5ad" opacity=".76"/>
+      <circle cx="1408" cy="315" r="95" fill="#36413b" opacity=".55"/>
+      <g fill="#f1dfb8" opacity=".55">
+        <circle cx="1120" cy="140" r="2"/><circle cx="1260" cy="90" r="2"/><circle cx="1500" cy="120" r="2"/><circle cx="1660" cy="210" r="2"/><circle cx="980" cy="250" r="1.8"/><circle cx="1780" cy="95" r="2"/>
+      </g>
+      <path d="M0 620 180 450 285 520 485 315 620 490 780 350 920 525 1080 330 1230 510 1390 360 1570 530 1740 390 1920 560V1080H0Z" fill="url(#mountain)" opacity=".8"/>
+      <path d="m360 450 125-135 85 170-80-42-35 30-38-35Z M970 440l110-110 150 180-115-50-48 27-50-38Z M1320 455l70-95 130 170-90-42-48 25Z" fill="#a4aaa0" opacity=".38"/>
+      <path d="M0 680 230 565 430 660 690 500 900 675 1130 510 1330 665 1550 535 1760 680 1920 570V1080H0Z" fill="#293b32"/>
+      <path d="M0 740 Q280 620 510 740T960 720T1430 710T1920 690V1080H0Z" fill="url(#valley)"/>
+      <ellipse cx="1210" cy="670" rx="540" ry="130" fill="#c8b08a" opacity=".12" filter="url(#blur)"/>
+      <path d="M1010 1080Q1220 900 1320 810Q1400 750 1510 715Q1580 695 1660 650Q1510 740 1460 820Q1390 940 1300 1080Z" fill="url(#river)" opacity=".8"/>
+      <!-- Aurelan, silhouette of the distant royal citadel -->
+      <g transform="translate(1285 470)" fill="#17231f" stroke="#9b8968" stroke-opacity=".42" stroke-width="3">
+        <path d="M-175 150V40H-140V-10H-105V40H-65V-55H-25V-95H25V-55H65V40H105V-5H145V40H175V150Z"/>
+        <path d="M-195 150V92H-165V150M-125 150V80H-95V150M-45 150V10H-15V150M15 150V10H45V150M95 150V78H125V150M165 150V88H195V150" fill="#111a17"/>
+        <path d="M-28 -95V-125H28V-95M-105 -10V-35H-65V-10M105 -5V-32H145V-5" fill="#17231f"/>
+        <path d="M0 -155V-125M-9 -146H9" stroke="#b69a68" stroke-width="4"/>
+        <g fill="#d3ad70" stroke="none"><rect x="-7" y="5" width="14" height="24"/><rect x="-115" y="65" width="8" height="17"/><rect x="110" y="60" width="8" height="17"/><rect x="-55" y="65" width="7" height="15"/><rect x="55" y="65" width="7" height="15"/></g>
+      </g>
+      <!-- distant woods -->
+      <g fill="#14251d" opacity=".92">
+        <path d="M0 1080V790l55-150 55 150v-90l55-145 55 145v-60l60-165 60 165v-30l55-140 55 140v470Z"/>
+        <path d="M1440 1080V800l55-160 55 160v-90l62-170 62 170v-65l54-145 54 145v-30l55-150 55 150v465Z"/>
+      </g>
+      <g fill="#0c1712">
+        <path d="M0 930q180-130 350-20t340 5q180-100 340 20t350-5q180-105 350 15t190-10v145H0Z"/>
+      </g>
+      <rect width="1920" height="1080" fill="#09100e" opacity=".18"/>
+    </svg>
+  </div>
+  <div class="scene-vignette" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="world-mark"><span class="mark-symbol">✦</span><span>VAELMAR</span></div>
+    <button class="settings-trigger" id="open-settings" aria-label="Apri impostazioni">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="m19.2 13.5 1.1.9-1.7 3-1.4-.5a7.9 7.9 0 0 1-1.5.9l-.3 1.5h-3.5l-.3-1.5a7.9 7.9 0 0 1-1.5-.9l-1.4.5-1.7-3 1.1-.9a7.5 7.5 0 0 1 0-1.8l-1.1-.9 1.7-3 1.4.5a7.9 7.9 0 0 1 1.5-.9l.3-1.5h3.5l.3 1.5a7.9 7.9 0 0 1 1.5.9l1.4-.5 1.7 3-1.1.9a7.5 7.5 0 0 1 0 1.8Z"/></svg>
+      <span>Impostazioni</span>
+    </button>
+  </header>
+
+  <section class="main-content" id="main-content" aria-live="polite">
+    <div class="title-block">
+      <div class="eyebrow"><span></span> Le Cronache di Vaelmar <span></span></div>
+      <h1>L’Alba dei<br class="title-break"> Cinque Sigilli</h1>
+      <div class="title-rule"><i></i><b>✦</b><i></i></div>
+      <p class="title-caption">Una terra. Cinque sigilli. L’ultima alba.</p>
+    </div>
+
+    <nav class="main-menu" aria-label="Menu principale">
+      <button class="menu-choice" data-page="story"><span class="choice-index">I</span><span class="choice-label">Narrazione</span><span class="choice-arrow">›</span></button>
+      <button class="menu-choice" data-page="info"><span class="choice-index">II</span><span class="choice-label">Informazioni</span><span class="choice-arrow">›</span></button>
+      <button class="menu-choice enter-choice" data-page="enter"><span class="choice-index">III</span><span class="choice-label">Entra</span><span class="choice-arrow">›</span></button>
+    </nav>
+    <div class="bottom-note"><span class="note-line"></span><span>La notte non durerà per sempre</span><span class="note-line"></span></div>
+  </section>
+
+  <section class="detail-panel" id="detail-panel" hidden aria-live="polite">
+    <button class="back-button" id="back-button"><span>‹</span> Menu principale</button>
+    <div class="detail-rule"><span>✦</span></div>
+    <div id="detail-content"></div>
+  </section>
+
+  <section class="settings-panel" id="settings-panel" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-card">
+      <button class="close-button" id="close-settings" aria-label="Chiudi impostazioni">×</button>
+      <div class="panel-kicker">Vaelmar</div>
+      <h2 id="settings-title">Impostazioni</h2>
+      <div class="settings-divider"><span>✦</span></div>
+      <div class="setting-control">
+        <div class="setting-heading"><label for="music-volume">Musica</label><output id="music-value">20%</output></div>
+        <input id="music-volume" type="range" min="0" max="100" value="20">
+        <label class="toggle-line" for="music-enabled"><span>Attiva musica</span><input id="music-enabled" type="checkbox" checked><span class="toggle-ui"></span></label>
+      </div>
+      <div class="settings-divider thin"></div>
+      <div class="setting-control">
+        <div class="setting-heading"><label for="fx-volume">Effetti sonori</label><output id="fx-value">100%</output></div>
+        <input id="fx-volume" type="range" min="0" max="100" value="100">
+        <label class="toggle-line" for="fx-enabled"><span>Attiva effetti sonori</span><input id="fx-enabled" type="checkbox" checked><span class="toggle-ui"></span></label>
+        <p class="setting-hint">Le regolazioni vengono conservate automaticamente.</p>
+      </div>
+      <button class="close-confirm" id="done-settings">Conferma</button>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>LE CRONACHE DI VAELMAR</span>
+    <span class="footer-center">✦</span>
+    <span>L’ALBA DEI CINQUE SIGILLI</span>
+  </footer>
+  <audio id="intro-music" src="assets/audio/music/main-theme.mp3" preload="auto" loop></audio>
+</main>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+:root{color-scheme:dark;--gold:#c4a875;--gold-light:#e4d2a9;--ink:#111610;--paper:#e5d8bb;--muted:#b7aa8e}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#0b100d}
+body{font-family:"Cormorant Garamond",Georgia,serif;color:var(--paper);overflow:hidden}
+button,input{font:inherit}
+button{color:inherit}
+.game-shell{position:relative;width:100%;height:100svh;min-height:620px;overflow:hidden;background:#17221b;isolation:isolate}
+.world-art,.landscape,.scene-vignette{position:absolute;inset:0;width:100%;height:100%}
+.landscape{object-fit:cover}
+.scene-vignette{z-index:1;background:linear-gradient(90deg,rgba(8,13,10,.94) 0%,rgba(10,16,12,.83) 29%,rgba(10,16,12,.38) 57%,rgba(8,13,10,.12) 100%),linear-gradient(0deg,rgba(7,12,9,.76),transparent 25%,transparent 75%,rgba(7,12,9,.48))}
+.topbar,.main-content,.detail-panel,.footer{position:relative;z-index:2}
+.topbar{height:86px;padding:0 clamp(24px,5vw,88px);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(196,168,117,.18)}
+.world-mark{display:flex;align-items:center;gap:12px;font:12px "MedievalSharp",serif;letter-spacing:4px;color:#d7c39b}
+.mark-symbol{font-size:21px;color:var(--gold)}
+.settings-trigger{display:flex;align-items:center;gap:10px;padding:10px 0;border:0;background:none;color:#d2c4a6;font-size:17px;cursor:pointer;transition:color .2s}
+.settings-trigger:hover{color:#fff0cc}
+.settings-trigger svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round}
+.main-content{height:calc(100% - 145px);min-height:470px;display:flex;flex-direction:column;justify-content:center;padding:16px clamp(28px,10vw,190px);max-width:900px}
+.title-block{margin:0 0 43px}
+.eyebrow{display:flex;align-items:center;gap:13px;color:#c3a875;font-size:16px;letter-spacing:4px;text-transform:uppercase}
+.eyebrow span{display:block;width:28px;height:1px;background:#a98a56}
+h1{font:clamp(48px,6.4vw,86px)/1.05 "MedievalSharp",serif;font-weight:400;letter-spacing:.3px;color:#ead9b4;text-shadow:0 3px 22px #050907;margin:19px 0 17px;max-width:690px}
+.title-rule{display:flex;align-items:center;gap:12px;width:320px;color:#c4a875}
+.title-rule i{height:1px;flex:1;background:linear-gradient(90deg,transparent,#ad8d58)}
+.title-rule i:last-child{transform:scaleX(-1)}
+.title-rule b{font-size:12px;font-weight:400}
+.title-caption{font-size:21px;letter-spacing:1.5px;color:#c6b99d;margin:15px 0 0}
+.main-menu{display:flex;flex-direction:column;align-items:flex-start;width:min(370px,100%);gap:5px}
+.menu-choice{width:100%;display:grid;grid-template-columns:42px 1fr 22px;align-items:center;text-align:left;padding:11px 12px 11px 0;border:0;border-bottom:1px solid rgba(197,169,119,.15);background:transparent;cursor:pointer;transition:background .22s,border-color .22s,padding .22s}
+.menu-choice:hover,.menu-choice:focus-visible{padding-left:13px;background:linear-gradient(90deg,rgba(193,161,105,.15),transparent);border-color:rgba(212,183,128,.55);outline:none}
+.choice-index{font:14px "MedievalSharp",serif;color:#ad8e5b;letter-spacing:1px}
+.choice-label{font:25px "MedievalSharp",serif;color:#e0d0ad;letter-spacing:.3px}
+.choice-arrow{font:28px "Cormorant Garamond",serif;color:#b89a67;opacity:0;transform:translateX(-6px);transition:.2s}
+.menu-choice:hover .choice-arrow,.menu-choice:focus-visible .choice-arrow{opacity:1;transform:translateX(0)}
+.enter-choice{margin-top:10px;border-top:1px solid rgba(197,169,119,.22);border-bottom:1px solid rgba(197,169,119,.34)}
+.bottom-note{display:flex;align-items:center;gap:13px;margin-top:40px;color:#a99b7e;font-size:15px;letter-spacing:2px;font-style:italic}
+.note-line{height:1px;width:28px;background:#8f754b;opacity:.7}
+.footer{position:absolute;bottom:0;left:0;right:0;height:59px;padding:0 clamp(24px,5vw,88px);display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(196,168,117,.18);color:#98896d;font:10px "MedievalSharp",serif;letter-spacing:2px}
+.footer-center{color:#b59866;font-size:14px}
+.detail-panel{position:absolute;left:clamp(28px,10vw,190px);top:50%;transform:translateY(-46%);width:min(610px,calc(100% - 56px));max-height:calc(100% - 190px);overflow:auto;padding:25px 34px 30px;background:linear-gradient(135deg,rgba(17,24,18,.94),rgba(22,28,20,.86));border:1px solid rgba(193,164,109,.53);box-shadow:0 20px 70px #0008}
+.detail-panel[hidden],.settings-panel[hidden]{display:none}
+.back-button{border:0;background:none;padding:0;color:#c5a875;font-size:17px;cursor:pointer}
+.back-button span{font-size:24px;vertical-align:-2px;margin-right:7px}
+.detail-rule,.settings-divider{display:flex;align-items:center;gap:12px;margin:21px 0;color:#b99a65}
+.detail-rule:before,.detail-rule:after,.settings-divider:before,.settings-divider:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#92774b)}
+.detail-rule:after,.settings-divider:after{transform:scaleX(-1)}
+.detail-rule span,.settings-divider span{font-size:12px}
+.detail-panel h2{font:36px "MedievalSharp",serif;color:#e3d1aa;margin:0 0 18px}
+.detail-panel p{font-size:21px;line-height:1.48;color:#d1c4a8;margin:0 0 14px}
+.detail-panel .detail-lead{font-size:24px;color:#e1d0ad}
+.detail-panel .detail-small{font-size:17px;color:#b8aa8c}
+.settings-panel{position:absolute;z-index:5;inset:0;display:grid;place-items:center;padding:24px;background:rgba(5,9,7,.72);backdrop-filter:blur(7px)}
+.settings-card{position:relative;width:min(480px,100%);padding:35px 42px 34px;background:linear-gradient(145deg,#20271e,#111711);border:1px solid #9a7e50;box-shadow:0 24px 90px #000a}
+.settings-card:before{content:"";position:absolute;inset:7px;border:1px solid rgba(190,160,104,.2);pointer-events:none}
+.close-button{position:absolute;right:20px;top:14px;border:0;background:none;color:#bca477;font-size:28px;cursor:pointer}
+.panel-kicker{text-align:center;font:12px "MedievalSharp",serif;letter-spacing:4px;color:#b79a67}
+.settings-card h2{text-align:center;font:35px "MedievalSharp",serif;font-weight:400;color:#e3d1aa;margin:10px 0}
+.settings-divider{margin:18px 0}
+.setting-control{margin:21px 0}
+.setting-heading{display:flex;justify-content:space-between;align-items:center;color:#e0d2b5;font-size:20px}
+.setting-heading output{color:#c8a974;font-size:18px}
+input[type=range]{display:block;width:100%;margin:14px 0 17px;accent-color:#c2a16a;cursor:pointer}
+.toggle-line{position:relative;display:flex;align-items:center;justify-content:space-between;color:#bfb397;font-size:17px;cursor:pointer}
+.toggle-line input{position:absolute;opacity:0}
+.toggle-ui{width:38px;height:20px;border:1px solid #746443;border-radius:20px;position:relative;transition:.2s}
+.toggle-ui:after{content:"";position:absolute;width:12px;height:12px;left:3px;top:3px;border-radius:50%;background:#8e8064;transition:.2s}
+.toggle-line input:checked+.toggle-ui{border-color:#c3a16b;background:#6c5735}
+.toggle-line input:checked+.toggle-ui:after{left:21px;background:#f0d8a5}
+.toggle-line input:focus-visible+.toggle-ui{outline:2px solid #e5c58f;outline-offset:3px}
+.setting-hint{margin:15px 0 0;color:#92866e;font-size:15px;font-style:italic}
+.close-confirm{display:block;margin:27px auto 0;padding:10px 35px;border:1px solid #a88b59;background:linear-gradient(180deg,#665437,#403723);color:#f0dfbd;font:19px "MedievalSharp",serif;cursor:pointer;transition:filter .2s}
+.close-confirm:hover{filter:brightness(1.2)}
+@media(max-width:700px){
+ .game-shell{min-height:600px}
+ .scene-vignette{background:linear-gradient(90deg,rgba(8,13,10,.91),rgba(10,16,12,.65) 65%,rgba(8,13,10,.25)),linear-gradient(0deg,rgba(7,12,9,.8),transparent 35%,rgba(7,12,9,.35))}
+ .topbar{height:70px;padding:0 22px}
+ .main-content{height:calc(100% - 129px);padding:18px 28px;justify-content:center}
+ .title-block{margin-bottom:32px}
+ h1{font-size:clamp(43px,10vw,65px)}
+ .eyebrow{font-size:13px;letter-spacing:2px}
+ .title-caption{font-size:18px}
+ .choice-label{font-size:23px}
+ .bottom-note{font-size:13px;letter-spacing:1px;margin-top:28px}
+ .footer{height:59px;padding:0 20px;font-size:8px;letter-spacing:1px}
+ .detail-panel{left:20px;width:calc(100% - 40px);padding:22px;max-height:calc(100% - 165px)}
+ .settings-card{padding:32px 26px}
+}
+@media(max-height:700px) and (min-width:701px){
+ .main-content{padding-top:0;padding-bottom:0;transform:scale(.88);transform-origin:left center}
+ .title-block{margin-bottom:25px}
+ .bottom-note{margin-top:22px}
+}
