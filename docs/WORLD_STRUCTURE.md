@@ -93,3 +93,12 @@ Il gruppo principale è composto da quattro figure con ruoli e armi non sovrappo
 - **Il Velato:** combattente enigmatico, maschera e lancia-reliquia.
 
 La storia completa, i segreti personali e la struttura in atti sono descritti in `docs/STORY.md`. I personaggi devono avere modelli, animazioni, equipaggiamenti, abilità e dialoghi specifici: non devono ridursi a quattro modelli intercambiabili.
+
+
+## 8. Interfaccia e identità grafica
+
+- Titoli e controlli: Google Font **Cinzel**.
+- Testi descrittivi: Google Font **Cormorant Garamond**.
+- Palette menu: pergamena e avorio, oro antico, verde bosco, legno scuro e bordeaux.
+- Pannelli con cornici sottili, doppio bordo interno e superfici scure; evitare estetica neon o interfacce fantascientifiche.
+- Fallback serif locali se Google Fonts non è raggiungibile.
