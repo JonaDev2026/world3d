@@ -24,7 +24,7 @@ Decisione: abbandonare il vecchio prototipo e ricostruire il gioco partendo dall
 - Creato il modulo indipendente js/world-time.js per data, ora, fasi del giorno, avanzamento controllato, pausa, riposo e serializzazione.
 - La scena Three.js ora usa il clock quando si entra nella schermata di avvio del mondo: il tempo parte alle 06:00 e si arresta tornando al menu.
 - La luce direzionale del sole, la luce lunare, gli indicatori sferici di sole/luna e i colori di cielo e nebbia cambiano con l'ora.
-- Aggiunto un piccolo orologio a schermo con data, ora e fase.
+- Aggiunto un piccolo orologio a schermo con data, ora, stagione e fase.
 - Definiti i dodici mesi: Germoglio, Fioritura, Solealto, Ardore, Mietitura, Mezzaluce, Foglia d'Oro, Bruma, Cenere, Gelo Profondo, Notte Quieta, Ultima Fiamma.
 - Definite le quattro stagioni: Risveglio, Alta Luce, Caduta e Lungo Inverno, ognuna di tre mesi.
 - Lo snapshot del calendario restituisce ora anche nome del mese, stagione nominata e giorno progressivo della stagione.

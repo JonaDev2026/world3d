@@ -27,7 +27,7 @@
 - [x] Comandi start/pause, avanzamento, impostazione dell'ora, riposo fino a un'ora e serializzazione per i futuri salvataggi.
 - [x] Anteprima collegata alla scena Three.js: il tempo parte alle 06:00 quando si entra nella schermata di avvio del mondo e si ferma tornando al menu.
 - [x] Luce direzionale solare, luce lunare, sfere di sole/luna e colore di cielo/nebbia variano con l'ora.
-- [x] Orologio a schermo con data, ora e fase del giorno.
+- [x] Orologio a schermo con data, ora, stagione e fase del giorno.
 - [ ] Collegare il tempo alla futura scena esplorabile, al meteo e alle routine del mondo.
 - [ ] Verificare la resa della data estesa nell'orologio durante il ciclo.
 

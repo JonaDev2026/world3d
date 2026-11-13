@@ -126,6 +126,7 @@ function updateWorldLighting(state){
  if(stamp!==lastClockMinute){
   $('worldDate').textContent=state.date;
   $('worldTime').textContent=state.time.slice(0,5);
+  $('worldSeason').textContent=state.season.toUpperCase();
   $('worldPhase').textContent=phaseLabels[state.phase]||state.phase.toUpperCase();
   lastClockMinute=stamp;
  }
