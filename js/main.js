@@ -103,6 +103,11 @@ box(scene,new THREE.BoxGeometry(5.8,.55,.75),mats.pale,gateX,gateY+5.6,gateZ);
 const portalLight=new THREE.PointLight(0x75d7c2,2.5,22);portalLight.position.set(gateX,gateY+3,gateZ);scene.add(portalLight);
 for(let i=0;i<8;i++){const x=gateX-8+(i%4)*5,z=gateZ-8+Math.floor(i/4)*7,c=box(scene,new THREE.OctahedronGeometry(.75+hash(i,3)*.5),new THREE.MeshStandardMaterial({color:0x9b8cff,emissive:0x4934a8,emissiveIntensity:1.15,roughness:.25}),x,terrainY(x,z)+1.2,z);c.rotation.set(i*.3,i*.6,i*.2)}
 sign(gateX,gateZ-8,'IL VARCO ANTICO',['Un sentiero dimenticato','Premi E quando sei vicino']);
+const returnGate=new THREE.Mesh(new THREE.TorusGeometry(2,.2,10,32),new THREE.MeshStandardMaterial({color:0xe2bd75,emissive:0x8a5520,emissiveIntensity:1.1}));
+returnGate.position.set(35,terrainY(35,38)+2.7,38);scene.add(returnGate);
+const returnLight=new THREE.PointLight(0xffc56e,2,18);returnLight.position.set(35,terrainY(35,38)+3,38);scene.add(returnLight);
+for(let i=0;i<12;i++){const a=i*Math.PI/6,x=35+Math.cos(a)*9,z=38+Math.sin(a)*9;makeTree(x,z,.9+hash(i,4)*.45,true)}
+
 const keys={};addEventListener('keydown',e=>{
  if(e.code==='Escape'){e.preventDefault();if(mapOpen)toggleMap();else if(pauseOpen)closePause();else openPause();return}
  keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
@@ -226,7 +231,6 @@ document.querySelector('#createPlayer').onclick=()=>{
 
 document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
 document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.0022;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0022))});
-function terrainY(x,z){return heightAt(x,z)+.08}
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.opacity=0,1900)}
 
 const STORE='world3d-v02';let saved={markers:[],position:null,character:null,settings:{}};try{saved={...saved,...JSON.parse(localStorage.getItem(STORE)||localStorage.getItem('world3d-v01')||'{}')}}catch{}
