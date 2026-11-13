@@ -1,23 +1,13 @@
 # WORLD — Progressi
 
-## Menu cartografico — 2026-11-13
+## Ricostruzione completa dei menu — 2026-11-13
 
-- Titolo ufficiale verificato nel manoscritto: **L’Alba dei Cinque Sigilli**. Eliminato il titolo inventato “La Corona delle Ceneri”.
-- Marchio di saga: **Le Cronache di Vaelmar**.
-- Menu ricostruito sul riferimento: antica mappa, titolo gotico avorio/oro, composizione centrale e pochi controlli.
-- Creata una mappa SVG originale con coste, fiumi, catene montuose, foreste e toponimi canonici.
-- Selezione dei quattro protagonisti, scena Three.js, musica, impostazioni audio e orologio conservati.
-- Corretto il testo della schermata mondo: Vaelmar, non Avarra.
-- La mappa è un fondale illustrativo, non la geografia navigabile. Il mondo giocabile resta una base vuota di 300 km².
-- Da verificare nel browser locale: leggibilità del titolo, resa della mappa, responsive e passaggio alla selezione eroi.
-
-
-- Menu semplificato: rimosso il sottomenu Impostazioni non necessario; volume musica iniziale impostato al 20%.
-
-
-## Menu a due schermate — 2026-11-13
-- Schermata iniziale ridotta al titolo, controlli musica/suoni e pulsante Entra.
-- La selezione dei quattro protagonisti è stata spostata in una schermata dedicata.
-- Il pulsante Entra della schermata personaggi avvia la schermata di ingresso a Vaelmar.
-- Aggiunto il ritorno al menu iniziale; i modelli 3D compaiono nella fase di selezione.
-- Musica introduttiva mantenuta al 20%; nessun pannello Impostazioni o sottomenu.
+- Sostituite da zero le tre schermate: introduzione, selezione protagonista e ingresso a Vaelmar.
+- Rimossi i vecchi stili sovrapposti e i riferimenti a componenti non più presenti.
+- Musica introduttiva impostata al 20%, con tentativo di avvio al caricamento e fallback al primo input per i browser che bloccano l'autoplay.
+- Un solo controllo musica funzionante; rimossi i controlli audio che non avevano effetti sonori collegati.
+- Selezione personaggio con mouse, tastiera e stato accessibile dei pulsanti.
+- Comandi: frecce sinistra/destra per cambiare eroe, Invio per proseguire, Esc per tornare indietro.
+- Conservati i modelli 3D, il calendario e il ciclo giorno/notte.
+- Merrik Valeth: età sconosciuta.
+- Da verificare nel browser locale: avvio audio, resa grafica desktop/mobile, selezione eroi e navigazione da tastiera.
