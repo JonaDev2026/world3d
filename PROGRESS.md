@@ -1,13 +1,16 @@
 # WORLD — Progressi
 
-## Ricostruzione completa dei menu — 2026-11-13
+## Nuova ripartenza — 2026-11-13
 
-- Sostituite da zero le tre schermate: introduzione, selezione protagonista e ingresso a Vaelmar.
-- Rimossi i vecchi stili sovrapposti e i riferimenti a componenti non più presenti.
-- Musica introduttiva impostata al 20%, con tentativo di avvio al caricamento e fallback al primo input per i browser che bloccano l'autoplay.
-- Un solo controllo musica funzionante; rimossi i controlli audio che non avevano effetti sonori collegati.
-- Selezione personaggio con mouse, tastiera e stato accessibile dei pulsanti.
-- Comandi: frecce sinistra/destra per cambiare eroe, Invio per proseguire, Esc per tornare indietro.
-- Conservati i modelli 3D, il calendario e il ciclo giorno/notte.
-- Merrik Valeth: età sconosciuta.
-- Da verificare nel browser locale: avvio audio, resa grafica desktop/mobile, selezione eroi e navigazione da tastiera.
+### Conservato
+- Romanzo canonico: `LE CRONACHE DI VAELMAR.md`.
+- Tutti gli audio originali in `assets/audio/` (musica e ambienti).
+
+### Stato
+- Vecchia implementazione rimossa.
+- Nessun menu, scena, modello, sistema o interfaccia precedente viene considerato parte della nuova base.
+- Titolo canonico: **L’Alba dei Cinque Sigilli**.
+- Fonte narrativa vincolante: il romanzo.
+
+### Prossimo passo
+Definire e costruire una nuova base di progetto, un componente alla volta. Ogni fase sarà registrata qui prima di chiedere un `git pull`.
