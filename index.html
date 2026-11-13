@@ -1,23 +1,47 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WORLD — Terre Antiche · La Corona delle Ceneri</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="./css/style.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script></head><body>
-<canvas id="game"></canvas><div id="hud">
-<div id="brand" class="panel">WORLD <small>TERRE ANTICHE · 0.7</small></div>
-<div id="coords" class="panel">X 0 · Z 0</div><div id="crosshair"></div>
-<div id="help" class="panel" data-i18n="controls"></div>
-<div id="actions"><button id="save" class="primary" data-i18n="savePlace"></button><button id="pauseBtn" aria-label="Pause">Ⅱ</button></div></div>
-<div id="toast"></div><div id="playerName"></div>
-<div id="start"><div id="startBox"><h1>WORLD</h1><p data-i18n="welcome"></p><button id="enter" class="primary" data-i18n="createCharacter"></button></div></div>
-<div id="creator"><div id="creatorCard"><h2 data-i18n="createTitle"></h2><p data-i18n="createIntro"></p>
-<div class="previewStage"><canvas id="characterPreview"></canvas><span data-i18n="previewLabel">ANTEPRIMA 3D</span></div>
-<div class="creatorGrid">
-<div class="field wide"><label data-i18n="playerNameLabel" for="creatorName"></label><input id="creatorName" maxlength="18" autocomplete="nickname" placeholder="Explorer"></div>
-<div class="field"><label data-i18n="languageLabel" for="creatorLang"></label><select id="creatorLang"><option value="it">Italiano</option><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option></select></div>
-<div class="field"><label data-i18n="skinLabel" for="creatorSkin"></label><select id="creatorSkin"><option value="#d4a77d">Warm</option><option value="#f0c9a2">Light</option><option value="#986747">Tan</option><option value="#68432f">Deep</option></select></div>
-<div class="field"><label data-i18n="hairLabel" for="creatorHair"></label><select id="creatorHair"><option value="#493326">Brown</option><option value="#171717">Black</option><option value="#b68a42">Blond</option><option value="#a84d35">Red</option></select></div>
-<div class="field"><label data-i18n="clothesLabel" for="creatorShirt"></label><select id="creatorShirt"><option value="#496b91">Blue</option><option value="#52794a">Green</option><option value="#914f45">Red</option><option value="#8171a8">Violet</option></select></div>
-</div><button id="createPlayer" class="primary" data-i18n="enterWorld"></button></div></div>
-<div id="pauseMenu" class="overlayMenu"><section class="menuCard"><header><div><h2>WORLD</h2><p data-i18n="paused">PAUSA</p></div><button id="resumeBtn" data-i18n="resume">RIPRENDI</button></header><nav class="menuTabs"><button id="menuMapBtn" data-i18n="worldMap">MAPPA</button><button id="menuSettingsBtn" data-i18n="settings">IMPOSTAZIONI</button></nav><div id="settingsPanel"><label><span data-i18n="viewMode">Visuale</span><select id="viewMode"><option value="first" data-i18n="firstPerson">Prima persona</option><option value="third" data-i18n="thirdPerson">Terza persona</option></select></label><label><span data-i18n="languageLabel">Lingua</span><select id="settingsLang"><option value="it">Italiano</option><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option></select></label><div class="audioSetting"><label><span data-i18n="music">Musica</span><input id="musicEnabled" type="checkbox" checked></label><input id="musicVolume" type="range" min="0" max="100" value="65"><small data-i18n="audioSoon">Controlli pronti · audio in arrivo</small></div><div class="audioSetting"><label><span data-i18n="sounds">Effetti sonori</span><input id="soundEnabled" type="checkbox" checked></label><input id="soundVolume" type="range" min="0" max="100" value="80"></div></div><footer><span data-i18n="pauseHint">ESC per tornare al gioco</span><button id="closeSettings" data-i18n="close">CHIUDI</button></footer></section></div>
-<div id="mapWrap"><div id="mapCard"><div id="mapHead"><strong data-i18n="worldMap"></strong><button id="closeMap" data-i18n="closeMap"></button></div><canvas id="map" width="600" height="600"></canvas><div id="markerList"></div></div></div>
-<script type="module" src="./js/main.js"></script></body></html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111820">
+<title>WORLD — La Corona delle Ceneri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/style.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="stage" aria-label="Anteprima tridimensionale dei protagonisti"></canvas>
+<div class="atmosphere"></div>
+<header class="topbar">
+  <a class="wordmark" href="#" aria-label="WORLD">WORLD<span>THE ASHEN CROWN</span></a>
+  <div class="top-actions"><button id="musicToggle" class="icon-button" aria-label="Attiva o disattiva musica">♫ <span>MUSICA</span></button><button id="soundToggle" class="icon-button" aria-label="Attiva o disattiva suoni">◖ <span>AUDIO</span></button><button id="settingsToggle" class="icon-button" aria-label="Impostazioni">⚙ <span>OPZIONI</span></button></div>
+</header>
+<main id="mainMenu" class="screen">
+  <section class="hero-copy">
+    <p class="eyebrow"><i></i> UNA NUOVA SAGA FANTASY</p>
+    <h1>LA CORONA<br><em>DELLE CENERI</em></h1>
+    <p class="intro">Quattro destini. Un mondo senza confini.<br>La tua avventura comincia qui.</p>
+    <div class="main-actions"><button id="beginButton" class="primary-button">INIZIA L'AVVENTURA <span>→</span></button><button id="creditsButton" class="text-button">IL MONDO DI WORLD</button></div>
+  </section>
+  <div class="scene-caption"><span>AVARRA</span><i></i><span>300 KM² DA ESPLORARE</span></div>
+</main>
+<section id="characterSelect" class="screen hidden">
+  <div class="select-heading"><p class="eyebrow"><i></i> SCEGLI IL TUO DESTINO</p><h2>CHI SARÀ LA TUA GUIDA?</h2><p>Quattro eroi. Quattro modi di affrontare l'ignoto.</p></div>
+  <div class="character-info"><span id="heroRole" class="hero-role">MAGO</span><h2 id="heroName">ELDRIN</h2><p id="heroDescription">Custode delle arti antiche.</p><div id="heroWeapon" class="weapon-line">ARMA · BASTONE ARCANO</div><button id="confirmHero" class="primary-button">SCEGLI QUESTO EROE <span>→</span></button></div>
+  <div class="character-rail" id="characterRail">
+    <button class="hero-card selected" data-hero="0"><span class="card-number">01</span><strong>ELDRIN</strong><small>IL MAGO</small></button>
+    <button class="hero-card" data-hero="1"><span class="card-number">02</span><strong>LYRA</strong><small>L'ARCIERA</small></button>
+    <button class="hero-card" data-hero="2"><span class="card-number">03</span><strong>KAEL</strong><small>IL GUERRIERO</small></button>
+    <button class="hero-card" data-hero="3"><span class="card-number">04</span><strong>IL VELATO</strong><small>IL MISTERIOSO</small></button>
+  </div>
+  <button id="backButton" class="back-button">← INDIETRO</button>
+</section>
+<section id="worldReady" class="screen hidden">
+  <div class="ready-panel"><p class="eyebrow"><i></i> IL VIAGGIO HA INIZIO</p><h2 id="readyTitle">AVARRA TI ATTENDE</h2><p>Il mondo è pronto. Le terre sono ancora selvagge e inesplorate.</p><div class="world-stats"><div><strong>300</strong><span>KM²</span></div><div><strong>17,32</strong><span>KM PER LATO</span></div><div><strong>01</strong><span>MONDO APERTO</span></div></div><p class="muted">Questa è la base geografica vuota. Regioni, città e missioni verranno costruite in seguito.</p><button id="returnMenu" class="text-button">TORNA AL MENU</button></div>
+</section>
+<div id="settingsPanel" class="settings-panel hidden"><div class="settings-card"><button id="closeSettings" class="close-button">×</button><p class="eyebrow">IMPOSTAZIONI</p><h2>IL TUO VIAGGIO</h2><label>Musica <input id="musicVolume" type="range" min="0" max="100" value="55"></label><label>Effetti sonori <input id="soundVolume" type="range" min="0" max="100" value="75"></label><p class="muted">La musica principale verrà riprodotta da assets/audio/music/main-theme.mp3</p></div></div>
+<audio id="mainMusic" src="./assets/audio/music/main-theme.mp3" loop preload="none"></audio>
+<script type="module" src="./js/main.js"></script>
+</body></html>
