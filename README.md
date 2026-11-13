@@ -2,7 +2,7 @@
 
 ![](preview.png)
 
-WORLD è un mondo 3D low-poly da esplorare in terza persona, con terreno continuo, pianura abitabile, villaggio, abitanti e un portale verso la Valle delle Stelle.
+WORLD è un mondo 3D stilizzato a poligoni morbidi, con visuale in prima persona predefinita e terza persona selezionabile. Comprende terreno continuo, pianure abitabili, villaggio, abitanti e un portale verso la Valle delle Stelle.
 
 ## Avvio su Linux
 
@@ -35,13 +35,13 @@ Three.js viene caricato da jsDelivr: serve una connessione Internet.
 | Freccia giù / S | Indietro |
 | Freccia sinistra / destra | Ruota |
 | A / D | Movimento laterale |
-| Mouse | Ruota la visuale intorno al personaggio |
+| Mouse | Guarda intorno (prima persona) / ruota la visuale (terza persona) |
 | Spazio | Salta |
 | Shift | Corri |
 | P | Salva un luogo |
 | E | Attraversa il portale quando sei vicino |
-| M | Apri / chiudi la mappa |
-| Esc | Libera il mouse |
+| M | Apri la mappa dal menu pausa |
+| Esc | Apri / chiudi il menu pausa |
 
 Puoi anche usare il pulsante **SALVA LUOGO** nell'interfaccia.
 
@@ -49,7 +49,11 @@ Per fermare il server torna al terminale e premi Ctrl+C.
 
 ## Personaggio e lingue
 
-Alla prima visita puoi creare un viaggiatore scegliendo nome, tonalità della pelle, capelli e vestiti. Il personaggio viene mostrato in terza persona e segue i movimenti del giocatore. L'interfaccia è disponibile in italiano, inglese, spagnolo e francese. I testi sono separati in `lang/it.json`, `lang/en.json`, `lang/es.json` e `lang/fr.json`.
+Alla prima visita puoi creare un viaggiatore scegliendo nome, tonalità della pelle, capelli e vestiti. Durante la creazione è visibile un'anteprima 3D rotante che si aggiorna mentre cambi pelle, capelli e vestiti. In gioco la visuale predefinita è in prima persona; puoi passare alla terza persona dal menu pausa con ESC. L'interfaccia è disponibile in italiano, inglese, spagnolo e francese. I testi sono separati in `lang/it.json`, `lang/en.json`, `lang/es.json` e `lang/fr.json`.
+
+## Menu pausa e impostazioni
+
+Premi ESC o il pulsante pausa per aprire il menu. Da qui puoi riprendere la partita, aprire la mappa e configurare la visuale, la lingua, musica ed effetti sonori. I controlli audio sono già predisposti; la riproduzione verrà collegata quando saranno disponibili le tracce e gli effetti.
 
 ## Salvataggi
 
@@ -65,6 +69,6 @@ Personaggio, lingua, posizione e luoghi salvati vengono conservati nel localStor
 
 ## Stato
 
-**0.4 — The Living Landscape**
+**0.5 — The Player's Realm**
 
-Terreno continuo con superfici poligonali, pianura del villaggio, case appoggiate al suolo, acqua separata dalle aree edificabili, alberi e personaggi low-poly più morbidi. Il mondo iniziale misura 96 × 96 unità: assumendo 1 unità = 1 metro, circa 9.216 m² (0,0092 km²). Restano creazione personaggio, terza persona e lingue IT/EN/ES/FR.
+Terreno continuo con superfici poligonali, pianura del villaggio, case appoggiate al suolo, acqua separata dalle aree edificabili, alberi e personaggi low-poly più morbidi. Il mondo iniziale misura 96 × 96 unità: assumendo 1 unità = 1 metro, circa 9.216 m² (0,0092 km²). Comprende anteprima 3D live del personaggio, prima persona predefinita, terza persona selezionabile, menu pausa e impostazioni in quattro lingue (IT/EN/ES/FR).
