@@ -119,7 +119,7 @@ sign(35,30,'VALLE DELLE STELLE',['Hai trovato il primo mondo segreto','Cerca i c
 const keys={};addEventListener('keydown',e=>{
  if(e.code==='Escape'){e.preventDefault();if(mapOpen)toggleMap();else if(pauseOpen)closePause();else openPause();return}
  keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
- if(e.code==='KeyM'&&!pauseOpen)toggleMap();if(e.code==='KeyP'&&!pauseOpen)saveMarker();if(e.code==='KeyE'&&!pauseOpen)useWorldGate();
+ if(e.code==='KeyM'&&(!pauseOpen||mapOpen))toggleMap();if(e.code==='KeyP'&&!pauseOpen)saveMarker();if(e.code==='KeyE'&&!pauseOpen)useWorldGate();
 });addEventListener('keyup',e=>keys[e.code]=false);
 
 let yaw=0,pitch=.12,locked=false,velocityY=0,onGround=false;const player={x:0,z:8};const start=document.querySelector('#start');
