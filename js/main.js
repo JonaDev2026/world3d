@@ -127,7 +127,7 @@ const heroData=[
  {name:'ELOWEN KAER',role:'CAPITANA DEI CACCIATORI · 29 ANNI',description:'Cresciuta tra Umani e Selvani, conosce ogni sentiero della Selva Sussurrante. Suo fratello Tamsin è scomparso mentre la foresta moriva.',weapon:'ARCO · FRECCE SPECIALI · FURTIVITÀ · TRAPPOLE'},
  {name:'BRUNDAR FERROCUORE',role:'GUARDIANO DI SOGLIA · 112 ANNI',description:'Nano del clan Martelloscuro, esiliato dopo il crollo del Passo di Pietra. I suoi fratelli sono intrappolati nelle miniere: li ritroverà e riabiliterà il clan.',weapon:'ASCIA · FORZA · RESISTENZA · SPEZZA-ARMATURE'}
 ];
-let selected=0,mode='menu',musicOn=true,soundOn=true;
+
 const vaelmarClock=new VaelmarClock({gameSeconds:6*60*60});
 let lastClockMinute='';
 const phaseLabels={night:'NOTTE',dawn:'ALBA',morning:'MATTINA',day:'GIORNO',afternoon:'POMERIGGIO',sunset:'TRAMONTO',twilight:'CREPUSCOLO'};
@@ -166,28 +166,116 @@ function updateWorldLighting(state){
   lastClockMinute=stamp;
  }
 }
+
 const $=id=>document.getElementById(id);
-const audio=$('mainMusic');audio.volume=.20;
-function show(id){for(const el of document.querySelectorAll('.screen'))el.classList.add('hidden');$(id).classList.remove('hidden');document.body.classList.toggle('show-heroes',id==='characterSelect')}
-function chooseHero(i){selected=i;const d=heroData[i];$('heroName').textContent=d.name;$('heroRole').textContent=d.role;$('heroDescription').textContent=d.description;$('heroWeapon').textContent='ARMA · '+d.weapon;document.querySelectorAll('.hero-card').forEach((c,n)=>c.classList.toggle('selected',n===i));heroes.forEach((h,n)=>{h.userData.selected=n===i;h.scale.setScalar(n===i?1.16:0.92);h.position.z=n===i?0.25:-0.25;});}
+const audio=$('mainMusic');
+audio.volume=.20;
+audio.loop=true;
+let musicOn=true;
+let selected=0;
+let mode='menu';
 
-
-$('beginButton').addEventListener('click',()=>{show('characterSelect');mode='select';});
-$('enterWorldButton').addEventListener('click',()=>{$('readyTitle').textContent=heroData[selected].name+' · VAELMAR TI ATTENDE';show('worldReady');mode='ready';$('worldClock').classList.remove('hidden');vaelmarClock.start();updateWorldLighting(vaelmarClock.snapshot());});
-$('backToMenu').addEventListener('click',()=>{show('mainMenu');mode='menu';});
-$('returnMenu').addEventListener('click',()=>{vaelmarClock.pause();$('worldClock').classList.add('hidden');show('mainMenu');mode='menu';});
-document.querySelectorAll('.hero-card').forEach((card)=>card.addEventListener('click',()=>chooseHero(Number(card.dataset.hero))));
-$('musicToggle').addEventListener('click',async()=>{musicOn=!musicOn;$('musicToggle').classList.toggle('active',musicOn);if(musicOn){try{await audio.play()}catch{}}else audio.pause();});
-$('soundToggle').addEventListener('click',()=>{soundOn=!soundOn;$('soundToggle').classList.toggle('active',soundOn);});
-
-document.addEventListener('pointerdown',()=>{if(musicOn&&audio.paused)audio.play().catch(()=>{});},{once:true});
+function showScreen(id){
+ document.querySelectorAll('.screen').forEach(screen=>screen.classList.toggle('hidden',screen.id!==id));
+ document.body.classList.toggle('show-heroes',id==='characterSelect');
+ mode=id==='mainMenu'?'menu':id==='characterSelect'?'select':'ready';
+}
+async function startMusic(){
+ if(!musicOn||!audio.paused)return;
+ try{await audio.play();}catch(error){/* Il browser può richiedere il primo input dell'utente. */}
+}
+function chooseHero(index){
+ selected=Math.max(0,Math.min(heroData.length-1,index));
+ const data=heroData[selected];
+ $('heroRole').textContent=data.role;
+ $('heroName').textContent=data.name;
+ $('heroDescription').textContent=data.description;
+ $('heroWeapon').textContent=data.weapon;
+ document.querySelectorAll('.hero-card').forEach((card,i)=>{
+  const active=i===selected;
+  card.classList.toggle('selected',active);
+  card.setAttribute('aria-pressed',String(active));
+ });
+ heroes.forEach((hero,i)=>{
+  hero.scale.setScalar(i===selected?1.16:.92);
+  hero.position.z=i===selected?.25:-.25;
+ });
+}
+function enterSelection(){
+ showScreen('characterSelect');
+ chooseHero(selected);
+}
+function enterWorld(){
+ $('readyTitle').textContent=heroData[selected].name+' — VAELMAR';
+ showScreen('worldReady');
+ $('worldClock').classList.remove('hidden');
+ vaelmarClock.start();
+ updateWorldLighting(vaelmarClock.snapshot());
+}
+function backToSelection(){
+ vaelmarClock.pause();
+ $('worldClock').classList.add('hidden');
+ enterSelection();
+}
+$('beginButton').addEventListener('click',enterSelection);
+$('enterWorldButton').addEventListener('click',enterWorld);
+$('backToMenu').addEventListener('click',()=>showScreen('mainMenu'));
+$('backToCharacters').addEventListener('click',backToSelection);
+$('returnMenu').addEventListener('click',()=>{
+ vaelmarClock.pause();
+ $('worldClock').classList.add('hidden');
+ showScreen('mainMenu');
+});
+document.querySelectorAll('.hero-card').forEach(card=>{
+ card.addEventListener('click',()=>chooseHero(Number(card.dataset.hero)));
+});
+$('musicToggle').addEventListener('click',async()=>{
+ musicOn=!musicOn;
+ $('musicToggle').classList.toggle('is-muted',!musicOn);
+ $('musicToggle').setAttribute('aria-pressed',String(musicOn));
+ $('musicToggle').setAttribute('aria-label',musicOn?'Disattiva musica':'Attiva musica');
+ if(musicOn)await startMusic();else audio.pause();
+});
+document.addEventListener('pointerdown',startMusic);
+document.addEventListener('keydown',event=>{
+ if(event.altKey||event.ctrlKey||event.metaKey)return;
+ if(mode==='select'){
+  if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
+   event.preventDefault();
+   chooseHero((selected+(event.key==='ArrowRight'?1:3))%4);
+  }else if(event.key==='Enter'&&event.target.tagName!=='BUTTON'){
+   event.preventDefault();enterWorld();
+  }else if(event.key==='Escape'){
+   event.preventDefault();showScreen('mainMenu');
+  }
+ }else if(mode==='menu'&&event.key==='Enter'){
+  event.preventDefault();enterSelection();
+ }else if(mode==='ready'&&event.key==='Escape'){
+  event.preventDefault();backToSelection();
+ }
+});
 chooseHero(0);
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
+showScreen('mainMenu');
+startMusic();
+function resize(){
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+}
 addEventListener('resize',resize);
 const renderClock=new THREE.Clock();
-function animate(){requestAnimationFrame(animate);const delta=renderClock.getDelta();const t=renderClock.elapsedTime;if(mode==='ready'){const state=vaelmarClock.advance(delta);updateWorldLighting(state);}stageGroup.rotation.y=Math.sin(t*.12)*.055;heroes.forEach((h,i)=>{h.position.y=Math.sin(t*1.15+i*.8)*.018;h.rotation.y=Math.sin(t*.35+i)*.035;});renderer.render(scene,camera);}
+function animate(){
+ requestAnimationFrame(animate);
+ const delta=renderClock.getDelta();
+ const t=renderClock.elapsedTime;
+ if(mode==='ready')updateWorldLighting(vaelmarClock.advance(delta));
+ stageGroup.rotation.y=Math.sin(t*.12)*.055;
+ heroes.forEach((hero,i)=>{
+  hero.position.y=Math.sin(t*1.15+i*.8)*.018;
+  hero.rotation.y=Math.sin(t*.35+i)*.035;
+ });
+ renderer.render(scene,camera);
+}
 animate();
-
-// The playable world is deliberately an empty 300 km² foundation for future regions.
 $('readyTitle').dataset.worldSide=String(WORLD_SIDE);
 $('readyTitle').dataset.worldArea=String(WORLD_AREA_KM2);
