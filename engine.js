@@ -4,7 +4,7 @@ function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|
 const pick=(s,a)=>a[Math.floor(random(s)*a.length)];
 const alive=p=>p.alive;
 export function createWorld(){
- const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:"Valle del Primo Fiume",x:0,y:0,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24}],nextPersonId:25,nextSettlementId:2,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],religion:"Tradizioni orali",polity:"Comunità senza governo",laws:"Consuetudini condivise",economy:"Sussistenza collettiva",events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},neighbors:[{id:1,name:"Gente della Quercia",population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:-150,y:110},{id:2,name:"Clan delle Colline",population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:190,y:-135}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[]};
+ const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:"Valle del Primo Fiume",x:0,y:0,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24}],nextPersonId:25,nextSettlementId:2,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",laws:"Consuetudini condivise",economy:"Sussistenza collettiva",events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},neighbors:[{id:1,name:"Gente della Quercia",population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:-150,y:110},{id:2,name:"Clan delle Colline",population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:190,y:-135}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[]};
  const names=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const surnames=["della Riva","delle Selci","del Salice","della Valle","del Guado","della Quercia"];
  for(let i=0;i<24;i++){s.population.push({id:i+1,name:names[i],family:pick(s,surnames),age:8+Math.floor(random(s)*42),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",settlementId:1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
@@ -48,6 +48,36 @@ function updateSocial(s){
   addEvent(s,"Riforma dopo le proteste","Proteste e controversie costringono il governo a redistribuire parte delle risorse e a limitare alcuni privilegi. La riforma riduce temporaneamente la tensione sociale.","politics");
  }
  if(previous.inequality!==undefined&&Math.abs(gini-previous.inequality)>.12&&n>70)addEvent(s,gini>previous.inequality?"Aumenta la distanza tra le classi":"Si riduce la distanza tra le classi",gini>previous.inequality?"Le risorse si concentrano progressivamente in una parte ridotta della popolazione. Crescono le differenze nelle condizioni materiali.":"La distribuzione delle risorse diventa più equilibrata e diminuiscono le distanze economiche.","society");
+}
+function assignRoles(s){
+ const adults=living(s).filter(p=>p.age>=15&&p.age<65);
+ if(!adults.length)return;
+ const agricultural=s.technology.includes("Agricoltura"),hasWriting=s.technology.includes("Scrittura"),hasMoney=s.technology.includes("Moneta");
+ const targets=[
+  ["agricoltore",agricultural ? .40 : 0,p=>p.skill+p.traits.cooperation],
+  ["raccoglitore",agricultural ? .15 : .38,p=>p.traits.cooperation+p.skill*.2],
+  ["cacciatore",agricultural ? .08 : .30,p=>p.traits.aggression+p.skill*.3],
+  ["artigiano",agricultural ? .15 : .25,p=>p.skill+p.traits.ambition*.4],
+  ["costruttore",agricultural&&adults.length>35 ? .08 : 0,p=>p.skill+p.traits.ambition],
+  ["amministratore",hasWriting ? .03 : 0,p=>p.skill+p.traits.cooperation+p.traits.ambition*.3],
+  ["mercante",hasMoney ? .04 : 0,p=>p.traits.ambition+p.traits.cooperation],
+  ["guardia",s.institutions.includes("Guardia civica") ? .03 : 0,p=>p.traits.aggression+p.traits.cooperation],
+  ["guaritore",s.technology.includes("Medicina organizzata") ? .02 : 0,p=>p.traits.cooperation+p.skill],
+  ["sacerdote",s.religion!=="Tradizioni orali" ? .02 : 0,p=>p.traits.cooperation+p.traits.ambition]
+ ];
+ let available=adults.slice();
+ for(const [role,ratio,score] of targets){
+  const count=Math.min(available.length,Math.round(adults.length*ratio));
+  const ranked=available.map(person=>({person,value:score(person)+random(s)*.04})).sort((x,y)=>y.value-x.value);
+  const chosen=ranked.slice(0,count).map(x=>x.person),chosenIds=new Set(chosen.map(p=>p.id));
+  for(const p of chosen)p.role=role;
+  available=available.filter(p=>!chosenIds.has(p.id));
+  if(count>0&&["agricoltore","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].includes(role)){
+   if(!s.specializations)s.specializations=[];
+   if(!s.specializations.includes(role)){s.specializations.push(role);addEvent(s,"Si afferma una nuova professione","La crescita della società rende stabile il ruolo di "+role+". Le competenze vengono trasmesse e riconosciute come attività specializzata.","society");}
+  }
+ }
+ for(const p of available)p.role=agricultural?"artigiano":"raccoglitore";
 }
 function updateDiplomacy(s){
  for(const g of s.neighbors){
@@ -121,6 +151,7 @@ function yearBoundary(s){
  if(n>250&&s.settlements.length>1&&s.economy==="Riserve e distribuzione organizzata"){s.economy="Scambi tra insediamenti";addEvent(s,"Si organizzano gli scambi interni","I villaggi coordinano la circolazione di cibo, utensili e materie prime.","economy");}
  if(n>320&&!s.institutions.includes("Assemblea dei villaggi")){s.institutions.push("Assemblea dei villaggi");s.polity="Consiglio dei villaggi";addEvent(s,"Nasce un'assemblea territoriale","I rappresentanti dei diversi insediamenti si riuniscono per discutere risorse, confini e decisioni comuni.","politics");}
  updateDiplomacy(s);
+ assignRoles(s);
  updateLeadership(s);
 }
 function daily(s){
@@ -128,17 +159,20 @@ function daily(s){
  for(const p of people)if(!p.settlementId)p.settlementId=sett.id;
  if(!n)return;
  // subsistence and production
- const farmers=people.filter(p=>p.role==="agricoltore").length;
- const gatherers=people.filter(p=>["raccoglitore","cacciatore"].includes(p.role)).length;
- const producers=Math.max(1,Math.floor(n*.27)+farmers*0.28);
- let production=(gatherers*.20+farmers*.58+producers*.16)*(s.technology.includes("Agricoltura")?1.35:1);
+ const workers=people.filter(p=>p.age>=15&&p.age<65);
+ const countRole=role=>workers.filter(p=>p.role===role).length;
+ const farmers=countRole("agricoltore"),gatherers=countRole("raccoglitore"),hunters=countRole("cacciatore");
+ const artisans=countRole("artigiano"),builders=countRole("costruttore"),traders=countRole("mercante");
+ const administrators=countRole("amministratore"),guards=countRole("guardia"),healers=countRole("guaritore"),priests=countRole("sacerdote");
+ let production=gatherers*.18+hunters*.16+farmers*.45+artisans*.08+builders*.10+traders*.05+administrators*.04+guards*.04+healers*.04+priests*.02;
+ if(s.technology.includes("Agricoltura"))production*=1.08;
  const climate=s.climate||{type:"normale",days:0,severity:0};
  if(climate.days>0){if(climate.type==="siccità")production*=1-climate.severity*.72;else if(climate.type==="alluvione")production*=1-climate.severity*.48;else if(climate.type==="inverno rigido")production*=1-climate.severity*.38;}
  const surplus=production-n*.105;
  s.food=clamp(s.food+surplus,0,Math.max(240,n*45));sett.stores=s.food;
  if(surplus>0){
   const adults=people.filter(p=>p.age>=15&&p.age<70),pool=surplus*(s.technology.includes("Moneta")?.035:.012);
-  const weights=adults.map(p=>(.55+p.skill*.25+p.traits.ambition*.8)*(p.role==="artigiano"||p.role==="produttore"?1.35:p.role==="agricoltore"?.95:1));
+  const weights=adults.map(p=>(.55+p.skill*.25+p.traits.ambition*.8)*(["artigiano","mercante","amministratore","costruttore"].includes(p.role)?1.35:p.role==="agricoltore"?.95:1));
   const sum=weights.reduce((x,y)=>x+y,0)||1;
   for(let i=0;i<adults.length;i++){const p=adults[i];p.wealth=Math.min(1000000,(Number(p.wealth)||0)+pool*weights[i]/sum);}
  }else if(surplus<0){const shortage=-surplus;for(const p of people)if(p.wealth>0)p.wealth=Math.max(0,p.wealth-shortage*.0008*(p.traits.cooperation<.35?1.5:.7));}
@@ -246,7 +280,7 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:people.find(p=>p.id===s.leadership?.personId)||null,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:people.find(p=>p.id===s.leadership?.personId)||null,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,roles:Object.fromEntries(["agricoltore","raccoglitore","cacciatore","artigiano","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].map(role=>[role,people.filter(p=>p.age>=15&&p.age<65&&p.role===role).length])),technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||s.version!==VERSION||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
@@ -255,6 +289,7 @@ export function validateWorld(s){
  if(!s.disease)s.disease={active:false,strain:0,days:0};
  for(const g of s.neighbors){if(g.allied===undefined)g.allied=false;if(!Number.isFinite(g.truceUntil))g.truceUntil=0;}
  if(!s.social)s.social={inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:living(s).length,agiati:0,"élite":0},medianWealth:0};
+ if(!Array.isArray(s.specializations))s.specializations=[];
  if(!s.leadership)s.leadership={personId:null,termStarted:0,legitimacy:50};
  for(const p of s.population){if(!Number.isFinite(p.wealth))p.wealth=0;if(!p.settlementId)p.settlementId=s.settlements[0].id;}
  for(const st of s.settlements)if(!Number.isFinite(st.population))st.population=s.population.filter(p=>p.alive&&p.settlementId===st.id).length;

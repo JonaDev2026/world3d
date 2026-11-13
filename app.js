@@ -19,6 +19,7 @@ function render(s){
  $("inequality").textContent=Math.round(social.inequality*100)+"%";$("tension").textContent=Math.round(social.tension)+"%";
  $("class-poor").textContent=fmt(social.classes?.poveri||0);$("class-workers").textContent=fmt(social.classes?.lavoratori||0);
  $("class-affluent").textContent=fmt(social.classes?.agiati||0);$("class-elite").textContent=fmt(social.classes?.["élite"]||0);
+ $("jobs").textContent=Object.entries(s.roles||{}).filter(([,count])=>count>0).map(([role,count])=>role+" "+fmt(count)).join(" · ")||"Attività non ancora specializzate";
  $("event-count").textContent=s.eventTotal+" eventi registrati";$("era").textContent=s.year<100?"ERA DELLE ORIGINI":s.year<500?"ERA DEI VILLAGGI":s.year<1500?"ERA DELLE PRIME CITTÀ":"ERA DELLA CRESCITA";
  $("territory-name").textContent=s.settlement?.name||"Territorio";$("territory-area").textContent=(s.settlement?.knownArea||0)+" km² conosciuti";$("settlement-list").textContent=(s.settlementDetails||[]).map(st=>st.name+" · "+fmt(st.population||0)).join(" | ");
  const newest=s.events[0]?.id||0;if(eventsSeen!==newest){eventsSeen=newest;$("events").innerHTML=s.events.length?s.events.map(e=>`<article class="event"><time>ANNO ${e.year} · G${e.day}</time><div><strong>${esc(e.title)}</strong><p>${esc(e.description)}</p></div></article>`).join(""):'<div class="event empty">La storia deve ancora cominciare.</div>';}
