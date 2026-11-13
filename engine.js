@@ -13,7 +13,7 @@ export function createWorld(){
 }
 function addEvent(s,title,description,type="society"){
  const e={id:s.nextEventId++,year:s.year,day:s.day,title,description,type};
- s.events.unshift(e);if(s.events.length>600)s.events.length=600;
+ s.events.unshift(e);
 }
 function living(s){return s.population.filter(alive)}
 function addPerson(s,parents=[]){
@@ -50,7 +50,7 @@ function daily(s){
  const producers=Math.max(1,Math.floor(n*.27)+farmers*0.28);
  let production=(gatherers*.20+farmers*.58+producers*.16)*(s.technology.includes("Agricoltura")?1.35:1);
  if(s.year>0&&s.year%17===0&&s.day===1&&random(s)<.035){production*=.25;addEvent(s,"Raccolto compromesso","Una stagione sfavorevole riduce le riserve alimentari. La comunità deve razionare le scorte.","crisis");}
- s.food=clamp(s.food+production-n*.105,0,Math.max(240,n*90));
+ s.food=clamp(s.food+production-n*.105,0,Math.max(240,n*45));
  sett.stores=s.food;
  const foodRatio=clamp(s.food/Math.max(1,n*12),0,1);
  s.health=clamp(s.health+(foodRatio>.7?.012:foodRatio<.22?-.16:-.025),8,100);
@@ -92,7 +92,7 @@ function daily(s){
   }
  }
  // Disease ecology: outbreaks arise from density, water stress and chance.
- if(!s.disease.active&&n>35&&random(s)<(n>150?.00045:.00012)){
+ if(!s.disease.active&&n>35&&random(s)<(n>150?.00004:.000025)){
   s.disease.active=true;s.disease.days=0;s.disease.strain=.25+random(s)*.55;s.stats.epidemics++;
   addEvent(s,"Malattia contagiosa","Una malattia si diffonde tra gli abitanti. Le cause non sono ancora comprese e la comunità non dispone di cure efficaci.","disease");
  }
@@ -118,7 +118,7 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],stats:s.stats,dead:s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],stats:s.stats,dead:s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||s.version!==VERSION||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
