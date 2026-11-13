@@ -1,20 +1,85 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101713"><title>Anno Zero — Simulazione di civiltà</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet"><link rel="stylesheet" href="./material.css"></head><body>
-<header class="topbar"><div class="identity"><span class="brand-mark"><span class="material-symbols-rounded">public</span></span><div><strong>ANNO ZERO</strong><small>SIMULAZIONE AUTONOMA DI CIVILTÀ</small></div></div><div class="time-cluster"><div class="real-time"><span class="material-symbols-rounded">schedule</span><strong id="real-clock">--:--:--</strong><span id="real-date">--/--/----</span></div><div class="sim-calendar"><span class="material-symbols-rounded">calendar_month</span><div><small>CALENDARIO DEL MONDO</small><strong id="date">Anno 0 · Giorno 1</strong><span id="calendar-date">1 Primavera · Anno 0</span></div></div></div><div class="runstate"><i id="status-dot"></i><span id="status">SIMULAZIONE ATTIVA</span></div></header>
-<main class="dashboard"><section class="map-column"><div class="section-heading"><div><span class="eyebrow">IL MONDO CONOSCIUTO</span><h1><span class="material-symbols-rounded">terrain</span> Valle del Primo Fiume</h1></div><span class="live-tag"><i></i> MAPPA DINAMICA</span></div>
-<div class="map-frame"><canvas id="map" width="900" height="620" aria-label="Mappa del territorio e degli insediamenti"></canvas><div class="map-overlay"><span class="material-symbols-rounded">explore</span><span id="territory-name">Valle del Primo Fiume</span><span class="map-area" id="territory-area">12 km² conosciuti</span></div></div>
-<div class="weather-strip"><div class="weather-icon"><span class="material-symbols-rounded" id="weather-icon">partly_cloudy_day</span></div><div class="weather-copy"><small>CLIMA LOCALE</small><strong id="weather-label">Tempo mite</strong><span id="season-label">Primavera · condizioni regolari</span></div><div class="sun-state"><span class="material-symbols-rounded" id="sky-icon">dark_mode</span><div><strong id="sky-label">Notte</strong><small id="sky-time">Ore notturne</small></div></div><div class="day-meter"><div><small>GIORNO SIMULATO</small><b id="day-progress-label">0%</b></div><i><b id="day-progress-bar"></b></i></div></div>
-<section class="history-panel"><div class="section-heading compact"><div><span class="eyebrow">CRONACA</span><h2><span class="material-symbols-rounded">history</span> Storia della comunità</h2></div><span id="event-count" class="muted">0 eventi</span></div><div id="events" class="events"></div></section></section>
-<aside class="info-column">
-<section class="population-card"><div class="population-top"><div><span class="eyebrow">ABITANTI</span><strong id="population">24</strong><small id="population-change">Comunità fondatrice</small></div><span class="population-icon material-symbols-rounded">groups</span></div><div class="quick-stats"><div><span class="material-symbols-rounded">home_work</span><small>Insediamenti</small><strong id="settlements">1</strong></div><div><span class="material-symbols-rounded">nutrition</span><small>Scorte</small><strong id="food">240</strong></div><div><span class="material-symbols-rounded">lightbulb</span><small>Conoscenza</small><strong id="knowledge">0</strong></div></div></section>
-<section class="info-card"><div class="section-heading compact"><div><span class="eyebrow">STATO DELLA CIVILTÀ</span><h2><span class="material-symbols-rounded">monitoring</span> Indicatori</h2></div></div><div class="meters">
-<div class="meter"><div><span><span class="material-symbols-rounded">health_and_safety</span> Salute</span><b id="health-value">100%</b></div><i><b id="health-bar"></b></i></div>
-<div class="meter"><div><span><span class="material-symbols-rounded">restaurant</span> Scorte alimentari</span><b id="food-value">100%</b></div><i><b id="food-bar"></b></i></div>
-<div class="meter"><div><span><span class="material-symbols-rounded">handshake</span> Coesione sociale</span><b id="cohesion-value">75%</b></div><i><b id="cohesion-bar"></b></i></div>
-<div class="meter"><div><span><span class="material-symbols-rounded">balance</span> Ordine sociale</span><b id="order-value">20%</b></div><i><b id="order-bar"></b></i></div>
-<div class="meter"><div><span><span class="material-symbols-rounded">school</span> Conoscenza</span><b id="knowledge-value">0</b></div><i><b id="knowledge-bar"></b></i></div></div></section>
-<section class="info-card"><div class="section-heading compact"><div><span class="eyebrow">ORGANIZZAZIONE</span><h2><span class="material-symbols-rounded">account_balance</span> Società e cultura</h2></div></div><dl class="facts">
-<div><dt>Forma politica</dt><dd id="polity">Comunità senza governo</dd></div><div><dt>Guida</dt><dd id="leader">Nessuna guida riconosciuta</dd></div><div><dt>Legittimità</dt><dd id="legitimacy">0%</dd></div><div><dt>Credenze</dt><dd id="belief">Tradizioni orali</dd></div><div><dt>Leggi</dt><dd id="laws">Consuetudini condivise</dd></div><div><dt>Economia</dt><dd id="economy">Sussistenza collettiva</dd></div><div><dt>Clima</dt><dd id="climate">Stagione regolare</dd></div><div><dt>Tecnologia</dt><dd id="tech-list">Fuoco · utensili di pietra</dd></div><div><dt>Attività</dt><dd id="jobs">Raccolta · caccia</dd></div><div><dt>Altri insediamenti</dt><dd id="settlement-list">Valle del Primo Fiume · 24</dd></div></dl></section>
-<section class="info-card"><div class="section-heading compact"><div><span class="eyebrow">EQUILIBRI SOCIALI</span><h2><span class="material-symbols-rounded">groups_3</span> Popolazione</h2></div></div><div class="social-grid"><div><small>Disuguaglianza</small><strong id="inequality">0%</strong></div><div><small>Tensione</small><strong id="tension">0%</strong></div><div><small>In difficoltà</small><strong id="class-poor">0</strong></div><div><small>Lavoratori</small><strong id="class-workers">24</strong></div><div><small>Agiatezza</small><strong id="class-affluent">0</strong></div><div><small>Élite</small><strong id="class-elite">0</strong></div></div><div class="minor-facts"><span>Popolazione attiva <b id="workers">—</b></span><span>Istituzioni <b id="institutions">Nessuna</b></span></div></section>
-<section class="info-card"><div class="section-heading compact"><div><span class="eyebrow">MEMORIA STORICA</span><h2><span class="material-symbols-rounded">history_edu</span> Registro</h2></div></div><div class="record-grid"><div><small>Nascite</small><strong id="births">0</strong></div><div><small>Decessi</small><strong id="deaths">0</strong></div><div><small>Crimini</small><strong id="crimes">0</strong></div><div><small>Guerre</small><strong id="wars">0</strong></div><div><small>Epidemie</small><strong id="epidemics">0</strong></div><div><small>Relazioni</small><strong id="relations">Nessuna</strong></div></div></section>
-<section class="info-card control-card"><div class="section-heading compact"><div><span class="eyebrow">TEMPO</span><h2><span class="material-symbols-rounded">speed</span> Simulazione</h2></div></div><div class="controls"><button id="pause" class="primary"><span class="material-symbols-rounded">pause</span> Pausa</button><button data-speed="1" class="speed selected">1×</button><button data-speed="7" class="speed">7×</button><button data-speed="30" class="speed">30×</button><button data-speed="120" class="speed">120×</button></div><p class="note">A 1× passa un giorno simulato al minuto.</p><div class="save-line"><span id="save-state">Salvataggio locale attivo</span><div class="save-actions"><button id="reset-world" title="Ricomincia dall'Anno 0"><span class="material-symbols-rounded">restart_alt</span> RICOMINCIA</button><button id="save-now"><span class="material-symbols-rounded">save</span> SALVA</button></div></div></section>
-</aside></main><div hidden><span id="settlement-type"></span><span id="food-status"></span><span id="technology"></span><span id="order"></span><span id="government"></span><span id="era"></span></div><footer><span>ANNO ZERO <b>·</b> ESPERIMENTO DI SIMULAZIONE SOCIALE</span><span id="last-save">STATO LOCALE</span></footer><script type="module" src="./app.js"></script></body></html>
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#171b1b">
+<title>Anno Zero — Simulazione autonoma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./material.css">
+</head>
+<body>
+<header class="topbar">
+ <div class="brand"><span class="brand-icon material-symbols-rounded">public</span><div><strong>ANNO ZERO</strong><small>SIMULAZIONE DI UNA CIVILTÀ AUTONOMA</small></div></div>
+ <div class="time-center">
+  <div class="clock"><span class="material-symbols-rounded">schedule</span><strong id="real-clock">--:--:--</strong><small id="real-date">--</small></div>
+  <div class="calendar"><span class="material-symbols-rounded">calendar_month</span><div><small>CALENDARIO DELLA CIVILTÀ</small><strong id="date">Anno 0 · Giorno 1</strong><span id="calendar-date">Giorno 1 · Primavera</span></div></div>
+ </div>
+ <div class="runstate"><i id="status-dot"></i><span id="status">SIMULAZIONE ATTIVA</span></div>
+</header>
+<main class="dashboard">
+ <section class="map-column">
+  <div class="section-heading map-heading"><div><span class="eyebrow">GEOGRAFIA GENERATA · ESPLORAZIONE LIBERA</span><h1><span class="material-symbols-rounded">map</span> Il continente</h1></div><span class="map-live"><i></i> MONDO IN EVOLUZIONE</span></div>
+  <div class="map-frame">
+   <canvas id="map" width="1280" height="880" aria-label="Carta geografica del continente con mari, laghi, fiumi, montagne, foreste e insediamenti"></canvas>
+   <div class="map-chip"><span class="material-symbols-rounded">explore</span><span id="territory-name">Territorio non ancora nominato</span><b id="territory-area">12 km² conosciuti</b></div>
+   <div class="map-compass"><span>N</span><span class="material-symbols-rounded">navigation</span></div>
+  </div>
+  <div class="map-legend">
+   <span><i class="legend-water"></i> Acqua</span><span><i class="legend-forest"></i> Foreste</span><span><i class="legend-field"></i> Pianure</span><span><i class="legend-hill"></i> Colline</span><span><i class="legend-mountain"></i> Montagne</span><span><i class="legend-settlement"></i> Insediamenti</span>
+  </div>
+  <div class="weather-strip">
+   <div class="weather-symbol"><span class="material-symbols-rounded" id="weather-icon">partly_cloudy_day</span></div>
+   <div class="weather-copy"><small>METEO LOCALE</small><strong id="weather-label">Tempo mite</strong><span id="season-label">Primavera · condizioni regolari</span></div>
+   <div class="sun-state"><span class="material-symbols-rounded" id="sky-icon">dark_mode</span><div><strong id="sky-label">Notte</strong><small id="sky-time">Ore notturne</small></div></div>
+   <div class="day-progress"><div><small>AVANZAMENTO DEL GIORNO</small><b id="day-progress-label">0%</b></div><i><b id="day-progress-bar"></b></i></div>
+  </div>
+  <section class="history-panel">
+   <div class="section-heading compact"><div><span class="eyebrow">CRONOLOGIA</span><h2><span class="material-symbols-rounded">history</span> Eventi del mondo</h2></div><span id="event-count" class="muted">0 eventi</span></div>
+   <div id="events" class="events"></div>
+  </section>
+ </section>
+ <aside class="info-column">
+  <section class="population-card">
+   <div class="population-top"><div><span class="eyebrow">POPOLAZIONE VIVENTE</span><strong id="population">24</strong><small id="population-change">Comunità fondatrice</small></div><span class="population-icon material-symbols-rounded">groups</span></div>
+   <div class="quick-stats">
+    <div><span class="material-symbols-rounded">location_city</span><small>Insediamenti</small><strong id="settlements">1</strong></div>
+    <div><span class="material-symbols-rounded">inventory_2</span><small>Scorte</small><strong id="food">240</strong><em id="food-status">Riserve iniziali</em></div>
+    <div><span class="material-symbols-rounded">lightbulb</span><small>Conoscenza</small><strong id="knowledge">0</strong><em id="technology">Conoscenze iniziali</em></div>
+   </div>
+  </section>
+  <section class="info-card">
+   <div class="section-heading compact"><div><span class="eyebrow">CONDIZIONI GENERALI</span><h2><span class="material-symbols-rounded">monitoring</span> Indicatori</h2></div></div>
+   <div class="meters">
+    <div class="meter"><div><span><i class="material-symbols-rounded">health_and_safety</i> Salute</span><b id="health-value">100%</b></div><div class="track"><i id="health-bar"></i></div></div>
+    <div class="meter"><div><span><i class="material-symbols-rounded">restaurant</i> Sicurezza alimentare</span><b id="food-value">100%</b></div><div class="track"><i id="food-bar"></i></div></div>
+    <div class="meter"><div><span><i class="material-symbols-rounded">groups</i> Coesione sociale</span><b id="cohesion-value">75%</b></div><div class="track"><i id="cohesion-bar"></i></div></div>
+    <div class="meter"><div><span><i class="material-symbols-rounded">balance</i> Ordine sociale</span><b id="order-value">20%</b></div><div class="track"><i id="order-bar"></i></div></div>
+    <div class="meter"><div><span><i class="material-symbols-rounded">school</i> Conoscenza accumulata</span><b id="knowledge-value">0</b></div><div class="track"><i id="knowledge-bar"></i></div></div>
+   </div>
+  </section>
+  <section class="info-card">
+   <div class="section-heading compact"><div><span class="eyebrow">SISTEMA SOCIALE</span><h2><span class="material-symbols-rounded">account_balance</span> Società e cultura</h2></div></div>
+   <dl class="facts">
+    <div><dt>Forma politica</dt><dd id="polity">Comunità senza governo</dd></div><div><dt>Guida</dt><dd id="leader">Nessuna guida riconosciuta</dd></div><div><dt>Legittimità</dt><dd id="legitimacy">0%</dd></div><div><dt>Credenze</dt><dd id="belief">Tradizioni orali</dd></div><div><dt>Norme</dt><dd id="laws">Consuetudini condivise</dd></div><div><dt>Economia</dt><dd id="economy">Sussistenza collettiva</dd></div><div><dt>Clima</dt><dd id="climate">Stagione regolare</dd></div><div><dt>Conoscenze</dt><dd id="tech-list">Fuoco · utensili di pietra</dd></div><div><dt>Professioni</dt><dd id="jobs">Raccolta · caccia</dd></div><div><dt>Tipo insediamento</dt><dd id="settlement-type">Accampamento</dd></div><div><dt>Insediamenti e abitanti</dt><dd id="settlement-list">1 comunità</dd></div>
+   </dl>
+  </section>
+  <section class="info-card">
+   <div class="section-heading compact"><div><span class="eyebrow">EQUILIBRI INTERNI</span><h2><span class="material-symbols-rounded">groups_3</span> Struttura sociale</h2></div></div>
+   <div class="social-grid"><div><small>Disuguaglianza</small><strong id="inequality">0%</strong></div><div><small>Tensione</small><strong id="tension">0%</strong></div><div><small>In difficoltà</small><strong id="class-poor">0</strong></div><div><small>Lavoratori</small><strong id="class-workers">24</strong></div><div><small>Agiatezza</small><strong id="class-affluent">0</strong></div><div><small>Élite</small><strong id="class-elite">0</strong></div></div>
+   <div class="minor-facts"><span>Popolazione attiva <b id="workers">—</b></span><span>Istituzioni <b id="institutions">Nessuna</b></span></div>
+  </section>
+  <section class="info-card">
+   <div class="section-heading compact"><div><span class="eyebrow">MEMORIA COLLETTIVA</span><h2><span class="material-symbols-rounded">history_edu</span> Registro storico</h2></div></div>
+   <div class="record-grid"><div><small>Nascite</small><strong id="births">0</strong></div><div><small>Decessi</small><strong id="deaths">0</strong></div><div><small>Crimini</small><strong id="crimes">0</strong></div><div><small>Guerre</small><strong id="wars">0</strong></div><div><small>Epidemie</small><strong id="epidemics">0</strong></div><div><small>Relazioni</small><strong id="relations">Nessuna</strong></div></div>
+  </section>
+  <section class="info-card control-card">
+   <div class="section-heading compact"><div><span class="eyebrow">GESTIONE DEL TEMPO</span><h2><span class="material-symbols-rounded">speed</span> Simulazione</h2></div><span id="era" class="era-label">ERA DELLE ORIGINI</span></div>
+   <div class="controls"><button id="pause" class="primary"><span class="material-symbols-rounded">pause</span> Pausa</button><button data-speed="1" class="speed selected">1×</button><button data-speed="7" class="speed">7×</button><button data-speed="30" class="speed">30×</button><button data-speed="120" class="speed">120×</button></div>
+   <p class="note">A 1× trascorre un giorno simulato ogni minuto. La civiltà evolve senza interventi.</p>
+   <div class="save-line"><span id="save-state">Salvataggio locale attivo</span><div class="save-actions"><button id="reset-world" title="Ricomincia dall'Anno 0"><span class="material-symbols-rounded">restart_alt</span> RICOMINCIA</button><button id="save-now"><span class="material-symbols-rounded">save</span> SALVA</button></div></div>
+  </section>
+ </aside>
+</main>
+<footer><span>ANNO ZERO <b>·</b> ESPERIMENTO DI STORIA EMERGENTE</span><span id="last-save">STATO LOCALE</span></footer>
+<script type="module" src="./app.js"></script>
+</body></html>
