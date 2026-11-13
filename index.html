@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WORLD — Open Exploration</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101a18;color:#f3f2e9}canvas#game{display:block;width:100%;height:100%;outline:0}
+#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 8px #000b}
+.panel{background:#101a18c9;border:1px solid #ffffff25;backdrop-filter:blur(12px);border-radius:12px;padding:11px 14px}
+#brand{position:absolute;top:18px;left:18px;font-weight:800;letter-spacing:.18em;font-size:14px}#brand small{display:block;color:#a8c6ad;font-size:10px;letter-spacing:.22em;margin-top:4px}
+#coords{position:absolute;top:18px;right:18px;font:12px ui-monospace,monospace;color:#d6e3d4}
+#help{position:absolute;left:18px;bottom:18px;max-width:360px;font-size:12px;line-height:1.7;color:#d6dfd3}
+#actions{position:absolute;right:18px;bottom:18px;display:flex;gap:8px;pointer-events:auto}
+button{font:600 12px inherit;color:#f3f2e9;background:#243b32;border:1px solid #8aa58b66;border-radius:9px;padding:11px 13px;cursor:pointer}button:hover{background:#355746}button.primary{background:#668b58;color:white}
+#crosshair{position:absolute;left:50%;top:50%;width:7px;height:7px;border:1px solid #fff;border-radius:50%;transform:translate(-50%,-50%);opacity:.8}
+#mapWrap{display:none;position:fixed;inset:0;background:#07100edb;backdrop-filter:blur(8px);z-index:5;align-items:center;justify-content:center;pointer-events:auto}
+#mapCard{width:min(92vw,720px);background:#14231e;border:1px solid #ffffff2b;border-radius:16px;padding:18px}
+#mapHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}#mapHead strong{letter-spacing:.16em}#map{width:100%;aspect-ratio:1;max-height:65vh;display:block;border-radius:8px;background:#263c2d}
+#markerList{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:#d4e0d2}.marker{background:#23392e;border-radius:8px;padding:6px 9px}
+#toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);background:#17271fe8;border:1px solid #ffffff30;padding:9px 14px;border-radius:9px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+#start{position:fixed;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:linear-gradient(#07120a55,#07120acc),radial-gradient(ellipse at 50% 40%,#547b4d,#13241d 70%);pointer-events:auto}
+#startBox{text-align:center;padding:32px;max-width:460px}#startBox h1{font-size:clamp(42px,9vw,76px);letter-spacing:.14em;margin:0}#startBox p{color:#d2dfcf;line-height:1.6;font-size:14px}#startBox button{margin-top:12px;padding:14px 25px;font-size:13px}
+@media(max-width:600px){#help{max-width:230px;font-size:10px}#actions{right:10px;bottom:10px;flex-direction:column}#brand{top:10px;left:10px}#coords{top:10px;right:10px;font-size:10px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+ <div id="brand" class="panel">WORLD <small>OPEN EXPLORATION · 0.1</small></div>
+ <div id="coords" class="panel">X 0 · Z 0</div><div id="crosshair"></div>
+ <div id="help" class="panel">↑ ↓ cammina · ← → ruota · W A S D movimento · SPAZIO salta<br>Mouse: guarda intorno · P: salva un luogo · M: mappa · ESC: libera il mouse</div>
+ <div id="actions"><button id="save" class="primary">＋ SALVA LUOGO</button><button id="mapBtn">MAPPA [M]</button></div>
+</div>
+<div id="toast"></div>
+<div id="start"><div id="startBox"><h1>WORLD</h1><p>Un mondo da esplorare, senza una destinazione obbligatoria.<br>Foreste, alture, acqua e luoghi da scoprire.</p><button id="enter" class="primary">ENTRA NEL MONDO</button></div></div>
+<div id="mapWrap"><div id="mapCard"><div id="mapHead"><strong>MAPPA DEL MONDO</strong><button id="closeMap">CHIUDI [M]</button></div><canvas id="map" width="600" height="600"></canvas><div id="markerList"></div></div></div>
+<script type="module">
+import * as THREE from 'three';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc4d1);scene.fog=new THREE.Fog(0x9bc4d1,48,125);
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,220);camera.position.set(0,8,12);
+const renderer=new THREE.WebGLRenderer({canvas:document.querySelector('#game'),antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=false;
+scene.add(new THREE.HemisphereLight(0xd9efff,0x65734b,2.0));const sun=new THREE.DirectionalLight(0xffedc5,2.2);sun.position.set(-35,65,25);scene.add(sun);
+const mats={grass:0x6f9d4e,dirt:0x79563a,stone:0x858b83,sand:0xc6b77b,wood:0x765034,leaves:0x3e743e,leaf2:0x588947,water:0x4b9ca7,roof:0x70483a};
+const geo=new THREE.BoxGeometry(1,1,1);const buckets={};for(const [k,c] of Object.entries(mats)){buckets[k]=[]}
+function hash(x,z){let n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n)}
+function heightAt(x,z){const hills=Math.sin(x*.075)*2.7+Math.cos(z*.061)*2.2+Math.sin((x+z)*.035)*2;const ridge=Math.max(0,Math.sin((x-z*.55)*.035))*Math.max(0,Math.cos(z*.025))*7;return Math.floor(3+hills+ridge)}
+const HALF=48;
+for(let x=-HALF;x<HALF;x++)for(let z=-HALF;z<HALF;z++){let h=heightAt(x,z);let beach=(x>12&&x<25&&z> -22&&z<18);for(let y=0;y<h;y++)buckets[y===h-1?(beach?'sand':'grass'):(y<h-3?'stone':'dirt')].push([x,y,z]);if(h<3)buckets.water.push([x,2,z]);}
+function addStructure(x,z,type){const h=heightAt(x,z);if(type==='tree'){for(let y=0;y<4;y++)buckets.wood.push([x,h+y,z]);for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++)for(let dy=2;dy<=5;dy++){if(Math.abs(dx)+Math.abs(dz)+(dy===5?1:0)<5&&hash(x+dx*7,z+dz*9+dy)>.12)buckets[dy%2?'leaves':'leaf2'].push([x+dx,h+dy,z+dz])}}}
+for(let x=-HALF+3;x<HALF-3;x++)for(let z=-HALF+3;z<HALF-3;z++){if(hash(x,z)>.982&&Math.abs(x)<38&&Math.abs(z)<38)addStructure(x,z,'tree')}
+function house(x,z){const h=heightAt(x,z);for(let dx=0;dx<7;dx++)for(let dz=0;dz<6;dz++){buckets.wood.push([x+dx,h,z+dz]);if(dx===0||dx===6||dz===0||dz===5)for(let y=1;y<4;y++)if(!(dx===3&&dz===0&&y<3))buckets.wood.push([x+dx,h+y,z+dz]);}for(let dx=-1;dx<8;dx++)for(let dz=-1;dz<7;dz++)buckets.roof.push([x+dx,h+4,z+dz]);}
+house(-13,-8);house(-3,-10);
+for(const [k,arr] of Object.entries(buckets)){if(!arr.length)continue;const mesh=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:mats[k],transparent:k==='water',opacity:k==='water'?.78:1}),arr.length);const o=new THREE.Object3D();arr.forEach((p,i)=>{o.position.set(p[0],p[1]+.5,p[2]);o.updateMatrix();mesh.setMatrixAt(i,o.matrix)});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh)}
+// path and small settlement clearing
+const ground=new THREE.PlaneGeometry(200,200);const groundMesh=new THREE.Mesh(ground,new THREE.MeshLambertMaterial({color:0x567e42}));groundMesh.rotation.x=-Math.PI/2;groundMesh.position.y=-.52;scene.add(groundMesh);
+const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyM')toggleMap();if(e.code==='KeyP')saveMarker()});addEventListener('keyup',e=>keys[e.code]=false);
+let yaw=0,pitch=0,locked=false,velocityY=0,onGround=false;const player={x:0,z:8};const start=document.querySelector('#start');
+document.querySelector('#enter').onclick=()=>{start.style.display='none';renderer.domElement.requestPointerLock?.()};
+document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
+document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.0022;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0022))});
+function terrainY(x,z){return heightAt(Math.round(x),Math.round(z))+.15}
+function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.opacity=0,1900)}
+const STORE='world3d-v01';let saved={markers:[],position:null};try{saved={...saved,...JSON.parse(localStorage.getItem(STORE)||'{}')}}catch{}
+if(saved.position){player.x=saved.position.x;player.z=saved.position.z}
+function persist(){saved.position={x:player.x,z:player.z};localStorage.setItem(STORE,JSON.stringify(saved))}
+function saveMarker(){const name=prompt('Nome di questo luogo:','Luogo scoperto');if(name===null)return;saved.markers.push({name:name.trim()||'Luogo senza nome',x:Math.round(player.x),z:Math.round(player.z)});persist();drawMap();toast('Luogo salvato sulla mappa')}
+document.querySelector('#save').onclick=saveMarker;
+let mapOpen=false;function toggleMap(){mapOpen=!mapOpen;document.querySelector('#mapWrap').style.display=mapOpen?'flex':'none';if(mapOpen){if(locked)document.exitPointerLock();drawMap()}}
+document.querySelector('#mapBtn').onclick=toggleMap;document.querySelector('#closeMap').onclick=toggleMap;
+function drawMap(){const c=document.querySelector('#map'),ctx=c.getContext('2d'),w=c.width;const img=ctx.createImageData(w,w);for(let px=0;px<w;px++)for(let pz=0;pz<w;pz++){let x=Math.floor(px/ w*96)-48,z=Math.floor(pz/w*96)-48,h=heightAt(x,z),col=h<3?[65,135,151]:h>10?[119,124,116]:[Math.max(45,105-h*2),Math.min(160,145-h*2),65];let i=(pz*w+px)*4;img.data.set([...col,255],i)}ctx.putImageData(img,0,0);const dot=(x,z,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc((x+48)/96*w,(z+48)/96*w,r,0,Math.PI*2);ctx.fill()};saved.markers.forEach(m=>dot(m.x,m.z,'#ffd45e',5));dot(player.x,player.z,'#fff',6);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(1,1,w-2,w-2);document.querySelector('#markerList').innerHTML=saved.markers.length?saved.markers.map(m=>'<span class="marker">◆ '+escapeHtml(m.name)+' ('+m.x+', '+m.z+')</span>').join(''):'Nessun luogo salvato. Premi P durante l’esplorazione.'}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(!mapOpen){if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-47,47);player.z=THREE.MathUtils.clamp(player.z,-47,47);if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;camera.position.x=player.x;camera.position.z=player.z;camera.position.y+=velocityY*dt;const floor=terrainY(player.x,player.z)+1.65;if(camera.position.y<floor){camera.position.y=floor;velocityY=0;onGround=true}camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;document.querySelector('#coords').textContent='X '+Math.round(player.x)+' · Z '+Math.round(player.z);if(Math.random()<.025)persist()}renderer.render(scene,camera)}
+const clock=new THREE.Clock();animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+addEventListener('beforeunload',persist);drawMap();
+</script>
+</body></html>
