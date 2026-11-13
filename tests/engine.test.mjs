@@ -162,3 +162,25 @@ test("wealth is inherited by surviving children", () => {
   assert.ok(Math.abs(heirs[0].wealth - 60) < 0.001);
   assert.ok(Math.abs(heirs[1].wealth - 60) < 0.001);
 });
+
+test("new world has an unnamed generated continent with land, sea, lakes and rivers",()=>{
+ const world=createWorld();
+ assert.equal(world.settlements[0].name,null);
+ assert.ok(world.neighbors.every(group=>group.name===null));
+ assert.equal(world.geography.width,128);
+ assert.equal(world.geography.height,88);
+ assert.equal(world.geography.terrain.length,128*88);
+ for(const code of [0,1,2,3,4,5,6])assert.ok(world.geography.terrain.includes(code),"terrain code "+code+" exists");
+ assert.ok(world.geography.features.every(feature=>feature.name===null));
+});
+test("inhabitants invent the first settlement name after the founding period",()=>{
+ const world=createWorld();
+ advance(world,365);
+ assert.ok(world.settlements[0].name);
+ assert.ok(world.events.some(event=>event.title==="La comunità dà un nome al proprio luogo"));
+});
+test("version one saves migrate to the generated geography without losing population",()=>{
+ const world=createWorld();world.version=1;delete world.geography;delete world.language;
+ validateWorld(world);
+ assert.equal(world.version,2);assert.equal(world.population.length,24);assert.ok(world.geography.terrain.length>0);
+});
