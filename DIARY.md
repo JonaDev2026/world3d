@@ -1,70 +1,28 @@
-# WORLD — Diario del Master
+# WORLD — Diario di sviluppo
 
-Diario cronologico delle decisioni, del lavoro e delle prossime intenzioni.
+## 2026-11-13 — Ripartenza da zero
 
-## 2026-11-13 — Consolidamento della visione
+Decisione: abbandonare il vecchio prototipo e ricostruire il gioco partendo dall'identità grafica. Non si continua a stratificare il vecchio villaggio, l'HUD, la mappa o la vecchia creazione del personaggio.
 
-### Decisioni
-- WORLD è un mondo persistente da esplorare, non una semplice demo voxel.
-- Obiettivo geografico a lungo termine: 300 km².
-- Si costruisce progressivamente partendo da un angolo del mondo e completando la prima città.
-- L'identità visiva deve essere stilizzata ma raffinata: forme organiche, poligoni più precisi, materiali e dettagli; niente estetica cubettosa Minecraft.
-- Il giocatore deve avere un corpo articolato e animazioni naturali; gli NPC devono sembrare abitanti, non manichini.
-- Il Master cura ambienti, città, personaggi, oggetti, segreti e narrazione. La struttura tecnica viene mantenuta documentata.
+### Nuova base
+- Menu principale cinematografico e minimale.
+- Scena 3D Three.js pulita, con quattro protagonisti mostrati come modelli tridimensionali.
+- Selezione del protagonista con nome, ruolo, descrizione e arma.
+- Musica principale predisposta nel percorso assets/audio/music/main-theme.mp3.
+- Controlli di musica e volume; gli effetti sonori saranno collegati quando saranno disponibili gli asset.
+- Piano geografico vuoto di 300 km², quadrato di 17,32 km per lato.
 
-### Stato ereditato
-- Prototipo Three.js con mappa iniziale 96 × 96 unità.
-- Prima persona predefinita, terza persona selezionabile.
-- Creazione personaggio, anteprima 3D e quattro lingue.
-- Menu pausa e salvataggi locali.
-- Due case, due abitanti, un portale e una piccola area segreta.
+### Personaggi
+- Eldrin: mago con bastone arcano.
+- Lyra: arciera con arco lungo.
+- Kael: guerriero con spada.
+- Il Velato: figura misteriosa con lancia-reliquia.
 
-### Nota tecnica da verificare
-Nel codice corrente la lista `animatedActors` viene dichiarata dopo la creazione degli NPC, mentre la funzione `person()` la usa. L'ordine può causare un errore di inizializzazione JavaScript (Temporal Dead Zone). Va corretto prima di ampliare la scena.
+### Verifiche e limiti
+- Verificati staticamente gli ID HTML usati dal nuovo JavaScript.
+- Il codice va ancora provato visivamente nel browser: non dichiarare il menu collaudato finché non viene verificato sul sito.
+- I personaggi attuali sono modelli procedurali iniziali, non asset finali.
+- Il mondo è soltanto un piano vuoto; non sono ancora implementati movimento, collisioni, gameplay, streaming o contenuti.
 
-### Prossimo obiettivo
-Costruire un sistema di animazione articolato condiviso dal personaggio giocante e dagli abitanti: locomozione, idle, corsa, salto, atterraggio, movimenti di testa e braccia. Poi rinnovare il design dei personaggi e impostare il primo isolato della città.
-
----
-
-## 2026-11-13 — Primo corpo articolato
-
-- **Realizzato:** corretto l'ordine di inizializzazione degli NPC; il personaggio giocante ora usa un rig con busto, testa, spalle, gomiti, anche, ginocchia, stinchi e piedi.
-- **Realizzato:** camminata e corsa muovono arti opposti, ginocchia e piedi; la transizione idle/movimento è smussata. Il salto ha una posa dedicata.
-- **Realizzato:** anteprima di creazione aggiornata con volto, sopracciglia, tunica, cintura, arti articolati e stivali.
-- **Realizzato:** gli abitanti respirano, muovono lo sguardo e fanno piccoli gesti.
-- **Verifiche:** controllo statico della sintassi JavaScript e dei riferimenti; nessun test grafico browser eseguito in questa sessione.
-- **Decisioni:** la prima città deve essere progettata prima come quartieri e percorsi, poi popolata con edifici e oggetti coerenti. Il target 300 km² richiede chunk streaming, non una singola mesh gigantesca.
-- **Prossimo passo:** costruire il sistema geografico a chunk e definire l'area della prima città, poi rifinire animazioni e modelli con un test visivo.
-
-## Modello per le prossime annotazioni
-
-### YYYY-MM-DD — Titolo
-- **Realizzato:**
-- **Decisioni:**
-- **Verifiche:**
-- **Problemi aperti:**
-- **Prossimo passo:**
-
-
-## 2026-11-13 — La Corona delle Ceneri e i quattro protagonisti
-
-- **Direzione artistica di riferimento:** fantasy epico cinematografico, con paesaggi monumentali, castelli, montagne, vallate e personaggi dall'aspetto curato e riconoscibile.
-- **Storia:** il Sigillo Celeste si spezza; quattro stelle cadono e risvegliano una minaccia antica. A Valdombra si incontrano quattro portatori di segni misteriosi.
-- **Eldrin:** mago con bastone arcano e cristallo luminoso.
-- **Lyra:** esploratrice con arco lungo e faretra.
-- **Kael:** guerriero con spada e mantello color ruggine.
-- **Il Velato:** figura mascherata con lancia-reliquia, poteri legati alla Soglia e identità ignota.
-- **Codice:** aggiunte armi e tratti visivi distintivi ai quattro personaggi presenti nella città. Controllo statico JavaScript superato.
-- **Da fare:** modelli di qualità superiore, animazioni individuali, combattimento, dialoghi e missioni. Nessun test grafico in browser eseguito in questa sessione.
-
-
-## 2026-11-13 — Identità grafica dell'interfaccia
-
-- Scelti **Cinzel** e **Cormorant Garamond** da Google Fonts per un carattere antico, leggibile e coerente con un fantasy epico.
-- Definita la palette dei menu: oro antico e pergamena su verde bosco e legno scuro, con bordeaux per le azioni principali.
-- Rinnovati titolo iniziale, pannelli, creazione personaggio, menu pausa, impostazioni e mappa.
-- Aggiornati i testi introduttivi in tutte e quattro le lingue.
-- Nessuna modifica ai salvataggi locali o alle coordinate del mondo.
-- Da verificare visivamente sul sito dopo il deploy; il font richiede connessione a Google Fonts, con fallback serif locale.
-- Prossimo lavoro: dare una vera struttura giocabile all'avventura e collegare le musiche quando saranno caricate nel repository.
+### Direzione successiva
+Prima approvare l'aspetto del menu e dei personaggi. Solo dopo procedere con il mondo giocabile, senza recuperare il vecchio impianto.
