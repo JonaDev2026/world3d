@@ -18,7 +18,11 @@ Creare un mondo esplorabile persistente, stilizzato con forme organiche e poligo
 - [x] Posizione, personaggio e segnaposto salvati in localStorage.
 - [x] Primo insediamento embrionale, due abitazioni, due NPC, portale e piccola valle segreta.
 - [ ] Test browser end-to-end: da eseguire sul sito Pages.
-- [ ] Sistema animazioni articolate condiviso fra giocatore e NPC.
+- [x] Primo rig articolato del giocatore: busto, testa, spalle, gomiti, anche, ginocchia e piedi.
+- [x] Ciclo base di camminata/corsa e posa di salto con transizioni smussate.
+- [x] Animazioni idle NPC con respirazione, sguardo e piccoli gesti.
+- [ ] Cicli completi rifiniti: camminata, corsa, salto, atterraggio e svolta con blending avanzato.
+- [x] Primo passaggio di stile personaggi: proporzioni più curate, volto, sopracciglia, capelli, tunica, cintura, polsini e stivali.
 - [ ] Modelli personaggio con silhouette, volto, capelli, abiti e accessori più curati.
 - [ ] Sistema città: lotti, strade, piazze, quartieri, interni e arredi.
 - [ ] Sistema mondo a chunk con streaming e salvataggio dei cambiamenti.
@@ -30,6 +34,15 @@ Creare un mondo esplorabile persistente, stilizzato con forme organiche e poligo
 Obiettivo: **300 km²** di superficie esplorabile. Per un mondo quadrato equivale a circa 17,32 km per lato. Convenzione proposta: 1 unità Three.js = 1 metro; quindi circa 17.321 × 17.321 unità. Non generare/caricare tutto in una volta.
 
 La scena attuale usa un terreno di 96 × 96 unità (circa 9.216 m² = 0,009216 km² con la scala proposta). È un prototipo, non ancora una mappa da 300 km².
+
+## Ultimo incremento — 2026-11-13
+
+- Corretta l'inizializzazione degli attori: la lista NPC esiste prima di creare i primi abitanti.
+- Sostituito il manichino semplice del giocatore con un rig articolato e dettagli estetici iniziali.
+- Aggiunto movimento alternato di gambe e braccia, piegamento delle ginocchia, movimento dei piedi e posa in salto.
+- Migliorata l'anteprima 3D per rispecchiare meglio il nuovo stile del personaggio.
+- Aggiunti idle NPC con respirazione, sguardo e gesti leggeri.
+- JavaScript controllato per sintassi e riferimenti; manca ancora il test visivo in browser.
 
 ## Prossime tappe
 
