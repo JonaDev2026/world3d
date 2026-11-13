@@ -6,18 +6,18 @@
 - Romanzo canonico: `LE CRONACHE DI VAELMAR.md`.
 - Tutti gli audio originali in `assets/audio/` (musica e ambienti).
 
-### Fase 1 — Menu principale
-- Nuova schermata iniziale realizzata da zero; nessun componente del vecchio menu riutilizzato.
-- Direzione visiva: **Cronache antiche**, paesaggio illustrato di Vaelmar, architettura della Cittadella di Aurelan, palette blu notte, nero carbone, avorio e oro antico; accenti rosso scuro molto discreti.
-- Font del titolo e delle voci principali: **MedievalSharp**.
-- Titolo: **L’Alba dei Cinque Sigilli**.
-- Sottotitolo: **Le Cronache di Vaelmar**.
-- Voci: **Narrazione**, **Informazioni**, **Entra**; impostazioni audio separate.
-- Narrazione e informazioni derivate dal romanzo canonico, senza introdurre nuovi fatti.
+### Fase 1 — Intro e menu-libro
+- Eliminata la precedente composizione da sito web con barra superiore, footer e paesaggio SVG.
+- Intro cinematografica essenziale con titolo e transizione verso la schermata principale.
+- Menu principale impostato come **copertina tipografica**: non viene raffigurato alcun libro.
+- Sottomenu e impostazioni presentati come pagine di pergamena beige, con testo marrone e dettagli ornamentali.
+- Palette della copertina: blu notte, carbone e oro antico; pagine interne: beige pergamena e marrone.
+- Font MedievalSharp per titoli e voci principali.
+- Voci: Narrazione, Informazioni, Entra; impostazioni audio separate.
 - Musica introduttiva: `assets/audio/music/main-theme.mp3`, volume iniziale 20%.
-- Impostazioni: volume e attivazione separata di musica ed effetti sonori; preferenze salvate nel browser.
+- Volume e attivazione separata di musica ed effetti sonori; preferenze salvate nel browser.
 - La musica parte alla prima interazione, nel rispetto del blocco autoplay dei browser.
-- La voce Entra è una schermata segnaposto: il mondo giocabile non è ancora implementato.
+- Entra resta una schermata segnaposto finché il mondo giocabile non è pronto.
 
 ### File
 - `index.html`
@@ -25,8 +25,8 @@
 - `js/main.js`
 
 ### Verifiche
-- Struttura e riferimenti agli asset controllati staticamente.
-- Test nel browser locale ancora da eseguire.
+- Controllati riferimenti HTML, CSS, JavaScript e asset audio.
+- Test visivo nel browser locale ancora da eseguire.
 
 ### Prossimo passo
-Aprire il menu in locale e valutare la resa grafica prima di procedere oltre. Nessun mondo 3D o sistema di gioco aggiunto in questa fase.
+Verifica locale della nuova direzione grafica e regolazione dei dettagli dopo il riscontro.
