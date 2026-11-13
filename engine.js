@@ -77,7 +77,7 @@ function daily(s){
   if(!g.discovered&&n>28&&random(s)<0.00011){g.discovered=true;s.stats.discoveries++;addEvent(s,"Primo incontro con "+g.name,"Esploratori incontrano una comunità indipendente oltre la valle. Le due società hanno lingue e consuetudini differenti.","diplomacy");}
   if(g.discovered){
    if(random(s)<0.0001){g.hostility=clamp(g.hostility+(s.food<n*3?6:3),0,100);addEvent(s,"Tensione al confine","Un incidente tra membri delle due comunità peggiora i rapporti con "+g.name+".","diplomacy");}
-   if(random(s)<0.000012&&g.hostility<35){s.knowledge+=2;g.hostility=clamp(g.hostility-2,0,100);}
+   if(random(s)<0.000001&&g.hostility<35){s.knowledge+=2;g.hostility=clamp(g.hostility-1,0,100);}
    if(!g.atWar&&n>70&&g.population>25&&g.hostility>45&&random(s)<0.00008){g.atWar=true;g.warDays=0;s.stats.wars++;addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war");}
    if(g.atWar){g.warDays++;if(g.warDays%30===0){
     const ownPower=n*0.32+s.order*0.35+s.technology.length*5,enemyPower=g.population*0.42+g.technology*2;
@@ -118,7 +118,7 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],stats:s.stats,dead:s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],stats:s.stats,dead:s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||s.version!==VERSION||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
