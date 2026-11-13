@@ -82,7 +82,6 @@ function sign(x,z,title,lines) {
  board.position.set(x,y+1.08,z+.215);scene.add(board);
 }
 const animatedActors=[];
-const animatedActors=[];
 function person(x,z,name,coat=0x9a6845) {
  const y=terrainY(x,z),group=new THREE.Group(),mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.82});
  const torso=new THREE.Group();torso.position.y=1.08;group.add(torso);
