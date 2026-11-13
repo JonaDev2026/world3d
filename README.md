@@ -72,3 +72,9 @@ Personaggio, lingua, posizione e luoghi salvati vengono conservati nel localStor
 **0.6 — Living Characters**
 
 Terreno continuo con superfici poligonali, pianura del villaggio, case appoggiate al suolo, acqua separata dalle aree edificabili, alberi e personaggi low-poly più morbidi. Il prototipo giocabile misura attualmente 96 × 96 unità: assumendo 1 unità = 1 metro, circa 9.216 m² (0,0092 km²). Il progetto di espansione è un mondo di 300 km², suddiviso in regioni e chunk caricati progressivamente; il mondo completo non è ancora implementato. Comprende anteprima 3D live, visuale in prima persona predefinita e terza persona selezionabile, menu pausa, impostazioni in quattro lingue e primi personaggi articolati con animazioni idle/camminata.
+
+## Diario di sviluppo
+
+- [Avanzamento e obiettivi](PROGRESS.md)
+- [Diario del Master](DIARY.md)
+- [Struttura geografica e tecnica del mondo](docs/WORLD_STRUCTURE.md)
