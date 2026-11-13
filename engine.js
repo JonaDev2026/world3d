@@ -23,6 +23,32 @@ function addPerson(s,parents=[]){
  const person={id:s.nextPersonId++,name:pick(s,first),family:surname,age:0,sex:random(s)<.5?"F":"M",alive:true,health:90+random(s)*10,skill:.2+random(s)*.4,wealth:0,partner:null,parents,children:[],role:"bambino",belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}};
  s.population.push(person);for(const id of parents){const p=s.population.find(x=>x.id===id);if(p)p.children.push(person.id);}s.stats.births++;return person;
 }
+function updateSocial(s){
+ const people=living(s);if(!people.length)return;
+ const values=people.map(p=>Math.max(0,Number(p.wealth)||0)).sort((a,b)=>a-b),n=values.length,total=values.reduce((x,y)=>x+y,0);
+ let weighted=0;for(let i=0;i<n;i++)weighted+=(2*(i+1)-n-1)*values[i];
+ const gini=total>0?clamp(weighted/(n*total),0,1):0,median=values[Math.floor((n-1)/2)],classes={poveri:0,lavoratori:0,agiati:0,"élite":0};
+ if(total<=.0001)classes.lavoratori=n;
+ else for(const p of people){const w=Math.max(0,Number(p.wealth)||0),base=Math.max(.05,median);if(w<base*.35)classes.poveri++;else if(w<base*1.5)classes.lavoratori++;else if(w<base*4)classes.agiati++;else classes["élite"]++;}
+ const topCount=Math.max(1,Math.ceil(n*.1)),topShare=total>0?values.slice(-topCount).reduce((x,y)=>x+y,0)/total:0,previous=s.social||{};
+ const tension=clamp((gini-.22)*105+(s.stats.crimes/Math.max(1,n))*14+(55-s.cohesion)*.48,0,100);
+ s.social={inequality:gini,tension,topShare,classes,medianWealth:median};
+ if(gini>.52&&n>=90&&s.technology.includes("Moneta")&&!s.institutions.includes("Consiglio delle famiglie influenti")){
+  s.institutions.push("Consiglio delle famiglie influenti");s.polity="Consiglio delle famiglie influenti";s.social.tension=clamp(s.social.tension+12,0,100);
+  addEvent(s,"Le famiglie ricche concentrano il potere","Le famiglie che controllano più risorse ottengono un peso crescente nelle decisioni. L'accesso alle cariche e ai mercati diventa diseguale.","politics");
+ }else if(gini<.24&&s.cohesion>68&&n>=90&&s.institutions.includes("Consiglio delle famiglie influenti")){
+  s.institutions=s.institutions.filter(x=>x!=="Consiglio delle famiglie influenti");s.institutions.push("Assemblea dei cittadini");s.polity="Assemblea dei cittadini";
+  addEvent(s,"Riforma delle assemblee","La pressione delle famiglie e dei lavoratori porta a distribuire il potere in un'assemblea più ampia. Le decisioni vengono sottoposte a una rappresentanza più inclusiva.","politics");
+ }
+ if(s.social.tension>78&&n>100&&random(s)<.32){
+  const elite=people.filter(p=>p.wealth>median*4),levy=Math.max(0,median*.18);
+  for(const p of elite)p.wealth=Math.max(0,p.wealth-levy);
+  const poor=people.filter(p=>p.wealth<=median);for(const p of poor)p.wealth+=levy*elite.length/Math.max(1,poor.length);
+  s.cohesion=clamp(s.cohesion+5,0,100);s.social.tension=clamp(s.social.tension-22,0,100);s.laws="Norme contro gli abusi di ricchezza";
+  addEvent(s,"Riforma dopo le proteste","Proteste e controversie costringono il governo a redistribuire parte delle risorse e a limitare alcuni privilegi. La riforma riduce temporaneamente la tensione sociale.","politics");
+ }
+ if(previous.inequality!==undefined&&Math.abs(gini-previous.inequality)>.12&&n>70)addEvent(s,gini>previous.inequality?"Aumenta la distanza tra le classi":"Si riduce la distanza tra le classi",gini>previous.inequality?"Le risorse si concentrano progressivamente in una parte ridotta della popolazione. Crescono le differenze nelle condizioni materiali.":"La distribuzione delle risorse diventa più equilibrata e diminuiscono le distanze economiche.","society");
+}
 function yearBoundary(s){
  const people=living(s),n=people.length;
  s.year++;s.day=1;
@@ -34,6 +60,7 @@ function yearBoundary(s){
   else if(roll<.085){s.climate={type:"inverno rigido",days:35+Math.floor(random(s)*40),severity:.3+random(s)*.5};addEvent(s,"Inverno rigido","Temperature insolitamente basse aumentano il consumo di risorse e rendono più difficile procurarsi cibo.","climate");}
   else s.climate={type:"normale",days:0,severity:0};
  }
+ updateSocial(s);
  if(n>=45&&!s.institutions.includes("Consiglio degli anziani")){s.institutions.push("Consiglio degli anziani");s.polity="Consiglio degli anziani";s.order+=5;addEvent(s,"Nasce il Consiglio degli anziani","La comunità riconosce un gruppo stabile di persone incaricate di mediare le controversie e coordinare le decisioni collettive.","politics");}
  if(n>=75&&!s.institutions.includes("Custodi delle riserve")){s.institutions.push("Custodi delle riserve");s.economy="Riserve e distribuzione organizzata";addEvent(s,"Le riserve diventano un'istituzione","La gestione delle scorte viene affidata a custodi scelti dalla comunità. La distribuzione del cibo diventa una responsabilità collettiva.","economy");}
  if(n>=110&&!s.institutions.includes("Consuetudini codificate")){s.institutions.push("Consuetudini codificate");s.laws="Prime norme comunitarie";s.order+=7;addEvent(s,"Le consuetudini vengono codificate","Le regole tramandate oralmente vengono raccolte e riconosciute come norme comuni.","politics");}
@@ -70,8 +97,14 @@ function daily(s){
  let production=(gatherers*.20+farmers*.58+producers*.16)*(s.technology.includes("Agricoltura")?1.35:1);
  const climate=s.climate||{type:"normale",days:0,severity:0};
  if(climate.days>0){if(climate.type==="siccità")production*=1-climate.severity*.72;else if(climate.type==="alluvione")production*=1-climate.severity*.48;else if(climate.type==="inverno rigido")production*=1-climate.severity*.38;}
- s.food=clamp(s.food+production-n*.105,0,Math.max(240,n*45));
- sett.stores=s.food;
+ const surplus=production-n*.105;
+ s.food=clamp(s.food+surplus,0,Math.max(240,n*45));sett.stores=s.food;
+ if(surplus>0){
+  const adults=people.filter(p=>p.age>=15&&p.age<70),pool=surplus*(s.technology.includes("Moneta")?.035:.012);
+  const weights=adults.map(p=>(.55+p.skill*.25+p.traits.ambition*.8)*(p.role==="artigiano"||p.role==="produttore"?1.35:p.role==="agricoltore"?.95:1));
+  const sum=weights.reduce((x,y)=>x+y,0)||1;
+  for(let i=0;i<adults.length;i++){const p=adults[i];p.wealth=Math.min(1000000,(Number(p.wealth)||0)+pool*weights[i]/sum);}
+ }else if(surplus<0){const shortage=-surplus;for(const p of people)if(p.wealth>0)p.wealth=Math.max(0,p.wealth-shortage*.0008*(p.traits.cooperation<.35?1.5:.7));}
  const foodRatio=clamp(s.food/Math.max(1,n*12),0,1);
  s.health=clamp(s.health+(foodRatio>.7?.012:foodRatio<.22?-.16:-.025),8,100);
  s.cohesion=clamp(s.cohesion+(foodRatio<.25?-.12:.008)-(s.stats.crimes>n*.3?.02:0),5,100);
@@ -138,8 +171,8 @@ function daily(s){
  const learners=people.filter(p=>p.age>=8&&p.age<60).length;
  s.knowledge+=learners*(.00007+(s.technology.length*.000011))*(s.cohesion/75);
  // theft and disputes emerge under scarcity and inequality
- if(s.food<n*2&&random(s)<.003){s.stats.crimes++;s.cohesion=clamp(s.cohesion-1,0,100);addEvent(s,"Furto di provviste","Una persona sottrae cibo dalle riserve comuni. Il conflitto sulla distribuzione mette alla prova la fiducia reciproca.","crime");}
- if(n>70&&random(s)<.000025){s.stats.crimes++;s.cohesion=clamp(s.cohesion-.15,0,100);if(s.institutions.includes("Guardia civica"))s.order=clamp(s.order+.02,0,100);if(random(s)<.15)addEvent(s,"Violazione delle norme","Un abitante viene accusato di aver violato una regola della comunità. Il consiglio deve stabilire una risposta.","crime");}
+ if(s.food<n*2&&random(s)<.003+(s.social?.inequality||0)*.002){s.stats.crimes++;s.cohesion=clamp(s.cohesion-1,0,100);addEvent(s,"Furto di provviste","Una persona sottrae cibo dalle riserve comuni. Il conflitto sulla distribuzione mette alla prova la fiducia reciproca.","crime");}
+ if(n>70&&random(s)<.000025+(s.social?.inequality||0)*.000035){s.stats.crimes++;s.cohesion=clamp(s.cohesion-.15,0,100);if(s.institutions.includes("Guardia civica"))s.order=clamp(s.order+.02,0,100);if(random(s)<.15)addEvent(s,"Violazione delle norme","Un abitante viene accusato di aver violato una regola della comunità. Il consiglio deve stabilire una risposta.","crime");}
  if(s.institutions.length&&random(s)<.00016){s.order=clamp(s.order-2,0,100);addEvent(s,"Controversia tra famiglie","Una disputa su risorse e responsabilità richiede la mediazione del consiglio.","politics");}
  // A settlement expands when its population and material base can sustain it.
  if(n>65&&sett.kind==="accampamento"){sett.kind="villaggio";sett.homes=18;addEvent(s,"L'accampamento diventa villaggio","Abitazioni più stabili e depositi comuni segnano il passaggio a un insediamento permanente.","settlement");}
@@ -157,12 +190,14 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,climate:s.climate,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,climate:s.climate,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||s.version!==VERSION||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
  if(!Number.isFinite(s.day)||!Number.isFinite(s.year)||!Number.isFinite(s.rng))throw new Error("Calendario o generatore casuale non valido");
  if(!s.climate)s.climate={type:"normale",days:0,severity:0};
  if(!s.disease)s.disease={active:false,strain:0,days:0};
+ if(!s.social)s.social={inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:living(s).length,agiati:0,"élite":0},medianWealth:0};
+ for(const p of s.population)if(!Number.isFinite(p.wealth))p.wealth=0;
  return s;
 }
