@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { VaelmarClock } from './world-time.js';
 
 const canvas=document.querySelector('#stage');
 const scene=new THREE.Scene();
@@ -14,14 +15,18 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.12;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-scene.add(new THREE.HemisphereLight(0xe7edf4,0x46515a,2.1));
+const hemisphere=new THREE.HemisphereLight(0xe7edf4,0x46515a,2.1);scene.add(hemisphere);
 const key=new THREE.DirectionalLight(0xffe1b2,3.1);key.position.set(-5,10,8);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
 const rim=new THREE.DirectionalLight(0x9bc4e0,2.2);rim.position.set(6,6,-5);scene.add(rim);
+const moonLight=new THREE.DirectionalLight(0x9bb8e8,0);moonLight.position.set(5,-8,-6);scene.add(moonLight);
+const sunOrb=new THREE.Mesh(new THREE.SphereGeometry(.62,24,16),new THREE.MeshBasicMaterial({color:0xffd69a}));scene.add(sunOrb);
+const moonOrb=new THREE.Mesh(new THREE.SphereGeometry(.48,24,16),new THREE.MeshBasicMaterial({color:0xdce5f5}));scene.add(moonOrb);
 const groundMat=new THREE.MeshStandardMaterial({color:0x68756c,roughness:1});
 const WORLD_SIDE=Math.sqrt(300)*1000;
 const WORLD_AREA_KM2=300;
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(WORLD_SIDE,WORLD_SIDE),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
-const horizon=new THREE.Mesh(new THREE.SphereGeometry(1200,48,24),new THREE.MeshBasicMaterial({color:0x9ba9ad,side:THREE.BackSide}));horizon.position.y=0;scene.add(horizon);
+const horizonMaterial=new THREE.MeshBasicMaterial({color:0x9ba9ad,side:THREE.BackSide});
+const horizon=new THREE.Mesh(new THREE.SphereGeometry(1200,48,24),horizonMaterial);horizon.position.y=0;scene.add(horizon);
 
 const mat=(color,roughness=.72,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
 const mats={
@@ -88,14 +93,51 @@ const heroData=[
  {name:'IL VELATO',role:'MISTERIOSO',description:'Un viandante senza nome. La sua lancia-reliquia custodisce un potere che nessuno sa spiegare.',weapon:'LANCIA-RELIQUIA · SOGLIA'}
 ];
 let selected=0,mode='menu',musicOn=true,soundOn=true;
+const vaelmarClock=new VaelmarClock({gameSeconds:6*60*60});
+let lastClockMinute='';
+const phaseLabels={night:'NOTTE',dawn:'ALBA',morning:'MATTINA',day:'GIORNO',afternoon:'POMERIGGIO',sunset:'TRAMONTO',twilight:'CREPUSCOLO'};
+const skyStops=[
+ [0,0x111a2a],[5,0x4b526b],[6,0xb17e68],[8,0xa9c3c8],[12,0x9ba9ad],
+ [16,0xc0a07b],[19,0x9b665e],[21,0x343b54],[24,0x111a2a]
+];
+function skyColorAt(hour){
+ let index=0;while(index<skyStops.length-2&&hour>skyStops[index+1][0])index++;
+ const [h1,c1]=skyStops[index],[h2,c2]=skyStops[index+1];
+ return new THREE.Color(c1).lerp(new THREE.Color(c2),THREE.MathUtils.clamp((hour-h1)/(h2-h1),0,1));
+}
+function updateWorldLighting(state){
+ const hour=state.hour+state.minute/60+state.second/3600;
+ const solarAngle=((hour-6)/12)*Math.PI;
+ const elevation=Math.sin(solarAngle);
+ const daylight=THREE.MathUtils.smoothstep(elevation,-.12,.62);
+ const sky=skyColorAt(hour);
+ scene.background.copy(sky);scene.fog.color.copy(sky);horizonMaterial.color.copy(sky);
+ key.position.set(Math.cos(solarAngle)*18,elevation*18,8);
+ key.intensity=.04+daylight*3.05;
+ key.color.set(0xffd0a0).lerp(new THREE.Color(0xfff0d7),daylight);
+ hemisphere.intensity=.28+daylight*1.8;
+ rim.intensity=.18+daylight*.75;
+ moonLight.position.set(-Math.cos(solarAngle)*16,-elevation*16,-8);
+ moonLight.intensity=.04+(1-daylight)*.42;
+ sunOrb.visible=elevation>-.08;sunOrb.position.set(Math.cos(solarAngle)*11,1+elevation*4.5,-14);
+ moonOrb.visible=elevation<.12;moonOrb.position.set(-Math.cos(solarAngle)*10,1-elevation*4.2,-13);
+ renderer.toneMappingExposure=.68+daylight*.44;
+ const stamp=state.date+'|'+state.time;
+ if(stamp!==lastClockMinute){
+  $('worldDate').textContent=state.date;
+  $('worldTime').textContent=state.time.slice(0,5);
+  $('worldPhase').textContent=phaseLabels[state.phase]||state.phase.toUpperCase();
+  lastClockMinute=stamp;
+ }
+}
 const $=id=>document.getElementById(id);
 const audio=$('mainMusic');audio.volume=.55;
 function show(id){for(const el of document.querySelectorAll('.screen'))el.classList.add('hidden');$(id).classList.remove('hidden')}
 function chooseHero(i){selected=i;const d=heroData[i];$('heroName').textContent=d.name;$('heroRole').textContent=d.role;$('heroDescription').textContent=d.description;$('heroWeapon').textContent='ARMA · '+d.weapon;document.querySelectorAll('.hero-card').forEach((c,n)=>c.classList.toggle('selected',n===i));heroes.forEach((h,n)=>h.traverse(o=>{if(o.isMesh)o.material=o.material.clone();}));}
 $('beginButton').addEventListener('click',()=>{show('characterSelect');mode='select';});
-$('backButton').addEventListener('click',()=>{show('mainMenu');mode='menu';});
-$('confirmHero').addEventListener('click',()=>{$('readyTitle').textContent=heroData[selected].name+' · AVARRA TI ATTENDE';show('worldReady');mode='ready';});
-$('returnMenu').addEventListener('click',()=>{show('mainMenu');mode='menu';});
+$('backButton').addEventListener('click',()=>{vaelmarClock.pause();show('mainMenu');mode='menu';});
+$('confirmHero').addEventListener('click',()=>{$('readyTitle').textContent=heroData[selected].name+' · AVARRA TI ATTENDE';show('worldReady');mode='ready';$('worldClock').classList.remove('hidden');vaelmarClock.start();updateWorldLighting(vaelmarClock.snapshot());});
+$('returnMenu').addEventListener('click',()=>{vaelmarClock.pause();$('worldClock').classList.add('hidden');show('mainMenu');mode='menu';});
 document.querySelectorAll('.hero-card').forEach((card)=>card.addEventListener('click',()=>chooseHero(Number(card.dataset.hero))));
 $('settingsToggle').addEventListener('click',()=>$('settingsPanel').classList.remove('hidden'));
 $('closeSettings').addEventListener('click',()=>$('settingsPanel').classList.add('hidden'));
@@ -107,8 +149,8 @@ document.addEventListener('pointerdown',()=>{if(musicOn&&audio.paused)audio.play
 chooseHero(0);
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);
-const clock=new THREE.Clock();
-function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();stageGroup.rotation.y=Math.sin(t*.12)*.055;heroes.forEach((h,i)=>{h.position.y=Math.sin(t*1.15+i*.8)*.018;h.rotation.y=Math.sin(t*.35+i)*.035;});renderer.render(scene,camera);}
+const renderClock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const delta=renderClock.getDelta();const t=renderClock.elapsedTime;if(mode==='ready'){const state=vaelmarClock.advance(delta);updateWorldLighting(state);}stageGroup.rotation.y=Math.sin(t*.12)*.055;heroes.forEach((h,i)=>{h.position.y=Math.sin(t*1.15+i*.8)*.018;h.rotation.y=Math.sin(t*.35+i)*.035;});renderer.render(scene,camera);}
 animate();
 
 // The playable world is deliberately an empty 300 km² foundation for future regions.
