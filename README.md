@@ -2,7 +2,7 @@
 
 ![](preview.png)
 
-Prima versione giocabile di WORLD: un mondo 3D voxel da esplorare in prima persona.
+WORLD è un regno 3D voxel da esplorare in prima persona. Ora ci sono abitanti, cartelli da leggere e un portale che conduce alla Valle delle Stelle.
 
 ## Avvio su Linux
 
@@ -39,6 +39,7 @@ Three.js viene caricato da jsDelivr: serve una connessione Internet.
 | Spazio | Salta |
 | Shift | Corri |
 | P | Salva un luogo |
+| E | Attraversa il portale quando sei vicino |
 | M | Apri / chiudi la mappa |
 | Esc | Libera il mouse |
 
@@ -56,6 +57,6 @@ Posizione e luoghi salvati vengono conservati nel localStorage di Firefox sul tu
 
 ## Stato
 
-**0.1 — First Exploration**
+**0.2 — The Living Realm**
 
-Prima base esplorabile: terreno voxel procedurale, colline, alberi, piccolo insediamento, mappa e segnaposto personali.
+Terreno voxel procedurale, colline, alberi, insediamento, abitanti con nomi, cartelli, cristalli e portale bidirezionale verso la Valle delle Stelle. Mappa e segnaposto personali persistono nel browser.
