@@ -9,7 +9,7 @@
   "hairLabel": "HAIR",
   "clothesLabel": "CLOTHES",
   "enterWorld": "ENTER THE WORLD",
-  "controls": "↑ ↓ walk · ← → turn · W A S D move · SPACE jump<br>Mouse: look around · P: save a place · M: map · E: portal · ESC: release mouse",
+  "controls": "↑ ↓ walk · ← → turn · W A S D move · SPACE jump<br>Mouse: look around · P: save a place · M: map · E: portal · ESC: pause",
   "savePlace": "＋ SAVE PLACE",
   "mapButton": "MAP [M]",
   "worldMap": "WORLD MAP",
