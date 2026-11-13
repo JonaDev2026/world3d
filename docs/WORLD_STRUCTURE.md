@@ -1,104 +1,35 @@
 # WORLD — Struttura del mondo
 
-## 1. Coordinate e scala
+## Nuova architettura di partenza
 
-- Unità di misura: 1 unità Three.js = 1 metro.
-- Superficie finale: 300 km².
-- Ingombro di riferimento quadrato: circa 17.321 m × 17.321 m.
-- Origine coordinate: angolo sud-ovest della mappa globale; X verso est, Z verso nord.
-- Il giocatore e i dati persistenti usano coordinate globali, non coordinate locali del chunk.
+Il progetto riparte da una base pulita. Il vecchio prototipo del villaggio, il suo HUD e le precedenti schermate non definiscono più l'architettura del gioco.
 
-## 2. Suddivisione geografica
+### Mondo geografico
+- Superficie obiettivo iniziale: **300 km²**.
+- Forma di riferimento: quadrato di circa **17.320,5 × 17.320,5 metri**.
+- Unità Three.js: 1 unità = 1 metro.
+- Stato attuale: un unico piano vuoto, senza biomi, città, strade, alberi o edifici.
+- In futuro: suddivisione in chunk caricati progressivamente; non è ancora implementata.
 
-La mappa globale è divisa in chunk quadrati. Dimensione iniziale consigliata: 256 m × 256 m (0,065536 km² ciascuno). Per 300 km² occorrono circa 4.578 chunk equivalenti, con una griglia di riferimento 68 × 68 e margini non necessariamente tutti abitati.
+### Menu e selezione
+- Menu principale cinematografico, pulito e minimale.
+- Scena 3D con quattro personaggi visibili e selezionabili.
+- Scheda personaggio con nome, ruolo, descrizione e arma.
+- Musica principale: assets/audio/music/main-theme.mp3.
+- Impostazioni per musica e volume; effetti sonori da collegare.
 
-Caricare inizialmente solo i chunk vicini al giocatore (anello di prossimità), mantenere un piccolo buffer e scaricare quelli lontani. Le entità e le modifiche persistenti devono essere salvate per ID di chunk.
+### I quattro protagonisti
+- **Eldrin:** mago, bastone arcano.
+- **Lyra:** arciera, arco lungo.
+- **Kael:** guerriero, spada.
+- **Il Velato:** misterioso, lancia-reliquia.
 
-## 3. Prima regione e prima città
+### Direzione visiva
+Videogioco 3D moderno, pulito, con materiali e forme morbide, illuminazione cinematografica e personaggi leggibili. Evitare voxel, blocchi cubici e interfacce decorative eccessive.
 
-Partire da un angolo della mappa globale. La prima regione deve contenere:
-- una città principale con centro riconoscibile;
-- piazza centrale e rete stradale leggibile;
-- quartieri residenziali con case di forme e materiali vari;
-- botteghe e servizi;
-- edifici civici e luoghi di incontro;
-- campi e fattorie verso la periferia;
-- bosco e paesaggio naturale oltre il costruito;
-- strade secondarie che suggeriscono futuri collegamenti.
-
-La città deve essere progettata come un insieme coerente e percorribile, non come edifici casuali distribuiti sul terreno.
-
-## 4. Catalogo ambientale
-
-Gli oggetti dipendono dalla regione e dalla cultura del luogo.
-
-### Città
-Case, condomini, edifici pubblici, negozi, mercati, fontane, panchine, lampioni, cestini, cartelli stradali, marciapiedi, fermate, veicoli statici e arredi.
-
-### Paesi e borghi
-Case rurali, fienili, stalle, pozzi, recinzioni, orti, attrezzi, carri, piccoli negozi, piazzette e campanili.
-
-### Natura
-Alberi di specie diverse, arbusti, erba, fiori, rocce, sentieri, corsi d'acqua, laghi, colline e montagne.
-
-### Interni
-Pavimenti, pareti, porte apribili, finestre, scale, mobili, scaffali, letti, tavoli, sedie, lampade e oggetti d'uso.
-
-## 5. Personaggi e simulazione
-
-Ogni personaggio deve avere:
-- identità e nome;
-- modello articolato e animazioni;
-- ruolo e luogo di riferimento;
-- routine giornaliera semplice;
-- punti di destinazione e percorso;
-- dialoghi e lingua;
-- stato persistente essenziale.
-
-Le animazioni condividono uno scheletro logico: bacino, busto, testa, braccia, avambracci, mani, cosce, gambe e piedi. Il primo rig del giocatore è stato introdotto con movimento base di camminata/corsa e posa di salto; gli NPC hanno idle con respirazione, sguardo e piccoli gesti. Da completare: animazioni di atterraggio, svolta, blending e locomozione autonoma degli abitanti. Cicli previsti: idle, walk, run, turn, jump, land e gesture.
-
-## 6. Architettura tecnica prevista
-
-- `index.html`: shell e interfaccia.
-- `css/style.css`: stile UI.
-- `js/main.js`: bootstrap temporaneo del gioco; da suddividere progressivamente.
-- `js/world/`: coordinate, chunk, terreno, biomi, città e oggetti.
-- `js/actors/`: personaggio giocante, NPC, rig e animazioni.
-- `js/systems/`: input, camera, collisioni, audio, persistenza e streaming.
-- `js/ui/`: menu, HUD, mappa e creazione personaggio.
-- `lang/`: stringhe IT, EN, ES, FR.
-- `data/regions/`: dati descrittivi delle regioni e delle città.
-- `data/objects/`: catalogo di oggetti e varianti.
-
-## 7. Persistenza locale
-
-Separare i dati salvati:
-- profilo personaggio e impostazioni;
-- posizione e regione corrente;
-- segnaposto e luoghi scoperti;
-- modifiche costruite o raccolte;
-- stato NPC essenziale.
-
-I dati statici del mondo vengono dal repository; i dati personali e le modifiche del giocatore restano nel browser. Prevedere esportazione/importazione del salvataggio prima di aggiungere grandi progressi di gioco.
-
-
-## 7. Protagonisti e trama
-
-La saga si intitola **La Corona delle Ceneri** ed è ambientata nei regni originali di Avarra. La frattura del Sigillo Celeste risveglia una minaccia antica. La prima tappa è Valdombra.
-
-Il gruppo principale è composto da quattro figure con ruoli e armi non sovrapponibili:
-- **Eldrin:** mago, bastone arcano e magia.
-- **Lyra:** esploratrice, arco lungo e frecce speciali.
-- **Kael:** guerriero, spada, parate e contrattacchi.
-- **Il Velato:** combattente enigmatico, maschera e lancia-reliquia.
-
-La storia completa, i segreti personali e la struttura in atti sono descritti in `docs/STORY.md`. I personaggi devono avere modelli, animazioni, equipaggiamenti, abilità e dialoghi specifici: non devono ridursi a quattro modelli intercambiabili.
-
-
-## 8. Interfaccia e identità grafica
-
-- Titoli e controlli: Google Font **Cinzel**.
-- Testi descrittivi: Google Font **Cormorant Garamond**.
-- Palette menu: pergamena e avorio, oro antico, verde bosco, legno scuro e bordeaux.
-- Pannelli con cornici sottili, doppio bordo interno e superfici scure; evitare estetica neon o interfacce fantascientifiche.
-- Fallback serif locali se Google Fonts non è raggiungibile.
+### Fasi successive
+1. Approvazione della grafica del menu e della selezione.
+2. Modelli definitivi dei protagonisti.
+3. Ingresso nel mondo e controllo del personaggio.
+4. Terreno, collisioni e streaming.
+5. Biomi, città, popolazioni, missioni e combattimento.
