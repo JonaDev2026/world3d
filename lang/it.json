@@ -9,7 +9,7 @@
   "hairLabel": "CAPELLI",
   "clothesLabel": "VESTITI",
   "enterWorld": "ENTRA NEL MONDO",
-  "controls": "↑ ↓ cammina · ← → ruota · W A S D movimento · SPAZIO salta<br>Mouse: guarda intorno · P: salva un luogo · M: mappa · E: portale · ESC: libera il mouse",
+  "controls": "↑ ↓ cammina · ← → ruota · W A S D movimento · SPAZIO salta<br>Mouse: guarda intorno · P: salva un luogo · M: mappa · E: portale · ESC: pausa",
   "savePlace": "＋ SALVA LUOGO",
   "mapButton": "MAPPA [M]",
   "worldMap": "MAPPA DEL MONDO",
