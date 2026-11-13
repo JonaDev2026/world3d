@@ -2,7 +2,7 @@
 
 ![](preview.png)
 
-WORLD è un regno 3D voxel da esplorare in terza persona. Ora ci sono abitanti, cartelli da leggere e un portale che conduce alla Valle delle Stelle.
+WORLD è un mondo 3D low-poly da esplorare in terza persona, con terreno continuo, pianura abitabile, villaggio, abitanti e un portale verso la Valle delle Stelle.
 
 ## Avvio su Linux
 
@@ -65,6 +65,6 @@ Personaggio, lingua, posizione e luoghi salvati vengono conservati nel localStor
 
 ## Stato
 
-**0.3 — The Traveller**
+**0.4 — The Living Landscape**
 
-Aggiunti creazione del personaggio, nome, aspetto personalizzabile, visuale in terza persona, lingue IT/EN/ES/FR e struttura modulare CSS/JavaScript/traduzioni esterne. I salvataggi precedenti vengono mantenuti.
+Terreno continuo con superfici poligonali, pianura del villaggio, case appoggiate al suolo, acqua separata dalle aree edificabili, alberi e personaggi low-poly più morbidi. Il mondo iniziale misura 96 × 96 unità: assumendo 1 unità = 1 metro, circa 9.216 m² (0,0092 km²). Restano creazione personaggio, terza persona e lingue IT/EN/ES/FR.
