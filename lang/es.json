@@ -9,7 +9,7 @@
   "hairLabel": "PELO",
   "clothesLabel": "ROPA",
   "enterWorld": "ENTRAR EN EL MUNDO",
-  "controls": "↑ ↓ caminar · ← → girar · W A S D mover · ESPACIO saltar<br>Ratón: mirar · P: guardar lugar · M: mapa · E: portal · ESC: liberar ratón",
+  "controls": "↑ ↓ caminar · ← → girar · W A S D mover · ESPACIO saltar<br>Ratón: mirar · P: guardar lugar · M: mapa · E: portal · ESC: pausa",
   "savePlace": "＋ GUARDAR LUGAR",
   "mapButton": "MAPA [M]",
   "worldMap": "MAPA DEL MUNDO",
