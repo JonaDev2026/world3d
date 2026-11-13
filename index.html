@@ -6,10 +6,11 @@
 <div id="brand" class="panel">WORLD <small>OPEN EXPLORATION · 0.3</small></div>
 <div id="coords" class="panel">X 0 · Z 0</div><div id="crosshair"></div>
 <div id="help" class="panel" data-i18n="controls"></div>
-<div id="actions"><button id="save" class="primary" data-i18n="savePlace"></button><button id="mapBtn" data-i18n="mapButton"></button></div></div>
+<div id="actions"><button id="save" class="primary" data-i18n="savePlace"></button><button id="pauseBtn" aria-label="Pause">Ⅱ</button></div></div>
 <div id="toast"></div><div id="playerName"></div>
 <div id="start"><div id="startBox"><h1>WORLD</h1><p data-i18n="welcome"></p><button id="enter" class="primary" data-i18n="createCharacter"></button></div></div>
 <div id="creator"><div id="creatorCard"><h2 data-i18n="createTitle"></h2><p data-i18n="createIntro"></p>
+<div class="previewStage"><canvas id="characterPreview"></canvas><span data-i18n="previewLabel">ANTEPRIMA 3D</span></div>
 <div class="creatorGrid">
 <div class="field wide"><label data-i18n="playerNameLabel" for="creatorName"></label><input id="creatorName" maxlength="18" autocomplete="nickname" placeholder="Explorer"></div>
 <div class="field"><label data-i18n="languageLabel" for="creatorLang"></label><select id="creatorLang"><option value="it">Italiano</option><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option></select></div>
@@ -17,5 +18,6 @@
 <div class="field"><label data-i18n="hairLabel" for="creatorHair"></label><select id="creatorHair"><option value="#493326">Brown</option><option value="#171717">Black</option><option value="#b68a42">Blond</option><option value="#a84d35">Red</option></select></div>
 <div class="field"><label data-i18n="clothesLabel" for="creatorShirt"></label><select id="creatorShirt"><option value="#496b91">Blue</option><option value="#52794a">Green</option><option value="#914f45">Red</option><option value="#8171a8">Violet</option></select></div>
 </div><button id="createPlayer" class="primary" data-i18n="enterWorld"></button></div></div>
+<div id="pauseMenu" class="overlayMenu"><section class="menuCard"><header><div><h2>WORLD</h2><p data-i18n="paused">PAUSA</p></div><button id="resumeBtn" data-i18n="resume">RIPRENDI</button></header><nav class="menuTabs"><button id="menuMapBtn" data-i18n="worldMap">MAPPA</button><button id="menuSettingsBtn" data-i18n="settings">IMPOSTAZIONI</button></nav><div id="settingsPanel"><label><span data-i18n="viewMode">Visuale</span><select id="viewMode"><option value="first" data-i18n="firstPerson">Prima persona</option><option value="third" data-i18n="thirdPerson">Terza persona</option></select></label><label><span data-i18n="languageLabel">Lingua</span><select id="settingsLang"><option value="it">Italiano</option><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option></select></label><div class="audioSetting"><label><span data-i18n="music">Musica</span><input id="musicEnabled" type="checkbox" checked></label><input id="musicVolume" type="range" min="0" max="100" value="65"><small data-i18n="audioSoon">Controlli pronti · audio in arrivo</small></div><div class="audioSetting"><label><span data-i18n="sounds">Effetti sonori</span><input id="soundEnabled" type="checkbox" checked></label><input id="soundVolume" type="range" min="0" max="100" value="80"></div></div><footer><span data-i18n="pauseHint">ESC per tornare al gioco</span><button id="closeSettings" data-i18n="close">CHIUDI</button></footer></section></div>
 <div id="mapWrap"><div id="mapCard"><div id="mapHead"><strong data-i18n="worldMap"></strong><button id="closeMap" data-i18n="closeMap"></button></div><canvas id="map" width="600" height="600"></canvas><div id="markerList"></div></div></div>
 <script type="module" src="./js/main.js"></script></body></html>
