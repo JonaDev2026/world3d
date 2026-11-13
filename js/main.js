@@ -122,7 +122,7 @@ heroes.forEach((h,i)=>{h.position.set((i-1.5)*2.65,0,0);h.scale.multiplyScalar(1
 const pedestalMat=mat(0x252b2b,.62,.22);
 for(let i=0;i<4;i++){const p=mesh(stageGroup,new THREE.CylinderGeometry(.88,.98,.16,48),pedestalMat,[(i-1.5)*2.25,.0,0]);const ring=mesh(stageGroup,new THREE.TorusGeometry(.86,.014,8,64),mats.gold,[(i-1.5)*2.25,.09,0]);ring.rotation.x=Math.PI/2;}
 const heroData=[
- {name:'MERRIK VALETH',role:'MAESTRO EVOCATORE · 38 ANNI',description:'Esiliato dall’Accademia di Lumenor per aver denunciato lo spegnimento dei Sigilli. Cerca i suoi allievi e la verità sul maestro Corvain.',weapon:'FUOCO · GELO · TEMPESTA · LUCE · EVOCAZIONE'},
+ {name:'MERRIK VALETH',role:'MAESTRO EVOCATORE · ETÀ SCONOSCIUTA',description:'Esiliato dall’Accademia di Lumenor per aver denunciato lo spegnimento dei Sigilli. Cerca i suoi allievi e la verità sul maestro Corvain.',weapon:'FUOCO · GELO · TEMPESTA · LUCE · EVOCAZIONE'},
  {name:'KAELEN DORNE',role:'EX CAPITANO DELLA GUARDIA · 34 ANNI',description:'Accusato del tradimento che ha ucciso il Re di Aurelan. Non sa ancora di essere figlio illegittimo del sovrano. Cerca il vero assassino e il proprio nome.',weapon:'SPADA · SCUDO · PARATE · CONTRATTACCHI'},
  {name:'ELOWEN KAER',role:'CAPITANA DEI CACCIATORI · 29 ANNI',description:'Cresciuta tra Umani e Selvani, conosce ogni sentiero della Selva Sussurrante. Suo fratello Tamsin è scomparso mentre la foresta moriva.',weapon:'ARCO · FRECCE SPECIALI · FURTIVITÀ · TRAPPOLE'},
  {name:'BRUNDAR FERROCUORE',role:'GUARDIANO DI SOGLIA · 112 ANNI',description:'Nano del clan Martelloscuro, esiliato dopo il crollo del Passo di Pietra. I suoi fratelli sono intrappolati nelle miniere: li ritroverà e riabiliterà il clan.',weapon:'ASCIA · FORZA · RESISTENZA · SPEZZA-ARMATURE'}
