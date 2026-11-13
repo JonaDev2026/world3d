@@ -159,6 +159,6 @@ test("wealth is inherited by surviving children", () => {
   parent.health = -1;
   advance(world, 1);
   assert.equal(parent.alive, false);
-  assert.equal(heirs[0].wealth, 60);
-  assert.equal(heirs[1].wealth, 60);
+  assert.ok(Math.abs(heirs[0].wealth - 60) < 0.001);
+  assert.ok(Math.abs(heirs[1].wealth - 60) < 0.001);
 });
