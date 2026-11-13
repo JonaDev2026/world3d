@@ -55,7 +55,7 @@ Ogni personaggio deve avere:
 - dialoghi e lingua;
 - stato persistente essenziale.
 
-Le animazioni condividono uno scheletro logico: bacino, busto, testa, braccia, avambracci, mani, cosce, gambe e piedi. Cicli base: idle, walk, run, turn, jump, land e gesture.
+Le animazioni condividono uno scheletro logico: bacino, busto, testa, braccia, avambracci, mani, cosce, gambe e piedi. Il primo rig del giocatore è stato introdotto con movimento base di camminata/corsa e posa di salto; gli NPC hanno idle con respirazione, sguardo e piccoli gesti. Da completare: animazioni di atterraggio, svolta, blending e locomozione autonoma degli abitanti. Cicli previsti: idle, walk, run, turn, jump, land e gesture.
 
 ## 6. Architettura tecnica prevista
 
