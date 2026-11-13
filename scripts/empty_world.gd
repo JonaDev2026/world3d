@@ -131,7 +131,7 @@ func _house(origin: Vector3, width: float, depth: float, wall_height: float, wal
 	_box_at(root, "Door", Vector3(0, 1.15, -depth * 0.5 - 0.045), Vector3(door_width, 2.05, 0.12), "wood", false)
 	_box_at(root, "DoorLintel", Vector3(0, 2.22, -depth * 0.5 - 0.12), Vector3(1.35, 0.18, 0.2), "timber", false)
 	for side in [-1.0, 1.0]:
-		var wx := side * width * 0.29
+		var wx: float = float(side) * width * 0.29
 		_box_at(root, "WindowFrame", Vector3(wx, 2.35, -depth * 0.5 - 0.07), Vector3(1.0, 1.2, 0.16), "timber", false)
 		_box_at(root, "WindowGlass", Vector3(wx, 2.35, -depth * 0.5 - 0.16), Vector3(0.72, 0.92, 0.08), "window", false)
 		_box_at(root, "WindowCross", Vector3(wx, 2.35, -depth * 0.5 - 0.22), Vector3(0.08, 1.0, 0.08), "wood", false)
