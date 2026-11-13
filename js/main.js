@@ -187,7 +187,9 @@ function useWorldGate(){
  else{player.x=gateX;player.z=gateZ+4;inStarValley=false;toast(t('returnedWorld'))}
  persist();
 }
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(!mapOpen){if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-46,46);player.z=THREE.MathUtils.clamp(player.z,-46,46);if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(!mapOpen){const prevX=player.x,prevZ=player.z;if(keys.ArrowLeft)yaw+=dt*1.7;if(keys.ArrowRight)yaw-=dt*1.7;let forward=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);const speed=keys.ShiftLeft?9:5.2;player.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt;player.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;player.x=THREE.MathUtils.clamp(player.x,-46,46);player.z=THREE.MathUtils.clamp(player.z,-46,46);
+if(heightAt(player.x,player.z)<SEA+.22|| (player.x>-16.2&&player.x<-9.8&&player.z>-10.7&&player.z<-5.3) || (player.x>-6.2&&player.x<.2&&player.z>-12.7&&player.z<-7.3)){player.x=prevX;player.z=prevZ}
+if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;
 playerLift+=velocityY*dt;const floor=terrainY(player.x,player.z);if(playerLift<=0){playerLift=0;velocityY=0;onGround=true}if(playerModel){playerModel.position.set(player.x,floor+playerLift,player.z);playerModel.rotation.y=yaw}
 const bob=(Math.abs(forward)+Math.abs(side)>0)?Math.sin(performance.now()*.012)*.045:0;
 const back=6.1,camHeight=3.35+pitch*1.7;
