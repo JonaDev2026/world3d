@@ -196,19 +196,32 @@ function buildPreview(){
  if(previewModel)previewScene.remove(previewModel);
  const read=id=>document.querySelector('#creator'+id).value;
  const data={skin:read('Skin'),hair:read('Hair'),shirt:read('Shirt')};
- const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.78});
+ const mat=(c,r=.82)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
  previewModel=new THREE.Group();
- const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.32,.56,8,16),mat(data.shirt));torso.position.y=1.2;previewModel.add(torso);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.29,24,18),mat(data.skin));head.position.y=1.98;previewModel.add(head);
- const hair=new THREE.Mesh(new THREE.SphereGeometry(.305,24,16,0,Math.PI*2,0,Math.PI*.55),mat(data.hair));hair.position.y=2.1;previewModel.add(hair);
+ const torso=new THREE.Group();torso.position.y=1.02;previewModel.add(torso);
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.31,.55,10,20),mat(data.shirt));body.position.y=.12;torso.add(body);
+ const tunic=new THREE.Mesh(new THREE.CapsuleGeometry(.326,.43,10,20),mat(data.shirt));tunic.scale.set(1.04,1,.98);tunic.position.set(0,.13,.015);torso.add(tunic);
+ const belt=new THREE.Mesh(new THREE.TorusGeometry(.255,.04,8,24),mat(0x5a3c27));belt.rotation.x=Math.PI/2;belt.position.y=-.16;torso.add(belt);
+ const buckle=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.04),mat(0xc3a46d));buckle.position.set(0,-.16,.26);torso.add(buckle);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.17,16),mat(data.skin));neck.position.y=.48;torso.add(neck);
+ const headPivot=new THREE.Group();headPivot.position.y=.59;torso.add(headPivot);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.285,32,24),mat(data.skin));head.position.y=.24;headPivot.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.305,28,20,0,Math.PI*2,0,Math.PI*.62),mat(data.hair));hair.position.y=.32;headPivot.add(hair);
+ const fringe=new THREE.Mesh(new THREE.SphereGeometry(.19,24,16,0,Math.PI,0,Math.PI*.46),mat(data.hair));fringe.scale.set(1,.58,.78);fringe.position.set(0,.27,.18);headPivot.add(fringe);
  for(const side of [-1,1]){
-  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.44,7,12),mat(data.shirt));arm.position.set(side*.4,1.12,0);arm.rotation.z=side*.1;previewModel.add(arm);
-  const hand=new THREE.Mesh(new THREE.SphereGeometry(.085,12,10),mat(data.skin));hand.position.set(side*.4,.82,0);previewModel.add(hand);
-  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.46,7,12),mat(0x343b3b));leg.position.set(side*.16,.39,0);previewModel.add(leg);
-  const boot=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,.34),mat(0x392b22));boot.position.set(side*.16,.09,.05);previewModel.add(boot);
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.027,12,10),mat(0x30251e));eye.position.set(side*.092,.235,.264);headPivot.add(eye);
+  const brow=new THREE.Mesh(new THREE.BoxGeometry(.075,.018,.018),mat(data.hair));brow.position.set(side*.092,.29,.265);headPivot.add(brow);
+  const shoulder=new THREE.Group();shoulder.position.set(side*.355,.39,0);torso.add(shoulder);
+  const upper=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.34,8,14),mat(data.shirt));upper.position.y=-.18;shoulder.add(upper);
+  const elbow=new THREE.Group();elbow.position.y=-.37;shoulder.add(elbow);
+  const forearm=new THREE.Mesh(new THREE.CapsuleGeometry(.087,.31,8,14),mat(data.shirt));forearm.position.y=-.17;elbow.add(forearm);
+  const hand=new THREE.Mesh(new THREE.SphereGeometry(.09,16,12),mat(data.skin));hand.position.y=-.43;elbow.add(hand);
+  const hip=new THREE.Group();hip.position.set(side*.155,-.2,0);previewModel.add(hip);
+  const thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.35,8,14),mat(0x343b3b));thigh.position.y=-.19;hip.add(thigh);
+  const knee=new THREE.Group();knee.position.y=-.39;hip.add(knee);
+  const shin=new THREE.Mesh(new THREE.CapsuleGeometry(.095,.34,8,14),mat(0x343b3b));shin.position.y=-.17;knee.add(shin);
+  const boot=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,.34),mat(0x392b22));boot.position.set(0,-.4,.08);knee.add(boot);
  }
- const ground=new THREE.Mesh(new THREE.CircleGeometry(1.05,48),new THREE.MeshStandardMaterial({color:0x71866a,roughness:1}));
- ground.rotation.x=-Math.PI/2;ground.position.y=.015;previewModel.add(ground);
  previewScene.add(previewModel);
 }
 function resizePreview(){
