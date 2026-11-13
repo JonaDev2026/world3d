@@ -24,16 +24,18 @@
 - [x] Calendario strutturale: 12 mesi × 30 giorni, 360 giorni per anno, quattro stagioni da tre mesi.
 - [x] Snapshot con anno, mese, giorno, stagione, ora, fase del giorno e avanzamento solare.
 - [x] Comandi start/pause, avanzamento, impostazione dell'ora, riposo fino a un'ora e serializzazione per i futuri salvataggi.
-- [ ] Collegare l'orologio al gameplay quando sarà disponibile la scena esplorabile.
-- [ ] Collegare posizione del sole, cielo, luna, luci e ombre al tempo di Vaelmar.
+- [x] Anteprima collegata alla scena Three.js: il tempo parte alle 06:00 quando si entra nella schermata di avvio del mondo e si ferma tornando al menu.
+- [x] Luce direzionale solare, luce lunare, sfere di sole/luna e colore di cielo/nebbia variano con l'ora.
+- [x] Orologio a schermo con data, ora e fase del giorno.
+- [ ] Collegare il tempo alla futura scena esplorabile, al meteo e alle routine del mondo.
 - [ ] Definire i nomi canonici dei dodici mesi e delle quattro stagioni con la lore.
 
 ### Stato reale
-Questa è una base grafica e una schermata di selezione, non ancora un gioco completo. Il terreno è vuoto: non ci sono ancora movimento, collisioni, città, missioni, combattimenti o salvataggi della nuova architettura. I personaggi sono prototipi 3D procedurali per definire silhouette e presentazione, da rifinire in seguito. Il nuovo modulo temporale è una fondazione autonoma e non è ancora collegato alla scena o all'interfaccia.
+Questa è una base grafica e una schermata di selezione, non ancora un gioco completo. La schermata di avvio del mondo funge per ora da anteprima del ciclo: non esistono ancora movimento, collisioni, città, missioni, combattimenti o salvataggi della nuova architettura. Il ciclo visivo non è stato ancora verificato nel browser locale.
 
 ### Prossime tappe
-1. Verificare menu e modelli sul browser dopo il deploy.
-2. Collegare il tempo di Vaelmar alla futura scena esplorabile e poi alla luce dinamica.
+1. Verificare localmente il ciclo giorno/notte e la leggibilità dell'orologio.
+2. Portare lo stesso sistema nella futura scena esplorabile.
 3. Rifinire qualità e proporzioni dei quattro personaggi.
 4. Definire camera e ingresso nel mondo vuoto.
 5. Implementare movimento, terreno e sistema di streaming.

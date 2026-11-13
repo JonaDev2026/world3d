@@ -18,8 +18,9 @@ Il progetto riparte da una base pulita. Il vecchio prototipo del villaggio, il s
 - Quattro stagioni strutturali, ciascuna composta da tre mesi. Nomi e caratteristiche stagionali canoniche sono ancora da definire.
 - Il modulo `js/world-time.js` calcola data, ora, fase del giorno e avanzamento solare; gestisce pausa, ripresa, avanzamento, riposo e serializzazione.
 - Fasce giornaliere provvisorie: alba 05:00–07:00; mattina 07:00–11:00; giorno 11:00–16:00; pomeriggio 16:00–19:00; tramonto 19:00–20:00; crepuscolo 20:00–22:00; notte 22:00–05:00.
-- Il modulo è per ora indipendente: non è ancora collegato al ciclo di rendering, all'illuminazione, al meteo o al gameplay.
-- Il tempo dovrà avanzare solo durante il gioco attivo, non nei menu o nelle schermate di pausa.
+- Nell'anteprima attuale il clock parte alle 06:00 entrando nella schermata di avvio del mondo e si ferma tornando al menu.
+- La scena aggiorna luce solare e lunare, sfere di sole/luna e colore del cielo e della nebbia; un HUD mostra data, ora e fase.
+- Questa anteprima non è ancora il ciclo del gameplay: il tempo dovrà avanzare nella futura scena esplorabile e fermarsi nei menu e nelle pause.
 - La progressione della Notte Eterna di Morvakh sarà pilotata dagli eventi narrativi e dallo stato dei Sigilli, non dal semplice calendario.
 
 ### Menu e selezione
@@ -39,8 +40,9 @@ Il progetto riparte da una base pulita. Il vecchio prototipo del villaggio, il s
 Videogioco 3D moderno, pulito, con materiali e forme morbide, illuminazione cinematografica e personaggi leggibili. Evitare voxel, blocchi cubici e interfacce decorative eccessive.
 
 ### Fasi successive
-1. Collegare il tempo di Vaelmar alla futura scena esplorabile e poi alla luce dinamica.
-2. Definire i modelli definitivi dei protagonisti.
-3. Ingresso nel mondo e controllo del personaggio.
-4. Terreno, collisioni e streaming.
-5. Biomi, città, popolazioni, missioni e combattimento.
+1. Verificare il ciclo giorno/notte e la sua resa visiva.
+2. Portare il tempo di Vaelmar nella futura scena esplorabile.
+3. Definire i modelli definitivi dei protagonisti.
+4. Ingresso nel mondo e controllo del personaggio.
+5. Terreno, collisioni, biomi e streaming.
+6. Città, popolazioni, missioni e combattimento.

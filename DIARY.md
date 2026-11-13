@@ -18,19 +18,21 @@ Decisione: abbandonare il vecchio prototipo e ricostruire il gioco partendo dall
 - Kael: guerriero con spada.
 - Il Velato: figura misteriosa con lancia-reliquia.
 
-### 2026-11-13 — Fondamenta del tempo di Vaelmar
+### 2026-11-13 — Fondamenta e anteprima del tempo di Vaelmar
 - Scelta di design: un giorno completo nel mondo equivale a 30 minuti reali (rapporto 48:1).
 - Calendario strutturale iniziale: 12 mesi da 30 giorni, 360 giorni per anno, quattro stagioni da tre mesi.
-- Creato il modulo indipendente js/world-time.js: calcolo della data, dell'ora, delle fasi del giorno, avanzamento controllato, pausa, riposo e serializzazione.
-- I mesi non hanno ancora nomi canonici: vengono identificati provvisoriamente con il numero. Anche le stagioni usano etichette numeriche provvisorie.
-- Il modulo non è ancora collegato alla scena Three.js: non altera ancora sole, cielo, ombre o illuminazione e non fa scorrere il tempo nei menu.
-- La verifica in browser e l'integrazione nel gameplay restano da eseguire.
+- Creato il modulo indipendente js/world-time.js per data, ora, fasi del giorno, avanzamento controllato, pausa, riposo e serializzazione.
+- La scena Three.js ora usa il clock quando si entra nella schermata di avvio del mondo: il tempo parte alle 06:00 e si arresta tornando al menu.
+- La luce direzionale del sole, la luce lunare, gli indicatori sferici di sole/luna e i colori di cielo e nebbia cambiano con l'ora.
+- Aggiunto un piccolo orologio a schermo con data, ora e fase.
+- I mesi non hanno ancora nomi canonici; sono indicati numericamente. Le quattro stagioni hanno etichette provvisorie.
+- Questa è un'anteprima tecnica sulla scena attuale, non ancora il ciclo collegato a un mondo esplorabile. Il comportamento va verificato nel browser locale.
 
 ### Verifiche e limiti
 - Verificati staticamente gli ID HTML usati dal nuovo JavaScript.
-- Il codice va ancora provato visivamente nel browser: non dichiarare il menu collaudato finché non viene verificato sul sito.
+- Il menu e il ciclo non sono ancora stati collaudati visivamente nel browser.
 - I personaggi attuali sono modelli procedurali iniziali, non asset finali.
 - Il mondo è soltanto un piano vuoto; non sono ancora implementati movimento, collisioni, gameplay, streaming o contenuti.
 
 ### Direzione successiva
-Prima approvare l'aspetto del menu e dei personaggi. Solo dopo procedere con il mondo giocabile, senza recuperare il vecchio impianto.
+Verificare la prima anteprima del tempo, poi trasferire il sistema nella scena esplorabile senza ripristinare il vecchio impianto.
