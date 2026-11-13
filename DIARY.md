@@ -18,6 +18,14 @@ Decisione: abbandonare il vecchio prototipo e ricostruire il gioco partendo dall
 - Kael: guerriero con spada.
 - Il Velato: figura misteriosa con lancia-reliquia.
 
+### 2026-11-13 — Fondamenta del tempo di Vaelmar
+- Scelta di design: un giorno completo nel mondo equivale a 30 minuti reali (rapporto 48:1).
+- Calendario strutturale iniziale: 12 mesi da 30 giorni, 360 giorni per anno, quattro stagioni da tre mesi.
+- Creato il modulo indipendente js/world-time.js: calcolo della data, dell'ora, delle fasi del giorno, avanzamento controllato, pausa, riposo e serializzazione.
+- I mesi non hanno ancora nomi canonici: vengono identificati provvisoriamente con il numero. Anche le stagioni usano etichette numeriche provvisorie.
+- Il modulo non è ancora collegato alla scena Three.js: non altera ancora sole, cielo, ombre o illuminazione e non fa scorrere il tempo nei menu.
+- La verifica in browser e l'integrazione nel gameplay restano da eseguire.
+
 ### Verifiche e limiti
 - Verificati staticamente gli ID HTML usati dal nuovo JavaScript.
 - Il codice va ancora provato visivamente nel browser: non dichiarare il menu collaudato finché non viene verificato sul sito.
