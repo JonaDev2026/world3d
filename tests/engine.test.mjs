@@ -149,3 +149,16 @@ test("agriculture creates specialized farmers", () => {
   );
   assert.ok(world.specializations.includes("agricoltore"));
 });
+
+test("wealth is inherited by surviving children", () => {
+  const world = createWorld();
+  const parent = world.population[0];
+  const heirs = world.population.slice(1, 3);
+  parent.children = heirs.map(person => person.id);
+  parent.wealth = 120;
+  parent.health = -1;
+  advance(world, 1);
+  assert.equal(parent.alive, false);
+  assert.equal(heirs[0].wealth, 60);
+  assert.equal(heirs[1].wealth, 60);
+});
