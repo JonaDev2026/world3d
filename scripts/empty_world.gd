@@ -35,6 +35,8 @@ func _mat(color: Color, rough: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = rough
+	if color.a < 1.0:
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return material
 
 func _make_environment() -> void:
@@ -63,7 +65,9 @@ func _make_environment() -> void:
 	add_child(sun)
 
 func _make_ground() -> void:
-	_box("Ground", Vector3(0, -0.22, 0), Vector3(72, 0.4, 72), "grass", true)
+	# Il terreno è diviso in due sponde: sotto il fiume non c'è pavimento calpestabile.
+	_box("SouthBankGround", Vector3(0, -0.22, -14.0), Vector3(72, 0.4, 44.0), "grass", true)
+	_box("NorthBankGround", Vector3(0, -0.22, 27.0), Vector3(72, 0.4, 18.0), "grass", true)
 
 func _make_river_and_bridge() -> void:
 	var water := MeshInstance3D.new()
@@ -79,7 +83,7 @@ func _make_river_and_bridge() -> void:
 	_box("RiverBankSouth", Vector3(0, 0.04, 17.85), Vector3(72, 0.35, 0.65), "stone", true)
 
 	# Ponte in pietra, leggermente rialzato sull'acqua
-	_box("BridgeDeck", Vector3(0, 0.38, 13.0), Vector3(4.8, 0.48, 13.0), "stone", true)
+	_box("BridgeDeck", Vector3(0, 0.13, 13.0), Vector3(4.8, 0.26, 13.0), "stone", true)
 	for side in [-1.0, 1.0]:
 		_box("BridgeParapet", Vector3(side * 2.15, 0.95, 13.0), Vector3(0.28, 0.75, 12.6), "stone", true)
 		for i in range(7):
