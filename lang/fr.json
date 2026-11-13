@@ -9,7 +9,7 @@
   "hairLabel": "CHEVEUX",
   "clothesLabel": "VÊTEMENTS",
   "enterWorld": "ENTRER DANS LE MONDE",
-  "controls": "↑ ↓ marcher · ← → tourner · W A S D bouger · ESPACE sauter<br>Souris : regarder · P : enregistrer un lieu · M : carte · E : portail · ESC : libérer la souris",
+  "controls": "↑ ↓ marcher · ← → tourner · W A S D bouger · ESPACE sauter<br>Souris : regarder · P : enregistrer un lieu · M : carte · E : portail · ESC : pause",
   "savePlace": "＋ ENREGISTRER LE LIEU",
   "mapButton": "CARTE [M]",
   "worldMap": "CARTE DU MONDE",
