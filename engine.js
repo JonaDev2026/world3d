@@ -4,7 +4,7 @@ function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|
 const pick=(s,a)=>a[Math.floor(random(s)*a.length)];
 const alive=p=>p.alive;
 export function createWorld(){
- const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:"Valle del Primo Fiume",x:0,y:0,kind:"accampamento",homes:6,fields:0,stores:180,water:1000,knownArea:12}],nextPersonId:25,nextSettlementId:2,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],religion:"Tradizioni orali",polity:"Comunità senza governo",laws:"Consuetudini condivise",economy:"Sussistenza collettiva",events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},neighbors:[{id:1,name:"Gente della Quercia",population:19,food:125,hostility:12,discovered:false,atWar:false,warDays:0,technology:0,x:-150,y:110},{id:2,name:"Clan delle Colline",population:14,food:95,hostility:8,discovered:false,atWar:false,warDays:0,technology:0,x:190,y:-135}],disease:{active:false,strain:0,days:0},nextEventId:1,history:[]};
+ const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:"Valle del Primo Fiume",x:0,y:0,kind:"accampamento",homes:6,fields:0,stores:180,water:1000,knownArea:12}],nextPersonId:25,nextSettlementId:2,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],religion:"Tradizioni orali",polity:"Comunità senza governo",laws:"Consuetudini condivise",economy:"Sussistenza collettiva",events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},neighbors:[{id:1,name:"Gente della Quercia",population:19,food:125,hostility:12,discovered:false,atWar:false,warDays:0,technology:0,x:-150,y:110},{id:2,name:"Clan delle Colline",population:14,food:95,hostility:8,discovered:false,atWar:false,warDays:0,technology:0,x:190,y:-135}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[]};
  const names=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const surnames=["della Riva","delle Selci","del Salice","della Valle","del Guado","della Quercia"];
  for(let i=0;i<24;i++){s.population.push({id:i+1,name:names[i],family:pick(s,surnames),age:8+Math.floor(random(s)*42),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
@@ -26,6 +26,14 @@ function addPerson(s,parents=[]){
 function yearBoundary(s){
  const people=living(s),n=people.length;
  s.year++;s.day=1;
+ if(!s.climate)s.climate={type:"normale",days:0,severity:0};
+ if(s.climate.days<=0){
+  const roll=random(s);
+  if(roll<.035){s.climate={type:"siccità",days:55+Math.floor(random(s)*65),severity:.45+random(s)*.4};addEvent(s,"Siccità nella valle","Le piogge scarseggiano e i corsi d'acqua si abbassano. I raccolti e le riserve idriche sono messi sotto pressione.","climate");}
+  else if(roll<.055){s.climate={type:"alluvione",days:18+Math.floor(random(s)*28),severity:.35+random(s)*.45};addEvent(s,"Piena del fiume","Piogge intense fanno straripare il fiume. Alcuni campi e percorsi vengono danneggiati e aumenta il rischio di malattie.","climate");}
+  else if(roll<.085){s.climate={type:"inverno rigido",days:35+Math.floor(random(s)*40),severity:.3+random(s)*.5};addEvent(s,"Inverno rigido","Temperature insolitamente basse aumentano il consumo di risorse e rendono più difficile procurarsi cibo.","climate");}
+  else s.climate={type:"normale",days:0,severity:0};
+ }
  if(n>=45&&!s.institutions.includes("Consiglio degli anziani")){s.institutions.push("Consiglio degli anziani");s.polity="Consiglio degli anziani";s.order+=5;addEvent(s,"Nasce il Consiglio degli anziani","La comunità riconosce un gruppo stabile di persone incaricate di mediare le controversie e coordinare le decisioni collettive.","politics");}
  if(n>=75&&!s.institutions.includes("Custodi delle riserve")){s.institutions.push("Custodi delle riserve");s.economy="Riserve e distribuzione organizzata";addEvent(s,"Le riserve diventano un'istituzione","La gestione delle scorte viene affidata a custodi scelti dalla comunità. La distribuzione del cibo diventa una responsabilità collettiva.","economy");}
  if(n>=110&&!s.institutions.includes("Consuetudini codificate")){s.institutions.push("Consuetudini codificate");s.laws="Prime norme comunitarie";s.order+=7;addEvent(s,"Le consuetudini vengono codificate","Le regole tramandate oralmente vengono raccolte e riconosciute come norme comuni.","politics");}
@@ -60,7 +68,8 @@ function daily(s){
  const gatherers=people.filter(p=>["raccoglitore","cacciatore"].includes(p.role)).length;
  const producers=Math.max(1,Math.floor(n*.27)+farmers*0.28);
  let production=(gatherers*.20+farmers*.58+producers*.16)*(s.technology.includes("Agricoltura")?1.35:1);
- if(s.year>0&&s.year%17===0&&s.day===1&&random(s)<.035){production*=.25;addEvent(s,"Raccolto compromesso","Una stagione sfavorevole riduce le riserve alimentari. La comunità deve razionare le scorte.","crisis");}
+ const climate=s.climate||{type:"normale",days:0,severity:0};
+ if(climate.days>0){if(climate.type==="siccità")production*=1-climate.severity*.72;else if(climate.type==="alluvione")production*=1-climate.severity*.48;else if(climate.type==="inverno rigido")production*=1-climate.severity*.38;}
  s.food=clamp(s.food+production-n*.105,0,Math.max(240,n*45));
  sett.stores=s.food;
  const foodRatio=clamp(s.food/Math.max(1,n*12),0,1);
@@ -118,7 +127,7 @@ function daily(s){
   }
  }
  // Disease ecology: outbreaks arise from density, water stress and chance.
- if(!s.disease.active&&n>35&&random(s)<(n>150?.00004:.000025)){
+ if(!s.disease.active&&n>35&&random(s)<(n>150?.00004:.000025)+(climate.type==="alluvione"&&climate.days>0?.000035:0)){
   s.disease.active=true;s.disease.days=0;s.disease.strain=.25+random(s)*.55;s.stats.epidemics++;
   addEvent(s,"Malattia contagiosa","Una malattia si diffonde tra gli abitanti. Le cause non sono ancora comprese e la comunità non dispone di cure efficaci.","disease");
  }
@@ -137,6 +146,7 @@ function daily(s){
  if(n>500&&s.settlements.length===1&&random(s)<.00004){s.settlements.push({id:s.nextSettlementId++,name:"Nuovo Guado",x:120+random(s)*160,y:90+random(s)*140,kind:"villaggio",homes:12,fields:6,stores:30,water:400,knownArea:4});s.stats.migrations++;addEvent(s,"Fondazione di un secondo insediamento","Un gruppo lascia la valle per stabilirsi presso un altro corso d'acqua. La comunità si distribuisce su più territori.","migration");}
  // seasonal turnover and annual records
  if(s.day%90===0&&random(s)<.08){const p=pick(s,people);if(p)p.skill+=.05;}
+ if(climate.days>0){climate.days--;if(climate.days===0){s.climate={type:"normale",days:0,severity:0};addEvent(s,"Fine dell emergenza climatica","Le condizioni meteorologiche tornano gradualmente alla normalità. La comunità avvia il recupero delle risorse.","climate");}}
  s.day++;if(s.day>365)yearBoundary(s);
 }
 export function advance(world,days){
@@ -146,10 +156,12 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],stats:s.stats,dead:s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||s.version!==VERSION||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
  if(!Number.isFinite(s.day)||!Number.isFinite(s.year)||!Number.isFinite(s.rng))throw new Error("Calendario o generatore casuale non valido");
+ if(!s.climate)s.climate={type:"normale",days:0,severity:0};
+ if(!s.disease)s.disease={active:false,strain:0,days:0};
  return s;
 }
