@@ -33,10 +33,16 @@ Il progetto riparte da una base pulita. Il vecchio prototipo del villaggio, il s
 - Impostazioni per musica e volume; effetti sonori da collegare.
 
 ### I quattro protagonisti
-- **Eldrin:** mago, bastone arcano.
-- **Lyra:** arciera, arco lungo.
-- **Kael:** guerriero, spada.
-- **Il Velato:** misterioso, lancia-reliquia.
+- **Merrik Valeth:** 38 anni, Maestro Evocatore esiliato; cinque scuole di magia, cerca gli allievi e la verità su Corvain.
+- **Kaelen Dorne:** 34 anni, ex Capitano della Guardia Reale; spada e scudo, cerca di riabilitare il proprio nome.
+- **Elowen Kaer:** 29 anni, Capitana dei Cacciatori; arco, furtività e trappole, cerca il fratello Tamsin.
+- **Brundar Ferrocuore:** 112 anni, Guardiano di Soglia del clan Martelloscuro; ascia e forza, cerca i fratelli e la redenzione del clan.
+
+### Menu e protagonisti — revisione 2026-11-13
+- Il roster è canonico e deriva da *LE CRONACHE DI VAELMAR.md*.
+- La selezione usa quattro modelli procedurali con silhouette ed equipaggiamento distinti; non sono ancora modelli artistici finali.
+- Direzione UI: fantasy cinematografico, palette calda terra/oro, tipografia serif e pannelli discreti.
+- La musica principale resta `assets/audio/music/main-theme.mp3`.
 
 ### Direzione visiva
 Videogioco 3D moderno, pulito, con materiali e forme morbide, illuminazione cinematografica e personaggi leggibili. Evitare voxel, blocchi cubici e interfacce decorative eccessive.

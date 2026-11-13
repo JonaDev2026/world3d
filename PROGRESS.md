@@ -47,3 +47,12 @@ Questa è una base grafica e una schermata di selezione, non ancora un gioco com
 4. Definire camera e ingresso nel mondo vuoto.
 5. Implementare movimento, terreno e sistema di streaming.
 6. Costruire regioni, città, NPC e storia solo dopo aver approvato la base visiva.
+
+
+## Menu e protagonisti canonici — 2026-11-13
+- Sostituiti i quattro personaggi provvisori con i protagonisti del romanzo: Merrik Valeth, Kaelen Dorne, Elowen Kaer e Brundar Ferrocuore.
+- Aggiornate schede, ruoli, età, obiettivi e stili di combattimento secondo *LE CRONACHE DI VAELMAR.md*.
+- Rifatta la direzione grafica dell'interfaccia: composizione cinematografica, palette terra/oro, gerarchia tipografica e selezione personaggi più leggibile.
+- Rielaborate le silhouette procedurali e gli equipaggiamenti distintivi: bastone e veste da evocatore, spada e scudo della Guardia Reale, arco e faretra, ascia e corporatura nanica.
+- Conservati musica principale, opzioni audio, anteprima del mondo e sistema temporale esistente.
+- Da verificare nel browser locale: inquadratura e proporzioni dei quattro modelli, leggibilità responsive e comportamento della selezione.

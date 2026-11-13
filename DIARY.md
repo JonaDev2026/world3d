@@ -45,3 +45,13 @@ Decisione: abbandonare il vecchio prototipo e ricostruire il gioco partendo dall
 
 ### Direzione successiva
 Verificare la prima anteprima del tempo, poi trasferire il sistema nella scena esplorabile senza ripristinare il vecchio impianto.
+
+
+## 2026-11-13 — Identità canonica dei quattro protagonisti
+- Il roster provvisorio (Eldrin, Lyra, Kael, Il Velato) è stato rimosso.
+- La selezione ora segue il romanzo: Merrik Valeth, Kaelen Dorne, Elowen Kaer e Brundar Ferrocuore.
+- Le schede mostrano ruolo, età, ferita narrativa, obiettivo e specialità di combattimento senza anticipare i colpi di scena.
+- Rifatta la veste grafica del menu con palette calda, tipografia epica, pannelli traslucidi e card di selezione.
+- I modelli procedurali hanno equipaggiamenti e proporzioni specifici per ciascun eroe; restano placeholder 3D da sostituire con asset artistici definitivi.
+- Musica e orologio di Vaelmar restano collegati come prima.
+- Prossimo controllo: prova visiva locale su desktop e mobile, con attenzione a inquadratura e leggibilità dei personaggi.
