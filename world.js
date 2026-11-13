@@ -291,7 +291,7 @@ function update(dt,t){
   if(keys.KeyS||keys.ArrowDown)move.sub(forward);
   if(keys.KeyD||keys.ArrowRight)move.add(right);
   if(keys.KeyA||keys.ArrowLeft)move.sub(right);
-  if(move.lengthSq()>0){move.normalize().multiplyScalar((keys.ShiftLeft||keys.ShiftRight?13:5.2)*dt);const nx=player.x+move.x,nz=player.z+move.z;if(!blocked(nx,player.z))player.x=nx;if(!blocked(player.x,nz))player.z=nz;}
+  if(move.lengthSq()>0){move.normalize().multiplyScalar((keys.ShiftLeft||keys.ShiftRight?13:5.2)*dt);const nx=Math.max(-8660,Math.min(8660,player.x+move.x)),nz=Math.max(-8660,Math.min(8660,player.z+move.z));if(!blocked(nx,player.z))player.x=nx;if(!blocked(player.x,nz))player.z=nz;}
   player.y=groundHeight(player.x,player.z)+1.72;
   camera.position.copy(player);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);
  }
