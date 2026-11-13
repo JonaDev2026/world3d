@@ -13,3 +13,11 @@
 
 
 - Menu semplificato: rimosso il sottomenu Impostazioni non necessario; volume musica iniziale impostato al 20%.
+
+
+## Menu a due schermate — 2026-11-13
+- Schermata iniziale ridotta al titolo, controlli musica/suoni e pulsante Entra.
+- La selezione dei quattro protagonisti è stata spostata in una schermata dedicata.
+- Il pulsante Entra della schermata personaggi avvia la schermata di ingresso a Vaelmar.
+- Aggiunto il ritorno al menu iniziale; i modelli 3D compaiono nella fase di selezione.
+- Musica introduttiva mantenuta al 20%; nessun pannello Impostazioni o sottomenu.
