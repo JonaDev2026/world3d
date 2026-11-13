@@ -98,6 +98,9 @@ sign(-10,-2,'BENVENUTO A WORLD',['Un regno senza confini','Esplora. Ricorda. Rit
 sign(21,22,'IL PORTALE',['Premi E per attraversare','La Valle delle Stelle ti attende']);
 person(-7,-3,'Eldrin',0x526e8b);
 person(5,-14,'Mira',0x8a6847);
+const returnGate=new THREE.Mesh(new THREE.TorusGeometry(1.5,.18,8,24),new THREE.MeshStandardMaterial({color:0xe2bd75,emissive:0x8a5520,emissiveIntensity:1.2}));
+returnGate.position.set(35,terrainY(35,38)+2.1,38);scene.add(returnGate);
+const returnLight=new THREE.PointLight(0xffc56e,2,10);returnLight.position.set(35,terrainY(35,38)+2,39);scene.add(returnLight);
 const crystalMat=new THREE.MeshStandardMaterial({color:0x9b8cff,emissive:0x4934a8,emissiveIntensity:1.1,roughness:.25});
 for(let i=0;i<7;i++){const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.65+hash(i,8)*.55),crystalMat);crystal.position.set(34+(i%3)*2,terrainY(34+(i%3)*2,34+Math.floor(i/3)*2)+1.1+i*.22,34+Math.floor(i/3)*2);crystal.rotation.set(i*.4,i*.7,i*.2);scene.add(crystal)}
 sign(35,30,'VALLE DELLE STELLE',['Hai trovato il primo mondo segreto','Cerca i cristalli luminosi']);
@@ -125,7 +128,7 @@ function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 // E apre il portale quando sei vicino. Il ritorno è possibile dal cerchio di pietra.
 let inStarValley=false;
 function useWorldGate(){
- const gx=inStarValley?gateX:gateX,gz=inStarValley?gateZ:gateZ;
+ const gx=inStarValley?35:gateX,gz=inStarValley?38:gateZ;
  if(Math.hypot(player.x-gx,player.z-gz)>4.2){toast('Avvicinati al portale per attraversarlo');return}
  if(!inStarValley){player.x=35;player.z=38;inStarValley=true;yaw=Math.PI;toast('VALLE DELLE STELLE — un nuovo luogo è tuo da esplorare')}
  else{player.x=gateX;player.z=gateZ+4;inStarValley=false;toast('Sei tornato nel regno di WORLD')}
