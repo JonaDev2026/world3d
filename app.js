@@ -1,10 +1,10 @@
 import {createWorld,advance,summary,validateWorld} from "./engine.js";
 const $=id=>document.getElementById(id), DB="anno-zero-world", STORE="state";
-let world,paused=false,speed=1,worker=null,busy=false,lastSaved=0,eventsSeen=-1;
+let world,paused=false,speed=1,worker=null,busy=false,lastSaved=0,eventsSeen=-1,elapsedMs=0;
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
 function openDB(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});}
 async function load(){const db=await openDB();return new Promise((ok,no)=>{const r=db.transaction(STORE,"readonly").objectStore(STORE).get("world");r.onsuccess=()=>ok(r.result||null);r.onerror=()=>no(r.error);});}
-async function save(){if(!world)return;world.lastWallTime=Date.now();world.speed=speed;world.paused=paused;const db=await openDB();await new Promise((ok,no)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});lastSaved=Date.now();$("save-state").textContent="Salvato sul dispositivo";$("last-save").textContent="SALVATO "+new Date(lastSaved).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});}
+async function save(){if(!world)return;world.lastWallTime=Date.now();world.speed=speed;world.paused=paused;world.timeRemainderMs=elapsedMs;const db=await openDB();await new Promise((ok,no)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});lastSaved=Date.now();$("save-state").textContent="Salvato sul dispositivo";$("last-save").textContent="SALVATO "+new Date(lastSaved).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});}
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function render(s){
  $("date").textContent="Anno "+s.year+" · Giorno "+s.day;$("population").textContent=fmt(s.population);$("population-change").textContent=(s.dead?fmt(s.dead)+" decessi storici":"comunità fondatrice")+" · "+fmt(s.workers)+" in età attiva";
@@ -23,7 +23,30 @@ function render(s){
  $("event-count").textContent=s.eventTotal+" eventi registrati";$("era").textContent=s.year<100?"ERA DELLE ORIGINI":s.year<500?"ERA DEI VILLAGGI":s.year<1500?"ERA DELLE PRIME CITTÀ":"ERA DELLA CRESCITA";
  $("territory-name").textContent=s.settlement?.name||"Territorio";$("territory-area").textContent=(s.settlement?.knownArea||0)+" km² conosciuti";$("settlement-list").textContent=(s.settlementDetails||[]).map(st=>st.name+" · "+fmt(st.population||0)).join(" | ");
  const newest=s.events[0]?.id||0;if(eventsSeen!==newest){eventsSeen=newest;$("events").innerHTML=s.events.length?s.events.map(e=>`<article class="event"><time>ANNO ${e.year} · G${e.day}</time><div><strong>${esc(e.title)}</strong><p>${esc(e.description)}</p></div></article>`).join(""):'<div class="event empty">La storia deve ancora cominciare.</div>';}
+ updateAtmosphere(s);
  drawMap(s);
+}
+function updateAtmosphere(s){
+ const climate=s.climate||{type:"normale",days:0,severity:0},day=((s.day-1)%365)+1;
+ const season=day<=90?"Primavera":day<=181?"Estate":day<=273?"Autunno":"Inverno";
+ let weather="Tempo mite",weatherIcon="partly_cloudy_day",detail=season+" · condizioni regolari";
+ if(climate.days>0){
+  if(climate.type==="siccità"){weather="Siccità";weatherIcon="wb_sunny";detail="Scarsità di pioggia · "+climate.days+" giorni residui";}
+  else if(climate.type==="alluvione"){weather="Piogge intense";weatherIcon="rainy";detail="Piena e terreni saturi · "+climate.days+" giorni residui";}
+  else if(climate.type==="inverno rigido"){weather="Freddo intenso";weatherIcon="ac_unit";detail="Inverno anomalo · "+climate.days+" giorni residui";}
+ }else if(season==="Estate"){weather="Sereno";weatherIcon="sunny";detail="Estate · condizioni regolari";}
+ else if(season==="Autunno"){weather="Variabile";weatherIcon="cloud";detail="Autunno · condizioni regolari";}
+ else if(season==="Inverno"){weather="Freddo stagionale";weatherIcon="cloudy_snowing";detail="Inverno · condizioni regolari";}
+ $("weather-icon").textContent=weatherIcon;$("weather-label").textContent=weather;$("season-label").textContent=detail;
+ const phase=(elapsedMs%60000)/60000;
+ let label="Notte",icon="dark_mode",tint="rgba(8,16,38,.32)";
+ if(phase>=.17&&phase<.29){label="Alba";icon="wb_twilight";tint="rgba(222,137,91,.13)";}
+ else if(phase>=.29&&phase<.72){label="Giorno";icon="light_mode";tint="rgba(239,190,104,.035)";}
+ else if(phase>=.72&&phase<.84){label="Tramonto";icon="wb_twilight";tint="rgba(194,103,83,.16)";}
+ $("sky-icon").textContent=icon;$("sky-label").textContent=label;
+ $("sky-time").textContent=phase<.17?"Ore notturne":phase<.29?"Prime luci":phase<.72?"Luce diurna":phase<.84?"Ultima luce":"Ore notturne";
+ const pct=Math.round(phase*100);$("day-progress-label").textContent=pct+"%";$("day-progress-bar").style.width=pct+"%";
+ $("map").parentElement.style.setProperty("--sky-tint",tint);
 }
 function drawMap(s){
  const c=$("map"),x=c.getContext("2d"),w=c.width,h=c.height;x.clearRect(0,0,w,h);x.fillStyle="#252c29";x.fillRect(0,0,w,h);
@@ -45,5 +68,5 @@ $("pause").addEventListener("click",()=>setPaused(!paused));
 document.querySelectorAll("[data-speed]").forEach(b=>b.addEventListener("click",()=>{speed=Number(b.dataset.speed);document.querySelectorAll("[data-speed]").forEach(q=>q.classList.toggle("selected",q===b));}));
 $("save-now").addEventListener("click",()=>save().catch(e=>$("save-state").textContent="Errore salvataggio"));
 window.addEventListener("pagehide",()=>{if(world){world.lastWallTime=Date.now();try{const r=indexedDB.open(DB,1);r.onsuccess=()=>{const tx=r.result.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");};}catch{}}});
-async function init(){try{if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);speed=Number(world.speed)||1;paused=Boolean(world.paused);const elapsed=Math.max(0,Math.floor((Date.now()-(world.lastWallTime||Date.now()))/1000));if(!paused&&elapsed)await runAdvance(Math.min(elapsed*speed,200000));}else world=createWorld();setPaused(paused);document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("selected",Number(b.dataset.speed)===speed));render(summary(world));await save();}catch(e){console.error(e);world=createWorld();render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused)step(speed);},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
+async function init(){try{if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);speed=Number(world.speed)||1;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;if(!paused){elapsedMs+=Math.max(0,Date.now()-(world.lastWallTime||Date.now()))*speed;const missedDays=Math.floor(elapsedMs/60000);elapsedMs%=60000;if(missedDays)await runAdvance(Math.min(missedDays,200000));}}else world=createWorld();setPaused(paused);document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("selected",Number(b.dataset.speed)===speed));render(summary(world));await save();}catch(e){console.error(e);world=createWorld();elapsedMs=0;render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs+=1000*speed;if(elapsedMs>=60000&&!busy){const days=Math.floor(elapsedMs/60000);elapsedMs%=60000;step(days);}}if(world)updateAtmosphere(summary(world));},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
 init();

@@ -16,7 +16,13 @@
 <div><label>ORDINE SOCIALE</label><strong id="order">—</strong><small id="government">nessuna istituzione</small></div></section>
 <section class="workspace"><aside class="left">
 <div class="section-head"><div><label>IL TERRITORIO</label><h2><span class="material-symbols-rounded">public</span> Insediamento e dintorni</h2></div><span class="live">MAPPA 2D</span></div>
-<div class="map-wrap"><canvas id="map" width="900" height="620" aria-label="Mappa schematica del territorio e degli insediamenti"></canvas><div class="map-legend"><span><i class="legend-home"></i> abitazioni</span><span><i class="legend-field"></i> campi</span><span><i class="legend-water"></i> acqua</span><span><i class="legend-path"></i> percorsi</span></div></div>
+<div class="map-wrap"><canvas id="map" width="900" height="620" aria-label="Mappa schematica del territorio e degli insediamenti"></canvas><div class="world-atmosphere" aria-live="polite">
+<div class="weather-symbol"><span class="material-symbols-rounded" id="weather-icon">partly_cloudy_day</span></div>
+<div class="weather-copy"><span class="atmosphere-kicker">TEMPO NELLA VALLE</span><strong id="weather-label">Tempo mite</strong><small id="season-label">Primavera · condizioni regolari</small></div>
+<div class="sky-clock"><span class="material-symbols-rounded" id="sky-icon">dark_mode</span><div><strong id="sky-label">Notte</strong><small id="sky-time">Ciclo giornaliero</small></div></div>
+<div class="day-progress"><div><span>GIORNO</span><strong id="day-progress-label">0%</strong></div><i><b id="day-progress-bar"></b></i></div>
+</div>
+<div class="map-legend"><span><i class="legend-home"></i> abitazioni</span><span><i class="legend-field"></i> campi</span><span><i class="legend-water"></i> acqua</span><span><i class="legend-path"></i> percorsi</span></div></div>
 <div class="territory"><span id="territory-name">Valle del Primo Fiume</span><span id="territory-area">12 km² conosciuti</span></div>
 <div class="section-head timeline-head"><div><label>CRONOLOGIA</label><h2><span class="material-symbols-rounded">history</span> Memoria degli eventi</h2></div><span id="event-count">0 eventi</span></div><div id="events" class="events"></div></aside>
 <aside class="right"><div class="section-head"><div><label>CONDIZIONI DELLA SOCIETÀ</label><h2><span class="material-symbols-rounded">monitoring</span> Quadro generale</h2></div></div>
