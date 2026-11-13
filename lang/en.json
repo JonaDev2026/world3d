@@ -20,5 +20,17 @@
   "markerPrompt": "Name this place:",
   "discoveredPlace": "Discovered place",
   "placeSaved": "Place saved to the map",
-  "noMarkers": "No saved places. Press P while exploring."
+  "noMarkers": "No saved places. Press P while exploring.",
+  "previewLabel": "3D PREVIEW",
+  "paused": "PAUSED",
+  "resume": "RESUME",
+  "settings": "SETTINGS",
+  "viewMode": "Camera view",
+  "firstPerson": "First person",
+  "thirdPerson": "Third person",
+  "music": "Music",
+  "sounds": "Sound effects",
+  "audioSoon": "Controls ready · audio coming soon",
+  "pauseHint": "Press ESC to return to the game",
+  "close": "CLOSE"
 }
