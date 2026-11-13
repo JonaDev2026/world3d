@@ -82,7 +82,7 @@ function daily(s){
   if(p.age>55)p.health-=.012+(p.age-55)*.001;
   if(p.health<=0||p.age>82&&random(s)<.00035+(p.age-82)*.00022){p.alive=false;s.stats.deaths++;continue;}
   if(p.age>=15&&p.age<62&&p.role==="bambino")p.role=pick(s,["raccoglitore","cacciatore","artigiano"]);
-  if(p.age>18&&p.age<45&&p.sex==="F"&&random(s)<.00022&&n<5000){
+  if(p.age>18&&p.age<45&&p.sex==="F"&&random(s)<.00066&&n<5000){
    const candidates=people.filter(q=>q.sex==="M"&&q.age>=18&&q.age<55&&q.alive&&q.id!==p.id&&(!p.partner||p.partner===q.id));
    if(candidates.length){const mate=pick(s,candidates);if(random(s)<.4){addPerson(s,[p.id,mate.id]);}}
   }
@@ -101,6 +101,7 @@ function daily(s){
    if(!g.atWar&&n>70&&g.population>25&&g.hostility>45&&random(s)<0.00008){g.atWar=true;g.warDays=0;s.stats.wars++;addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war");}
    if(g.atWar){g.warDays++;if(g.warDays%30===0){
     const ownPower=n*0.32+s.order*0.35+s.technology.length*5,enemyPower=g.population*0.42+g.technology*2;
+    if(g.warDays===30&&enemyPower>ownPower*1.2){s.food=Math.max(0,s.food-Math.round(n*1.5));s.cohesion=clamp(s.cohesion-3,0,100);addEvent(s,"Incursione nella valle",g.name+" supera le difese di confine e saccheggia parte delle riserve. La popolazione si rifugia nell’insediamento principale.","war");}
     const ownLoss=Math.max(1,Math.round((random(s)*3+1)*(enemyPower/Math.max(1,ownPower))));
     const enemyLoss=Math.max(1,Math.round((random(s)*3+1)*(ownPower/Math.max(1,enemyPower))));
     for(let k=0;k<ownLoss;k++){const victim=pick(s,living(s));if(victim){victim.alive=false;s.stats.deaths++;}}
