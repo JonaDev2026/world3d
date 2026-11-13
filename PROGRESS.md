@@ -8,7 +8,7 @@
 
 ### Fase 1 — Menu principale
 - Nuova schermata iniziale realizzata da zero; nessun componente del vecchio menu riutilizzato.
-- Direzione visiva: **Cronache antiche**, paesaggio illustrato di Vaelmar, architettura della Cittadella di Aurelan, palette bosco/notte e oro antico.
+- Direzione visiva: **Cronache antiche**, paesaggio illustrato di Vaelmar, architettura della Cittadella di Aurelan, palette blu notte, nero carbone, avorio e oro antico; accenti rosso scuro molto discreti.
 - Font del titolo e delle voci principali: **MedievalSharp**.
 - Titolo: **L’Alba dei Cinque Sigilli**.
 - Sottotitolo: **Le Cronache di Vaelmar**.
