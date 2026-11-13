@@ -49,6 +49,34 @@ function updateSocial(s){
  }
  if(previous.inequality!==undefined&&Math.abs(gini-previous.inequality)>.12&&n>70)addEvent(s,gini>previous.inequality?"Aumenta la distanza tra le classi":"Si riduce la distanza tra le classi",gini>previous.inequality?"Le risorse si concentrano progressivamente in una parte ridotta della popolazione. Crescono le differenze nelle condizioni materiali.":"La distribuzione delle risorse diventa più equilibrata e diminuiscono le distanze economiche.","society");
 }
+function updateLeadership(s){
+ const people=living(s);if(people.length<45)return;
+ if(!s.leadership)s.leadership={personId:null,termStarted:0,legitimacy:50};
+ const current=people.find(p=>p.id===s.leadership.personId),due=!current||s.year-s.leadership.termStarted>=8;
+ if(due){
+  const candidates=people.filter(p=>p.age>=20&&p.age<72);
+  if(candidates.length){
+   const median=s.social?.medianWealth||0;
+   const score=p=>{
+    const maturity=1-Math.min(1,Math.abs(p.age-43)/45);
+    const institutional=s.institutions.includes("Assemblea dei cittadini")?p.traits.cooperation*1.4:s.institutions.includes("Consiglio degli anziani")?maturity*.65+p.skill*.3:p.traits.ambition*.8;
+    const wealthBias=s.institutions.includes("Consiglio delle famiglie influenti")?Math.min(2,p.wealth/Math.max(1,median+1))*.5:0;
+    return p.skill*.8+p.traits.cooperation*.65+p.traits.ambition*.45+institutional+wealthBias+random(s)*.18;
+   };
+   candidates.sort((x,y)=>score(y)-score(x));
+   const chosen=candidates[0],previous=s.leadership.personId;
+   s.leadership={personId:chosen.id,termStarted:s.year,legitimacy:clamp(s.cohesion*.42+s.order*.28+(100-(s.social?.inequality||0)*100)*.18+12,20,95)};
+   addEvent(s,previous?"Cambio alla guida della comunità":"Viene riconosciuta una guida","La comunità affida la guida a "+chosen.name+" "+chosen.family+". La legittimità dipenderà dalle decisioni, dalla sicurezza e dalla distribuzione delle risorse.","politics");
+  }
+ }else{
+  const strain=(s.social?.inequality||0)*1.8+(s.stats.crimes/Math.max(1,people.length))*.35;
+  s.leadership.legitimacy=clamp(s.leadership.legitimacy+(s.cohesion-55)*.025+(s.order-50)*.012-strain,0,100);
+  if(s.leadership.legitimacy<24&&random(s)<.28){
+   s.cohesion=clamp(s.cohesion-2.5,0,100);s.order=clamp(s.order-1.5,0,100);s.leadership.legitimacy=35;
+   addEvent(s,"Crisi di legittimità","La guida perde sostegno tra gruppi della popolazione. Le istituzioni sono costrette a negoziare nuove condizioni di governo.","politics");
+  }
+ }
+}
 function yearBoundary(s){
  const people=living(s),n=people.length;
  s.year++;s.day=1;
@@ -86,6 +114,7 @@ function yearBoundary(s){
  if(n>160&&!s.institutions.includes("Guardia civica")&&s.stats.crimes>=5){s.institutions.push("Guardia civica");s.order=clamp(s.order+8,0,100);addEvent(s,"Nasce una guardia civica","La comunità affida a un gruppo stabile il compito di proteggere i mercati, le riserve e le persone.","politics");}
  if(n>250&&s.settlements.length>1&&s.economy==="Riserve e distribuzione organizzata"){s.economy="Scambi tra insediamenti";addEvent(s,"Si organizzano gli scambi interni","I villaggi coordinano la circolazione di cibo, utensili e materie prime.","economy");}
  if(n>320&&!s.institutions.includes("Assemblea dei villaggi")){s.institutions.push("Assemblea dei villaggi");s.polity="Consiglio dei villaggi";addEvent(s,"Nasce un'assemblea territoriale","I rappresentanti dei diversi insediamenti si riuniscono per discutere risorse, confini e decisioni comuni.","politics");}
+ updateLeadership(s);
 }
 function daily(s){
  const people=living(s),n=people.length,sett=s.settlements[0];
@@ -184,13 +213,17 @@ function daily(s){
  s.day++;if(s.day>365)yearBoundary(s);
 }
 export function advance(world,days){
- const s=world;const start=s.year;
- for(let i=0;i<days;i++){daily(s);if(!living(s).length){addEvent(s,"Fine della comunità","Non rimangono abitanti. La comunità si è estinta.","extinction");break;}}
- return {world:s,advanced:days,years:s.year-start};
+ const s=world;const start=s.year;let advanced=0;
+ for(let i=0;i<days;i++){
+  if(!living(s).length){if(!s.extinct){addEvent(s,"Fine della comunità","Non rimangono abitanti. La comunità si è estinta.","extinction");s.extinct=true;}break;}
+  daily(s);advanced++;
+  if(!living(s).length&&!s.extinct){addEvent(s,"Fine della comunità","Non rimangono abitanti. La comunità si è estinta.","extinction");s.extinct=true;break;}
+ }
+ return {world:s,advanced,years:s.year-start};
 }
 export function summary(s){
  const people=living(s),n=people.length;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,climate:s.climate,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:people.find(p=>p.id===s.leadership?.personId)||null,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||s.version!==VERSION||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
@@ -198,6 +231,7 @@ export function validateWorld(s){
  if(!s.climate)s.climate={type:"normale",days:0,severity:0};
  if(!s.disease)s.disease={active:false,strain:0,days:0};
  if(!s.social)s.social={inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:living(s).length,agiati:0,"élite":0},medianWealth:0};
+ if(!s.leadership)s.leadership={personId:null,termStarted:0,legitimacy:50};
  for(const p of s.population)if(!Number.isFinite(p.wealth))p.wealth=0;
  return s;
 }
