@@ -64,6 +64,19 @@ function drawMap(s){
 function setPaused(v){paused=v;$("pause").textContent=paused?"▶ Riprendi":"Ⅱ Pausa";$("status").textContent=paused?"SIMULAZIONE IN PAUSA":"SIMULAZIONE ATTIVA";$("status-dot").parentElement.classList.toggle("paused",paused);}
 async function runAdvance(days){if(worker){const id=++step.id;const result=await new Promise((resolve,reject)=>{const handler=e=>{if(e.data.id!==id)return;worker.removeEventListener("message",handler);e.data.error?reject(new Error(e.data.error)):resolve(e.data);};worker.addEventListener("message",handler);worker.postMessage({id,world,days});});world=result.world;}else advance(world,days);}
 async function step(days){if(busy||paused)return;busy=true;try{await runAdvance(days);render(summary(world));if(world.day%11===0)await save();}catch(e){console.error(e);$("save-state").textContent="Errore: "+e.message;setPaused(true);}busy=false;}step.id=0;
+
+document.querySelectorAll("[data-tab]").forEach(tab=>tab.addEventListener("click",()=>{
+ const target=tab.dataset.tab;
+ document.querySelectorAll("[data-tab]").forEach(item=>{
+  const active=item===tab;
+  item.classList.toggle("active",active);
+  item.setAttribute("aria-selected",String(active));
+ });
+ document.querySelectorAll("[data-page]").forEach(page=>{
+  page.hidden=page.dataset.page!==target;
+ });
+}));
+
 $("pause").addEventListener("click",()=>setPaused(!paused));
 document.querySelectorAll("[data-speed]").forEach(b=>b.addEventListener("click",()=>{speed=Number(b.dataset.speed);document.querySelectorAll("[data-speed]").forEach(q=>q.classList.toggle("selected",q===b));}));
 $("save-now").addEventListener("click",()=>save().catch(e=>$("save-state").textContent="Errore salvataggio"));
