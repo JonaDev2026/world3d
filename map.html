@@ -66,7 +66,7 @@ curb(-20,0,2,680);curb(20,0,2,680);curb(0,-22,680,2);curb(0,10,680,2);
 const river= new THREE.Mesh(new THREE.PlaneGeometry(90,720),water);river.rotation.x=-Math.PI/2;river.position.set(430,-.22,0);city.add(river);
 for(let z=-330;z<=330;z+=24){const m=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,90,7),mat(0x9d9a8e));m.rotation.z=Math.PI/2;m.position.set(430,-.05,z);city.add(m)}
 // city wall, towers, gates
-function wallSegment(x,z,len,rot=0){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;city.add(g);box(g,0,8,0,len,16,7,stone);for(let i=-len/2+5;i<len/2;i+=9){box(g,i,17,0,3,3,7,stoneLight)}}
+function wallSegment(x,z,len,rot=0){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;city.add(g);for(const side of [-1,1]){const span=len/2-34,center=side*(len/4+17);box(g,center,8,0,span,16,7,stone);for(let i=-span/2+5;i<span/2;i+=9)box(g,center+i,17,0,3,3,7,stoneLight)}}
 function tower(x,z){const g=new THREE.Group();g.position.set(x,0,z);city.add(g);cyl(g,0,13,0,12,14,26,stone,12);cyl(g,0,27,0,14,12,3,darkStone,12);const roofm=new THREE.Mesh(new THREE.ConeGeometry(16,19,12),roof[1]);roofm.position.y=38;roofm.castShadow=true;g.add(roofm);for(let a=0;a<8;a++){const q=a*Math.PI/4;box(g,Math.sin(q)*10,21,Math.cos(q)*10,2,5,2,darkStone)}}
 for(let a=0;a<4;a++){const x=a%2?330:-330,z=a<2?330:-330;tower(x,z)}
 wallSegment(0,-330,640);wallSegment(0,330,640);wallSegment(-330,0,640,Math.PI/2);wallSegment(330,0,640,Math.PI/2);
