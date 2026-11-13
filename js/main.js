@@ -18,7 +18,9 @@ scene.add(new THREE.HemisphereLight(0xe7edf4,0x46515a,2.1));
 const key=new THREE.DirectionalLight(0xffe1b2,3.1);key.position.set(-5,10,8);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
 const rim=new THREE.DirectionalLight(0x9bc4e0,2.2);rim.position.set(6,6,-5);scene.add(rim);
 const groundMat=new THREE.MeshStandardMaterial({color:0x68756c,roughness:1});
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(36000,36000),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
+const WORLD_SIDE=Math.sqrt(300)*1000;
+const WORLD_AREA_KM2=300;
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(WORLD_SIDE,WORLD_SIDE),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
 const horizon=new THREE.Mesh(new THREE.SphereGeometry(1200,48,24),new THREE.MeshBasicMaterial({color:0x9ba9ad,side:THREE.BackSide}));horizon.position.y=0;scene.add(horizon);
 
 const mat=(color,roughness=.72,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
@@ -110,7 +112,5 @@ function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime()
 animate();
 
 // The playable world is deliberately an empty 300 km² foundation for future regions.
-const WORLD_SIDE=Math.sqrt(300)*1000;
-const WORLD_AREA_KM2=300;
 $('readyTitle').dataset.worldSide=String(WORLD_SIDE);
 $('readyTitle').dataset.worldArea=String(WORLD_AREA_KM2);
