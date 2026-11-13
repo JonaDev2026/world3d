@@ -45,3 +45,15 @@ Costruire un sistema di animazione articolato condiviso dal personaggio giocante
 - **Verifiche:**
 - **Problemi aperti:**
 - **Prossimo passo:**
+
+
+## 2026-11-13 — La Corona delle Ceneri e i quattro protagonisti
+
+- **Direzione artistica di riferimento:** fantasy epico cinematografico, con paesaggi monumentali, castelli, montagne, vallate e personaggi dall'aspetto curato e riconoscibile.
+- **Storia:** il Sigillo Celeste si spezza; quattro stelle cadono e risvegliano una minaccia antica. A Valdombra si incontrano quattro portatori di segni misteriosi.
+- **Eldrin:** mago con bastone arcano e cristallo luminoso.
+- **Lyra:** esploratrice con arco lungo e faretra.
+- **Kael:** guerriero con spada e mantello color ruggine.
+- **Il Velato:** figura mascherata con lancia-reliquia, poteri legati alla Soglia e identità ignota.
+- **Codice:** aggiunte armi e tratti visivi distintivi ai quattro personaggi presenti nella città. Controllo statico JavaScript superato.
+- **Da fare:** modelli di qualità superiore, animazioni individuali, combattimento, dialoghi e missioni. Nessun test grafico in browser eseguito in questa sessione.
