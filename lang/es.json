@@ -20,5 +20,17 @@
   "markerPrompt": "Nombre de este lugar:",
   "discoveredPlace": "Lugar descubierto",
   "placeSaved": "Lugar guardado en el mapa",
-  "noMarkers": "No hay lugares guardados. Pulsa P mientras exploras."
+  "noMarkers": "No hay lugares guardados. Pulsa P mientras exploras.",
+  "previewLabel": "VISTA PREVIA 3D",
+  "paused": "PAUSA",
+  "resume": "CONTINUAR",
+  "settings": "AJUSTES",
+  "viewMode": "Cámara",
+  "firstPerson": "Primera persona",
+  "thirdPerson": "Tercera persona",
+  "music": "Música",
+  "sounds": "Efectos de sonido",
+  "audioSoon": "Controles listos · audio próximamente",
+  "pauseHint": "Pulsa ESC para volver al juego",
+  "close": "CERRAR"
 }
