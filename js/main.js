@@ -172,15 +172,14 @@ function show(id){for(const el of document.querySelectorAll('.screen'))el.classL
 function chooseHero(i){selected=i;const d=heroData[i];$('heroName').textContent=d.name;$('heroRole').textContent=d.role;$('heroDescription').textContent=d.description;$('heroWeapon').textContent='ARMA · '+d.weapon;document.querySelectorAll('.hero-card').forEach((c,n)=>c.classList.toggle('selected',n===i));heroes.forEach((h,n)=>{h.userData.selected=n===i;h.scale.setScalar(n===i?1.16:0.92);h.position.z=n===i?0.25:-0.25;});}
 
 
-$('beginButton').addEventListener('click',()=>{$('readyTitle').textContent=heroData[selected].name+' · VAELMAR TI ATTENDE';show('worldReady');mode='ready';$('worldClock').classList.remove('hidden');vaelmarClock.start();updateWorldLighting(vaelmarClock.snapshot());});
+$('beginButton').addEventListener('click',()=>{show('characterSelect');mode='select';});
+$('enterWorldButton').addEventListener('click',()=>{$('readyTitle').textContent=heroData[selected].name+' · VAELMAR TI ATTENDE';show('worldReady');mode='ready';$('worldClock').classList.remove('hidden');vaelmarClock.start();updateWorldLighting(vaelmarClock.snapshot());});
+$('backToMenu').addEventListener('click',()=>{show('mainMenu');mode='menu';});
 $('returnMenu').addEventListener('click',()=>{vaelmarClock.pause();$('worldClock').classList.add('hidden');show('mainMenu');mode='menu';});
 document.querySelectorAll('.hero-card').forEach((card)=>card.addEventListener('click',()=>chooseHero(Number(card.dataset.hero))));
-$('settingsToggle').addEventListener('click',()=>$('settingsPanel').classList.remove('hidden'));
-$('closeSettings').addEventListener('click',()=>$('settingsPanel').classList.add('hidden'));
-
 $('musicToggle').addEventListener('click',async()=>{musicOn=!musicOn;$('musicToggle').classList.toggle('active',musicOn);if(musicOn){try{await audio.play()}catch{}}else audio.pause();});
 $('soundToggle').addEventListener('click',()=>{soundOn=!soundOn;$('soundToggle').classList.toggle('active',soundOn);});
-$('musicVolume').addEventListener('input',e=>{audio.volume=Number(e.target.value)/100;$('musicValue').textContent=e.target.value+'%';});$('soundVolume').addEventListener('input',e=>$('soundValue').textContent=e.target.value+'%');
+
 document.addEventListener('pointerdown',()=>{if(musicOn&&audio.paused)audio.play().catch(()=>{});},{once:true});
 chooseHero(0);
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
