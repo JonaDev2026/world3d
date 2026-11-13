@@ -1,57 +1,15 @@
 # WORLD — Diario di sviluppo
 
-## 2026-11-13 — Ripartenza da zero
+## 2026-11-13 — Menu cartografico e titolo ufficiale
 
-Decisione: abbandonare il vecchio prototipo e ricostruire il gioco partendo dall'identità grafica. Non si continua a stratificare il vecchio villaggio, l'HUD, la mappa o la vecchia creazione del personaggio.
+Il menu è stato ricostruito seguendo il riferimento fornito: antica mappa geografica, titolo gotico avorio/oro, atmosfera da pergamena e controlli ridotti al minimo.
 
-### Nuova base
-- Menu principale cinematografico e minimale.
-- Scena 3D Three.js pulita, con quattro protagonisti mostrati come modelli tridimensionali.
-- Selezione del protagonista con nome, ruolo, descrizione e arma.
-- Musica principale predisposta nel percorso assets/audio/music/main-theme.mp3.
-- Controlli di musica e volume; gli effetti sonori saranno collegati quando saranno disponibili gli asset.
-- Piano geografico vuoto di 300 km², quadrato di 17,32 km per lato.
+- Titolo verificato nel manoscritto: **L’Alba dei Cinque Sigilli**.
+- Rimossa la dicitura inventata “La Corona delle Ceneri”.
+- Testata: **Le Cronache di Vaelmar**.
+- Creata una mappa illustrativa originale con Aurelan, Lorinhal, Khar-Durum, Lumenor, Maremorta e Karn-Ushad.
+- La selezione mantiene i quattro protagonisti canonici e la scena 3D.
+- Musica, opzioni audio e sistema temporale restano collegati.
+- Da verificare nel browser locale: proporzioni del titolo, leggibilità, selezione eroi e resa mobile.
 
-### Personaggi
-- Eldrin: mago con bastone arcano.
-- Lyra: arciera con arco lungo.
-- Kael: guerriero con spada.
-- Il Velato: figura misteriosa con lancia-reliquia.
-
-### 2026-11-13 — Fondamenta e anteprima del tempo di Vaelmar
-- Scelta di design: un giorno completo nel mondo equivale a 30 minuti reali (rapporto 48:1).
-- Calendario strutturale iniziale: 12 mesi da 30 giorni, 360 giorni per anno, quattro stagioni da tre mesi.
-- Creato il modulo indipendente js/world-time.js per data, ora, fasi del giorno, avanzamento controllato, pausa, riposo e serializzazione.
-- La scena Three.js ora usa il clock quando si entra nella schermata di avvio del mondo: il tempo parte alle 06:00 e si arresta tornando al menu.
-- La luce direzionale del sole, la luce lunare, gli indicatori sferici di sole/luna e i colori di cielo e nebbia cambiano con l'ora.
-- Aggiunto un piccolo orologio a schermo con data, ora, stagione e fase.
-- Definiti i dodici mesi: Germoglio, Fioritura, Solealto, Ardore, Mietitura, Mezzaluce, Foglia d'Oro, Bruma, Cenere, Gelo Profondo, Notte Quieta, Ultima Fiamma.
-- Definite le quattro stagioni: Risveglio, Alta Luce, Caduta e Lungo Inverno, ognuna di tre mesi.
-- Lo snapshot del calendario restituisce ora anche nome del mese, stagione nominata e giorno progressivo della stagione.
-- Questa è un'anteprima tecnica sulla scena attuale, non ancora il ciclo collegato a un mondo esplorabile. Il comportamento va verificato nel browser locale.
-
-### Calendario di Vaelmar — nomi definiti
-- **Risveglio:** Germoglio, Fioritura, Solealto.
-- **Alta Luce:** Ardore, Mietitura, Mezzaluce.
-- **Caduta:** Foglia d'Oro, Bruma, Cenere.
-- **Lungo Inverno:** Gelo Profondo, Notte Quieta, Ultima Fiamma.
-- Ogni mese dura 30 giorni; ogni stagione 90 giorni; l'anno 360 giorni.
-
-### Verifiche e limiti
-- Verificati staticamente gli ID HTML usati dal nuovo JavaScript.
-- Il menu e il ciclo non sono ancora stati collaudati visivamente nel browser.
-- I personaggi attuali sono modelli procedurali iniziali, non asset finali.
-- Il mondo è soltanto un piano vuoto; non sono ancora implementati movimento, collisioni, gameplay, streaming o contenuti.
-
-### Direzione successiva
-Verificare la prima anteprima del tempo, poi trasferire il sistema nella scena esplorabile senza ripristinare il vecchio impianto.
-
-
-## 2026-11-13 — Identità canonica dei quattro protagonisti
-- Il roster provvisorio (Eldrin, Lyra, Kael, Il Velato) è stato rimosso.
-- La selezione ora segue il romanzo: Merrik Valeth, Kaelen Dorne, Elowen Kaer e Brundar Ferrocuore.
-- Le schede mostrano ruolo, età, ferita narrativa, obiettivo e specialità di combattimento senza anticipare i colpi di scena.
-- Rifatta la veste grafica del menu con palette calda, tipografia epica, pannelli traslucidi e card di selezione.
-- I modelli procedurali hanno equipaggiamenti e proporzioni specifici per ciascun eroe; restano placeholder 3D da sostituire con asset artistici definitivi.
-- Musica e orologio di Vaelmar restano collegati come prima.
-- Prossimo controllo: prova visiva locale su desktop e mobile, con attenzione a inquadratura e leggibilità dei personaggi.
+La mappa è un fondale grafico, non il terreno di gioco né una rappresentazione definitiva in scala.
