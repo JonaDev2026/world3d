@@ -1,44 +1,67 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#171b1b">
-  <title>VAELMAR — Un mondo da attraversare</title>
-  <link rel="stylesheet" href="style.css">
-  <script type="importmap">
-    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}
-  </script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#171a18">
+<title>Anno Zero — Simulazione di civiltà</title>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <main id="game">
-    <div id="viewport"></div>
-    <div id="vignette"></div>
-    <header class="topbar">
-      <div class="brand"><span class="sigil">V</span><span>VAELMAR<small>LE TERRE DEI TRE FIUMI</small></span></div>
-      <div class="world-status"><i></i> MONDO APERTO <span id="region">PIANA DI AURELAN</span></div>
-    </header>
-    <section id="intro" class="screen">
-      <div class="intro-copy">
-        <div class="eyebrow">UN MONDO DI 300 CHILOMETRI QUADRATI</div>
-        <h1>Oltre<br><em>l'orizzonte.</em></h1>
-        <p>Strade antiche, città vive, villaggi dimenticati.<br>Non c'è una strada da seguire. Il mondo è tuo.</p>
-        <button id="enter">ENTRA NEL MONDO <span>↗</span></button>
-        <div class="intro-foot">ESPLORAZIONE LIBERA <b>·</b> TERRE DI AURELAN <b>·</b> ANNO 842</div>
+<header class="top">
+  <div class="identity"><span class="mark">0</span><div><strong>ANNO ZERO</strong><small>SIMULAZIONE DI UNA CIVILTÀ AUTONOMA</small></div></div>
+  <div class="clock"><span id="era">ERA DELLE ORIGINI</span><strong id="date">Anno 0 · Giorno 1</strong></div>
+  <div class="runstate"><i id="status-dot"></i><span id="status">SIMULAZIONE ATTIVA</span></div>
+</header>
+<main>
+  <section class="overview">
+    <div><label>POPOLAZIONE</label><strong id="population">24</strong><small id="population-change">comunità fondatrice</small></div>
+    <div><label>INSEDIAMENTI</label><strong id="settlements">1</strong><small id="settlement-type">accampamento</small></div>
+    <div><label>SCORTE ALIMENTARI</label><strong id="food">—</strong><small id="food-status">riserva comunitaria</small></div>
+    <div><label>CONOSCENZA</label><strong id="knowledge">0</strong><small id="technology">nessuna tecnologia sviluppata</small></div>
+    <div><label>ORDINE SOCIALE</label><strong id="order">—</strong><small id="government">nessuna istituzione</small></div>
+  </section>
+  <section class="workspace">
+    <aside class="left">
+      <div class="section-head"><div><label>IL TERRITORIO</label><h2>Insediamento e dintorni</h2></div><span class="live">MAPPA 2D</span></div>
+      <div class="map-wrap"><canvas id="map" width="900" height="620" aria-label="Mappa schematica del territorio e degli insediamenti"></canvas><div class="map-legend"><span><i class="legend-home"></i> abitazioni</span><span><i class="legend-field"></i> campi</span><span><i class="legend-water"></i> acqua</span><span><i class="legend-path"></i> percorsi</span></div></div>
+      <div class="territory"><span id="territory-name">Valle del Primo Fiume</span><span id="territory-area">12 km² conosciuti</span></div>
+      <div class="section-head timeline-head"><div><label>CRONOLOGIA</label><h2>Memoria degli eventi</h2></div><span id="event-count">0 eventi</span></div>
+      <div id="events" class="events"></div>
+    </aside>
+    <aside class="right">
+      <div class="section-head"><div><label>CONDIZIONI DELLA SOCIETÀ</label><h2>Quadro generale</h2></div></div>
+      <div class="meters">
+        <div class="meter"><div><span>Salute pubblica</span><b id="health-value">100%</b></div><div class="track"><i id="health-bar"></i></div></div>
+        <div class="meter"><div><span>Disponibilità di cibo</span><b id="food-value">100%</b></div><div class="track"><i id="food-bar"></i></div></div>
+        <div class="meter"><div><span>Coesione sociale</span><b id="cohesion-value">75%</b></div><div class="track"><i id="cohesion-bar"></i></div></div>
+        <div class="meter"><div><span>Conoscenze accumulate</span><b id="knowledge-value">0</b></div><div class="track"><i id="knowledge-bar"></i></div></div>
       </div>
-      <div class="intro-coordinate">44° N<br>12° E</div>
-    </section>
-    <div id="hud" class="hidden">
-      <div class="location"><span class="location-mark">⌖</span><div><strong id="place">Tre Fiumi</strong><small id="district">Piazza del Mercato</small></div></div>
-      <div class="compass"><span>N</span><div class="compass-line"></div><small id="bearing">0°</small></div>
-      <div class="help">W A S D <span>MUOVITI</span><b>·</b> MOUSE <span>GUARDA</span><b>·</b> SHIFT <span>CORRI</span><b>·</b> ESC <span>PAUSA</span></div>
-    </div>
-    <div id="pause" class="screen hidden">
-      <div class="pause-card"><div class="eyebrow">IL VIAGGIO CONTINUA</div><h2>Prenditi<br><em>un momento.</em></h2><button id="resume">TORNA AL MONDO ↗</button><p>WASD per camminare · Shift per correre · Mouse per guardarti intorno</p></div>
-    </div>
-    <div id="loading" class="loading"><span></span> IL MONDO SI STA FORMANDO</div>
-    <div id="crosshair" class="hidden"></div>
-  </main>
-  <script type="module" src="world.js"></script>
+      <div class="divider"></div>
+      <div class="section-head"><div><label>STRUTTURA COLLETTIVA</label><h2>Istituzioni e cultura</h2></div></div>
+      <dl class="facts">
+        <div><dt>Forma politica</dt><dd id="polity">Comunità senza governo</dd></div>
+        <div><dt>Credenze</dt><dd id="belief">Tradizioni orali</dd></div>
+        <div><dt>Leggi</dt><dd id="laws">Consuetudini condivise</dd></div>
+        <div><dt>Economia</dt><dd id="economy">Sussistenza collettiva</dd></div>
+        <div><dt>Tecnologia</dt><dd id="tech-list">Fuoco · utensili di pietra</dd></div>
+        <div><dt>Popolazione attiva</dt><dd id="workers">—</dd></div>
+      </dl>
+      <div class="divider"></div>
+      <div class="section-head"><div><label>AVANZAMENTO DEL TEMPO</label><h2>Ritmo della simulazione</h2></div></div>
+      <div class="controls">
+        <button id="pause" class="primary">Ⅱ Pausa</button>
+        <button data-speed="1" class="speed selected">1×</button>
+        <button data-speed="7" class="speed">7×</button>
+        <button data-speed="30" class="speed">30×</button>
+        <button data-speed="120" class="speed">120×</button>
+      </div>
+      <p class="note">Il mondo avanza autonomamente. Le decisioni e gli eventi derivano dalle condizioni della popolazione, dalle risorse e dalla storia accumulata.</p>
+      <div class="save-line"><span id="save-state">Salvataggio locale attivo</span><button id="save-now">SALVA ORA</button></div>
+    </aside>
+  </section>
+</main>
+<footer><span>ANNO ZERO <b>·</b> ESPERIMENTO DI SIMULAZIONE SOCIALE</span><span id="last-save">STATO LOCALE</span></footer>
+<script type="module" src="./app.js"></script>
 </body>
 </html>
