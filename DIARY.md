@@ -17,3 +17,7 @@ La mappa è un fondale grafico, non il terreno di gioco né una rappresentazione
 
 ## Menu essenziale
 Rimosso il pannello Impostazioni e il relativo pulsante. La musica introduttiva parte al 20% del volume.
+
+
+## 2026-11-13 — Menu iniziale essenziale
+La schermata iniziale ora mostra soltanto il titolo, i controlli rapidi per musica e suoni e il pulsante Entra. La scelta del protagonista avviene dopo, in una schermata autonoma con descrizione, abilità e modelli 3D. Da lì si entra nel mondo oppure si torna al menu. Il volume iniziale della musica resta al 20%; il vecchio sottomenu Impostazioni non viene riproposto.
