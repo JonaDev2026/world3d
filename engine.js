@@ -97,6 +97,21 @@ function daily(s){
     for(let k=0;k<ownLoss;k++){const victim=pick(s,living(s));if(victim){victim.alive=false;s.stats.deaths++;}}
     g.population=Math.max(3,g.population-enemyLoss);s.food=Math.max(0,s.food-ownLoss*2);s.cohesion=clamp(s.cohesion-1.2,0,100);
     addEvent(s,"Scontro armato","Uno scontro con "+g.name+" provoca "+ownLoss+" perdite nella comunità e "+enemyLoss+" tra gli avversari.","war");
+    const invasionRoll=random(s);
+    if(ownPower>enemyPower*1.2&&invasionRoll<.10){
+     const captured=Math.max(1,Math.round(g.population*.08));
+     g.population=Math.max(3,g.population-captured);
+     const supplies=Math.min(35,Math.round(captured*.7));
+     s.food=Math.min(Math.max(240,living(s).length*45),s.food+supplies);
+     sett.knownArea+=2;
+     addEvent(s,"Avanzata oltre il confine","Le forze della valle penetrano nel territorio di "+g.name+". Vengono occupate aree di pascolo e raccolta e recuperate alcune provviste.","war");
+    }else if(enemyPower>ownPower*1.2&&invasionRoll<.16){
+     const damage=Math.max(1,Math.round(living(s).length*.012));
+     for(let k=0;k<damage;k++){const defenders=living(s);if(!defenders.length)break;const victim=pick(s,defenders);victim.alive=false;s.stats.deaths++;}
+     s.food=Math.max(0,s.food-damage*2);
+     s.cohesion=clamp(s.cohesion-2.5,0,100);
+     addEvent(s,"Incursione nel territorio","Un'incursione di "+g.name+" supera le difese periferiche. Vengono sottratte provviste e la comunità deve riorganizzare la protezione del territorio.","war");
+    }
    }
    if(g.warDays>150||g.population<=4){g.atWar=false;g.hostility=25;addEvent(s,"Cessazione delle ostilità","Il conflitto con "+g.name+" termina dopo mesi di scontri. Le perdite e le tensioni restano nella memoria collettiva.","war");}
    }
