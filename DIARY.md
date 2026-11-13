@@ -57,3 +57,14 @@ Costruire un sistema di animazione articolato condiviso dal personaggio giocante
 - **Il Velato:** figura mascherata con lancia-reliquia, poteri legati alla Soglia e identità ignota.
 - **Codice:** aggiunte armi e tratti visivi distintivi ai quattro personaggi presenti nella città. Controllo statico JavaScript superato.
 - **Da fare:** modelli di qualità superiore, animazioni individuali, combattimento, dialoghi e missioni. Nessun test grafico in browser eseguito in questa sessione.
+
+
+## 2026-11-13 — Identità grafica dell'interfaccia
+
+- Scelti **Cinzel** e **Cormorant Garamond** da Google Fonts per un carattere antico, leggibile e coerente con un fantasy epico.
+- Definita la palette dei menu: oro antico e pergamena su verde bosco e legno scuro, con bordeaux per le azioni principali.
+- Rinnovati titolo iniziale, pannelli, creazione personaggio, menu pausa, impostazioni e mappa.
+- Aggiornati i testi introduttivi in tutte e quattro le lingue.
+- Nessuna modifica ai salvataggi locali o alle coordinate del mondo.
+- Da verificare visivamente sul sito dopo il deploy; il font richiede connessione a Google Fonts, con fallback serif locale.
+- Prossimo lavoro: dare una vera struttura giocabile all'avventura e collegare le musiche quando saranno caricate nel repository.
