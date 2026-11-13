@@ -36,3 +36,5 @@ footer{min-height:49px;border-top:1px solid var(--line);display:flex;justify-con
 .day-progress>i b{display:block;width:0;height:100%;background:var(--accent);border-radius:10px;transition:width .5s}
 .map-wrap{position:relative}
 @media(max-width:640px){.world-atmosphere{grid-template-columns:auto 1fr auto;gap:10px;padding:12px}.day-progress{grid-column:1/-1}.sky-clock{padding-left:10px}.weather-symbol{width:42px;height:42px}}
+
+.map-wrap canvas{transition:filter 1s}

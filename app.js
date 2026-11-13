@@ -46,7 +46,7 @@ function updateAtmosphere(s){
  $("sky-icon").textContent=icon;$("sky-label").textContent=label;
  $("sky-time").textContent=phase<.17?"Ore notturne":phase<.29?"Prime luci":phase<.72?"Luce diurna":phase<.84?"Ultima luce":"Ore notturne";
  const pct=Math.round(phase*100);$("day-progress-label").textContent=pct+"%";$("day-progress-bar").style.width=pct+"%";
- $("map").parentElement.style.setProperty("--sky-tint",tint);
+ $("map").parentElement.style.setProperty("--sky-tint",tint);$("map").style.filter=phase<.17||phase>=.84?"brightness(.62) saturate(.78)":phase<.29||phase>=.72?"brightness(.84) sepia(.22)":"brightness(1) saturate(1)";
 }
 function drawMap(s){
  const c=$("map"),x=c.getContext("2d"),w=c.width,h=c.height;x.clearRect(0,0,w,h);x.fillStyle="#252c29";x.fillRect(0,0,w,h);
@@ -67,6 +67,6 @@ async function step(days){if(busy||paused)return;busy=true;try{await runAdvance(
 $("pause").addEventListener("click",()=>setPaused(!paused));
 document.querySelectorAll("[data-speed]").forEach(b=>b.addEventListener("click",()=>{speed=Number(b.dataset.speed);document.querySelectorAll("[data-speed]").forEach(q=>q.classList.toggle("selected",q===b));}));
 $("save-now").addEventListener("click",()=>save().catch(e=>$("save-state").textContent="Errore salvataggio"));
-window.addEventListener("pagehide",()=>{if(world){world.lastWallTime=Date.now();try{const r=indexedDB.open(DB,1);r.onsuccess=()=>{const tx=r.result.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");};}catch{}}});
+window.addEventListener("pagehide",()=>{if(world){world.timeRemainderMs=elapsedMs;world.speed=speed;world.paused=paused;world.lastWallTime=Date.now();try{const r=indexedDB.open(DB,1);r.onsuccess=()=>{const tx=r.result.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");};}catch{}}});
 async function init(){try{if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);speed=Number(world.speed)||1;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;if(!paused){elapsedMs+=Math.max(0,Date.now()-(world.lastWallTime||Date.now()))*speed;const missedDays=Math.floor(elapsedMs/60000);elapsedMs%=60000;if(missedDays)await runAdvance(Math.min(missedDays,200000));}}else world=createWorld();setPaused(paused);document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("selected",Number(b.dataset.speed)===speed));render(summary(world));await save();}catch(e){console.error(e);world=createWorld();elapsedMs=0;render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs+=1000*speed;if(elapsedMs>=60000&&!busy){const days=Math.floor(elapsedMs/60000);elapsedMs%=60000;step(days);}}if(world)updateAtmosphere(summary(world));},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
 init();
