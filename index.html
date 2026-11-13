@@ -1,1 +1,44 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#171c1b"><title>Tre Fiumi — Vaelmar</title><link rel="stylesheet" href="style.css"></head><body><main id="game"><canvas id="world" aria-label="Città di Tre Fiumi"></canvas><header class="topbar"><div class="brand"><span class="sigil">✦</span><div><strong>VAELMAR</strong><small>LE CRONACHE</small></div></div><div class="place"><span class="eyebrow">PIANA DI AURELAN</span><strong>Tre Fiumi</strong></div><button id="mapButton" class="icon-button" aria-label="Mappa">⌖</button></header><aside class="location-card"><span class="eyebrow">TI TROVI A</span><strong id="location">Le vie di Tre Fiumi</strong><span>Una brezza leggera attraversa la città</span></aside><div class="bottom-left"><span class="dot"></span><span id="clock">08:20</span><span class="separator">·</span><span>Giorno 14, Estate</span></div><div class="controls"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>per muoverti</span><i></i><span>clicca per camminare</span></div><div class="map-overlay" id="mapOverlay" hidden><div class="map-panel"><button id="closeMap" class="close">×</button><span class="eyebrow">PIANA DI AURELAN</span><h2>Tre Fiumi</h2><p>La città sorta alla confluenza dell'Argentina, della Roccia e della Verdeacqua.</p><div class="map-sketch"><span class="river r1"></span><span class="river r2"></span><span class="river r3"></span><span class="map-town">✦<small>TRE FIUMI</small></span><span class="map-label l1">Il Cigno Zoppo</span><span class="map-label l2">Piazza del Mercato</span></div><small class="map-foot">Le tre acque, un solo destino.</small></div></div><div class="intro" id="intro"><div class="intro-card"><span class="eyebrow">UN LUOGO NELLE CRONACHE DI VAELMAR</span><h1>Tre Fiumi</h1><p>Dove tre acque si incontrano, le strade non dormono mai.</p><button id="enter">Entra in città <span>→</span></button></div></div></main><script src="world.js"></script></body></html>
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#171b1b">
+  <title>VAELMAR — Un mondo da attraversare</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}
+  </script>
+</head>
+<body>
+  <main id="game">
+    <div id="viewport"></div>
+    <div id="vignette"></div>
+    <header class="topbar">
+      <div class="brand"><span class="sigil">V</span><span>VAELMAR<small>LE TERRE DEI TRE FIUMI</small></span></div>
+      <div class="world-status"><i></i> MONDO APERTO <span id="region">PIANA DI AURELAN</span></div>
+    </header>
+    <section id="intro" class="screen">
+      <div class="intro-copy">
+        <div class="eyebrow">UN MONDO DI 300 CHILOMETRI QUADRATI</div>
+        <h1>Oltre<br><em>l'orizzonte.</em></h1>
+        <p>Strade antiche, città vive, villaggi dimenticati.<br>Non c'è una strada da seguire. Il mondo è tuo.</p>
+        <button id="enter">ENTRA NEL MONDO <span>↗</span></button>
+        <div class="intro-foot">ESPLORAZIONE LIBERA <b>·</b> TERRE DI AURELAN <b>·</b> ANNO 842</div>
+      </div>
+      <div class="intro-coordinate">44° N<br>12° E</div>
+    </section>
+    <div id="hud" class="hidden">
+      <div class="location"><span class="location-mark">⌖</span><div><strong id="place">Tre Fiumi</strong><small id="district">Piazza del Mercato</small></div></div>
+      <div class="compass"><span>N</span><div class="compass-line"></div><small id="bearing">0°</small></div>
+      <div class="help">W A S D <span>MUOVITI</span><b>·</b> MOUSE <span>GUARDA</span><b>·</b> SHIFT <span>CORRI</span><b>·</b> ESC <span>PAUSA</span></div>
+    </div>
+    <div id="pause" class="screen hidden">
+      <div class="pause-card"><div class="eyebrow">IL VIAGGIO CONTINUA</div><h2>Prenditi<br><em>un momento.</em></h2><button id="resume">TORNA AL MONDO ↗</button><p>WASD per camminare · Shift per correre · Mouse per guardarti intorno</p></div>
+    </div>
+    <div id="loading" class="loading"><span></span> IL MONDO SI STA FORMANDO</div>
+    <div id="crosshair" class="hidden"></div>
+  </main>
+  <script type="module" src="world.js"></script>
+</body>
+</html>
