@@ -1,80 +1,40 @@
 # WORLD — Open Exploration
 
-![](preview.png)
+![WORLD — anteprima del mondo](preview.png)
 
-WORLD è un mondo 3D stilizzato a poligoni morbidi, con visuale in prima persona predefinita e terza persona selezionabile. Comprende terreno continuo, pianure abitabili, villaggio, abitanti e un portale verso la Valle delle Stelle.
+**Entra nel mondo:** https://jonadev2026.github.io/world3d/
 
-## Avvio su Linux
+WORLD è un mondo 3D da esplorare liberamente. Crea il tuo personaggio, attraversa il villaggio, incontra i suoi abitanti e scopri nuovi luoghi e mondi.
 
-Non servono Node.js, pip, installazioni o compilazioni. È sufficiente Python già presente nel sistema.
+## Come si gioca
 
-1. Clona il repository (solo la prima volta) oppure entra nella cartella già clonata:
-   ```bash
-   git clone https://github.com/JonaDev2026/world3d.git
-   cd world3d
-   ```
-   Per gli aggiornamenti successivi:
-   ```bash
-   cd world3d
-   git pull
-   ```
-2. Avvia un piccolo server locale:
-   ```bash
-   python3 -m http.server 8000
-   ```
-3. Apri Firefox su http://localhost:8000
-4. Crea il personaggio scegliendo nome, lingua e colori; poi entra nel mondo.
+1. Apri [WORLD](https://jonadev2026.github.io/world3d/).
+2. Crea il tuo personaggio scegliendo nome e aspetto.
+3. Scegli la lingua: italiano, inglese, spagnolo o francese.
+4. Entra nel mondo ed esplora.
 
-Three.js viene caricato da jsDelivr: serve una connessione Internet.
-
-## Comandi
+### Comandi
 
 | Tasto | Azione |
 |---|---|
-| Freccia su / W | Avanti |
-| Freccia giù / S | Indietro |
-| Freccia sinistra / destra | Ruota |
+| W / Freccia su | Avanti |
+| S / Freccia giù | Indietro |
 | A / D | Movimento laterale |
-| Mouse | Guarda intorno (prima persona) / ruota la visuale (terza persona) |
+| Frecce sinistra / destra | Ruota |
+| Mouse | Guarda intorno |
 | Spazio | Salta |
 | Shift | Corri |
-| P | Salva un luogo |
-| E | Attraversa il portale quando sei vicino |
-| M | Apri la mappa dal menu pausa |
-| Esc | Apri / chiudi il menu pausa |
+| E | Usa un portale vicino |
+| P | Salva il luogo in cui ti trovi |
+| Esc | Menu pausa e impostazioni |
+| M | Mappa |
 
-Puoi anche usare il pulsante **SALVA LUOGO** nell'interfaccia.
+Dal menu pausa puoi cambiare tra prima e terza persona e regolare le impostazioni disponibili.
 
-Per fermare il server torna al terminale e premi Ctrl+C.
+### I tuoi progressi
 
-## Personaggio e lingue
+Il personaggio, la posizione e i luoghi salvati vengono conservati nel browser sul tuo dispositivo. I salvataggi sono personali e non vengono condivisi con gli altri giocatori.
 
-Alla prima visita puoi creare un viaggiatore scegliendo nome, tonalità della pelle, capelli e vestiti. Durante la creazione è visibile un'anteprima 3D rotante che si aggiorna mentre cambi pelle, capelli e vestiti. In gioco la visuale predefinita è in prima persona; puoi passare alla terza persona dal menu pausa con ESC. L'interfaccia è disponibile in italiano, inglese, spagnolo e francese. I testi sono separati in `lang/it.json`, `lang/en.json`, `lang/es.json` e `lang/fr.json`.
+---
 
-## Menu pausa e impostazioni
-
-Premi ESC o il pulsante pausa per aprire il menu. Da qui puoi riprendere la partita, aprire la mappa e configurare la visuale, la lingua, musica ed effetti sonori. I controlli audio sono già predisposti; la riproduzione verrà collegata quando saranno disponibili le tracce e gli effetti.
-
-## Salvataggi
-
-Personaggio, lingua, posizione e luoghi salvati vengono conservati nel localStorage del browser sul tuo dispositivo. Non vengono sovrascritti da `git pull` e non vengono caricati nel repository.
-
-## Struttura
-
-- `index.html` — struttura della pagina.
-- `css/style.css` — stile e interfaccia.
-- `js/main.js` — mondo 3D, personaggio, movimento e salvataggi.
-- `js/i18n.js` — caricamento delle traduzioni.
-- `lang/` — file lingua italiano, inglese, spagnolo e francese.\n- `docs/PROGRESS.md` — stato tecnico e progressi.\n- `docs/DIARY.md` — diario permanente del Master.\n- `docs/OBJECTIVES.md` — obiettivi e roadmap.\n- `docs/WORLD_DESIGN.md` — dimensioni, streaming e struttura del mondo.
-
-## Stato
-
-**0.6 — Living Characters**
-
-Terreno continuo con superfici poligonali, pianura del villaggio, case appoggiate al suolo, acqua separata dalle aree edificabili, alberi e personaggi low-poly più morbidi. Il prototipo giocabile misura attualmente 96 × 96 unità: assumendo 1 unità = 1 metro, circa 9.216 m² (0,0092 km²). Il progetto di espansione è un mondo di 300 km², suddiviso in regioni e chunk caricati progressivamente; il mondo completo non è ancora implementato. Comprende anteprima 3D live, visuale in prima persona predefinita e terza persona selezionabile, menu pausa, impostazioni in quattro lingue e primi personaggi articolati con animazioni idle/camminata.
-
-## Diario di sviluppo
-
-- [Avanzamento e obiettivi](PROGRESS.md)
-- [Diario del Master](DIARY.md)
-- [Struttura geografica e tecnica del mondo](docs/WORLD_STRUCTURE.md)
+[**GIOCA A WORLD**](https://jonadev2026.github.io/world3d/)
