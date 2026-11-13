@@ -81,6 +81,7 @@ function sign(x,z,title,lines) {
  const tex=new THREE.CanvasTexture(c);const board=new THREE.Mesh(new THREE.PlaneGeometry(1.78,.89),new THREE.MeshBasicMaterial({map:tex,transparent:false}));
  board.position.set(x,y+1.08,z+.215);scene.add(board);
 }
+const animatedActors=[];
 function person(x,z,name,coat=0x9a6845) {
  const y=terrainY(x,z),group=new THREE.Group(),mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.82});
  const torso=new THREE.Group();torso.position.y=1.08;group.add(torso);
@@ -128,7 +129,6 @@ const crystalMat=new THREE.MeshStandardMaterial({color:0x9b8cff,emissive:0x4934a
 for(let i=0;i<7;i++){const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.65+hash(i,8)*.55),crystalMat);crystal.position.set(34+(i%3)*2,terrainY(34+(i%3)*2,34+Math.floor(i/3)*2)+1.1+i*.22,34+Math.floor(i/3)*2);crystal.rotation.set(i*.4,i*.7,i*.2);scene.add(crystal)}
 sign(35,30,'VALLE DELLE STELLE',['Hai trovato il primo mondo segreto','Cerca i cristalli luminosi']);
 
-const animatedActors=[];
 const keys={};addEventListener('keydown',e=>{
  if(e.code==='Escape'){e.preventDefault();if(mapOpen)toggleMap();else if(pauseOpen)closePause();else openPause();return}
  keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
