@@ -82,6 +82,7 @@ function sign(x,z,title,lines) {
  board.position.set(x,y+1.08,z+.215);scene.add(board);
 }
 const animatedActors=[];
+const animatedActors=[];
 function person(x,z,name,coat=0x9a6845) {
  const y=terrainY(x,z),group=new THREE.Group(),mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.82});
  const torso=new THREE.Group();torso.position.y=1.08;group.add(torso);
@@ -135,39 +136,49 @@ const keys={};addEventListener('keydown',e=>{
  if(e.code==='KeyM'&&(!pauseOpen||mapOpen))toggleMap();if(e.code==='KeyP'&&!pauseOpen)saveMarker();if(e.code==='KeyE'&&!pauseOpen)useWorldGate();
 });addEventListener('keyup',e=>keys[e.code]=false);
 
-let yaw=0,pitch=.12,locked=false,velocityY=0,onGround=false;const player={x:0,z:8};const start=document.querySelector('#start');
+let yaw=0,pitch=.12,locked=false,velocityY=0,onGround=false,walkBlend=0,gaitPhase=0;const player={x:0,z:8};const start=document.querySelector('#start');
 const playerData={name:'',language:'it',skin:'#d4a77d',hair:'#493326',shirt:'#496b91'};
 let playerModel=null,playerLabel=null,playerLift=0,viewMode='first',pauseOpen=false;
 function makePlayer(){
  if(playerModel)scene.remove(playerModel);
  playerModel=new THREE.Group();
- const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.78});
- const torso=new THREE.Group();torso.position.y=1.08;playerModel.add(torso);
- const body=new THREE.Mesh(new THREE.CapsuleGeometry(.32,.56,8,16),mat(playerData.shirt));body.position.y=.12;torso.add(body);
- const jacket=new THREE.Mesh(new THREE.CapsuleGeometry(.325,.48,8,16),new THREE.MeshStandardMaterial({color:playerData.shirt,roughness:.9,transparent:true,opacity:.25}));jacket.position.y=.15;torso.add(jacket);
- const belt=new THREE.Mesh(new THREE.TorusGeometry(.25,.045,8,20),mat(0x5a3c27));belt.rotation.x=Math.PI/2;belt.position.y=-.14;torso.add(belt);
- const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.16,12),mat(playerData.skin));neck.position.y=.49;torso.add(neck);
- const headPivot=new THREE.Group();headPivot.position.y=.57;torso.add(headPivot);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.28,28,20),mat(playerData.skin));head.position.y=.24;headPivot.add(head);
- const hair=new THREE.Mesh(new THREE.SphereGeometry(.3,24,16,0,Math.PI*2,0,Math.PI*.58),mat(playerData.hair));hair.position.y=.32;headPivot.add(hair);
- const fringe=new THREE.Mesh(new THREE.SphereGeometry(.19,20,12,0,Math.PI,0,Math.PI*.42),mat(playerData.hair));fringe.scale.set(1,.55,.7);fringe.position.set(0,.27,.17);headPivot.add(fringe);
- const eyeMat=mat(0x30251e);
- for(const side of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.027,10,8),eyeMat);eye.position.set(side*.09,.23,.263);headPivot.add(eye)}
+ const mat=(c,rough=.82)=>new THREE.MeshStandardMaterial({color:c,roughness:rough});
+ const torsoPivot=new THREE.Group();torsoPivot.position.y=1.02;playerModel.add(torsoPivot);
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.31,.55,10,20),mat(playerData.shirt));body.position.y=.12;torsoPivot.add(body);
+ const tunic=new THREE.Mesh(new THREE.CapsuleGeometry(.326,.43,10,20),mat(playerData.shirt));tunic.scale.set(1.04,1,.98);tunic.position.set(0,.13,.015);torsoPivot.add(tunic);
+ const collar=new THREE.Mesh(new THREE.TorusGeometry(.115,.035,8,24),mat(0xd8c39a));collar.rotation.x=Math.PI/2;collar.position.y=.43;torsoPivot.add(collar);
+ const belt=new THREE.Mesh(new THREE.TorusGeometry(.255,.045,8,24),mat(0x5a3c27));belt.rotation.x=Math.PI/2;belt.position.y=-.16;torsoPivot.add(belt);
+ const buckle=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.045),mat(0xc3a46d,.55));buckle.position.set(0,-.16,.26);torsoPivot.add(buckle);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.17,16),mat(playerData.skin));neck.position.y=.48;torsoPivot.add(neck);
+ const headPivot=new THREE.Group();headPivot.position.y=.59;torsoPivot.add(headPivot);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.285,32,24),mat(playerData.skin));head.position.y=.24;headPivot.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.305,28,20,0,Math.PI*2,0,Math.PI*.62),mat(playerData.hair));hair.position.y=.32;headPivot.add(hair);
+ const fringe=new THREE.Mesh(new THREE.SphereGeometry(.19,24,16,0,Math.PI,0,Math.PI*.46),mat(playerData.hair));fringe.scale.set(1,.58,.78);fringe.position.set(0,.27,.18);headPivot.add(fringe);
+ const face=mat(0x30251e);
+ for(const side of [-1,1]){
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.027,12,10),face);eye.position.set(side*.092,.235,.264);headPivot.add(eye);
+  const brow=new THREE.Mesh(new THREE.BoxGeometry(.075,.018,.018),mat(playerData.hair));brow.position.set(side*.092,.29,.265);headPivot.add(brow);
+ }
  const arms=[],legs=[];
  for(const side of [-1,1]){
-  const shoulder=new THREE.Group();shoulder.position.set(side*.36,.42,0);torso.add(shoulder);
-  const sleeve=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.4,7,12),mat(playerData.shirt));sleeve.position.y=-.22;shoulder.add(sleeve);
-  const cuff=new THREE.Mesh(new THREE.TorusGeometry(.095,.025,6,14),mat(0xc5a77a));cuff.rotation.x=Math.PI/2;cuff.position.y=-.43;shoulder.add(cuff);
-  const hand=new THREE.Mesh(new THREE.SphereGeometry(.09,14,12),mat(playerData.skin));hand.position.y=-.5;shoulder.add(hand);arms.push(shoulder);
-  const hip=new THREE.Group();hip.position.set(side*.16,-.19,0);playerModel.add(hip);
-  const trousers=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.43,7,12),mat(0x343b3b));trousers.position.y=-.25;hip.add(trousers);
-  const boot=new THREE.Group();boot.position.set(0,-.49,.055);hip.add(boot);
-  const bootMesh=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,.34),mat(0x392b22));bootMesh.position.z=.035;boot.add(bootMesh);
-  const sole=new THREE.Mesh(new THREE.BoxGeometry(.225,.035,.35),mat(0x171716));sole.position.y=-.07;boot.add(sole);
-  legs.push(hip);
+  const shoulder=new THREE.Group();shoulder.position.set(side*.355,.39,0);torsoPivot.add(shoulder);
+  const upper=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.34,8,14),mat(playerData.shirt));upper.position.y=-.18;shoulder.add(upper);
+  const elbow=new THREE.Group();elbow.position.y=-.37;shoulder.add(elbow);
+  const forearm=new THREE.Mesh(new THREE.CapsuleGeometry(.087,.31,8,14),mat(playerData.shirt));forearm.position.y=-.17;elbow.add(forearm);
+  const cuff=new THREE.Mesh(new THREE.TorusGeometry(.088,.022,8,18),mat(0xc5a77a));cuff.rotation.x=Math.PI/2;cuff.position.y=-.34;elbow.add(cuff);
+  const hand=new THREE.Mesh(new THREE.SphereGeometry(.09,16,12),mat(playerData.skin));hand.position.y=-.43;elbow.add(hand);
+  arms.push({shoulder,elbow});
+  const hip=new THREE.Group();hip.position.set(side*.155,-.2,0);playerModel.add(hip);
+  const thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.35,8,14),mat(0x343b3b));thigh.position.y=-.19;hip.add(thigh);
+  const knee=new THREE.Group();knee.position.y=-.39;hip.add(knee);
+  const shin=new THREE.Mesh(new THREE.CapsuleGeometry(.095,.34,8,14),mat(0x343b3b));shin.position.y=-.17;knee.add(shin);
+  const boot=new THREE.Group();boot.position.set(0,-.37,.045);knee.add(boot);
+  const bootMesh=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,.34),mat(0x392b22));bootMesh.position.set(0,-.015,.035);boot.add(bootMesh);
+  const sole=new THREE.Mesh(new THREE.BoxGeometry(.225,.035,.35),mat(0x171716));sole.position.set(0,-.085,.035);boot.add(sole);
+  legs.push({hip,knee,boot});
  }
  playerModel.position.set(player.x,terrainY(player.x,player.z)+playerLift,player.z);scene.add(playerModel);
- playerModel.userData.rig={torso,head:headPivot,arms,legs};
+ playerModel.userData.rig={torso:torsoPivot,head:headPivot,arms,legs};
  const c=document.createElement('canvas');c.width=512;c.height=96;const g=c.getContext('2d');
  g.fillStyle='#101a18dd';g.fillRect(0,0,512,96);g.fillStyle='#fff0c9';g.font='bold 48px system-ui';g.textAlign='center';g.fillText(playerData.name||'Explorer',256,65);
  playerLabel=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false}));
@@ -293,11 +304,24 @@ if(keys.Space&&onGround){velocityY=7;onGround=false}velocityY-=19*dt;
 playerLift+=velocityY*dt;const floor=terrainY(player.x,player.z);if(playerLift<=0){playerLift=0;velocityY=0;onGround=true}if(playerModel){
  playerModel.position.set(player.x,floor+playerLift,player.z);playerModel.rotation.y=yaw;playerModel.visible=viewMode==='third';
  const rig=playerModel.userData.rig,walking=(Math.abs(forward)+Math.abs(side))>0,phase=performance.now()*.009*(keys.ShiftLeft?1.5:1);
- if(rig){const swing=walking?Math.sin(phase)*.62:Math.sin(performance.now()*.0015)*.025;
-  rig.legs[0].rotation.x=swing;rig.legs[1].rotation.x=-swing;
-  rig.arms[0].rotation.x=-swing*.72;rig.arms[1].rotation.x=swing*.72;
-  rig.torso.rotation.z=walking?Math.sin(phase)*.035:0;
+ if(rig){
+  const target=walking?1:0;walkBlend=THREE.MathUtils.damp(walkBlend,target,walking?9:7,dt);
+  gaitPhase+=dt*(keys.ShiftLeft?12:8.2);
+  const swing=Math.sin(gaitPhase)*.72*walkBlend;
+  const lift=Math.max(0,Math.cos(gaitPhase*2))*.12*walkBlend;
+  rig.legs[0].hip.rotation.x=swing;rig.legs[1].hip.rotation.x=-swing;
+  rig.legs[0].knee.rotation.x=Math.max(0,-Math.sin(gaitPhase))*.65*walkBlend;
+  rig.legs[1].knee.rotation.x=Math.max(0,Math.sin(gaitPhase))*.65*walkBlend;
+  rig.legs[0].boot.rotation.x=-rig.legs[0].knee.rotation.x*.35;
+  rig.legs[1].boot.rotation.x=-rig.legs[1].knee.rotation.x*.35;
+  rig.arms[0].shoulder.rotation.x=-swing*.78;rig.arms[1].shoulder.rotation.x=swing*.78;
+  rig.arms[0].elbow.rotation.x=-.12*walkBlend+Math.max(0,swing)*.22;
+  rig.arms[1].elbow.rotation.x=-.12*walkBlend+Math.max(0,-swing)*.22;
+  rig.torso.rotation.z=Math.sin(gaitPhase)*.035*walkBlend;
+  rig.torso.position.y=1.02+lift*.16;
   rig.head.rotation.x=Math.sin(performance.now()*.0011)*.025;
+  rig.head.rotation.z=Math.sin(performance.now()*.0008)*.018;
+  if(!onGround){rig.arms[0].shoulder.rotation.x=-.8;rig.arms[1].shoulder.rotation.x=-.8;rig.legs[0].hip.rotation.x=-.25;rig.legs[1].hip.rotation.x=.18;}
  }
 }
 const bob=(Math.abs(forward)+Math.abs(side)>0)?Math.sin(performance.now()*.012)*.045:0;
