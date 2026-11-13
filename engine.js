@@ -39,7 +39,7 @@ function updateSocial(s){
  else for(const p of people){const w=Math.max(0,Number(p.wealth)||0),base=Math.max(.05,median);if(w<base*.35)classes.poveri++;else if(w<base*1.5)classes.lavoratori++;else if(w<base*4)classes.agiati++;else classes["élite"]++;}
  const topCount=Math.max(1,Math.ceil(n*.1)),topShare=total>0?values.slice(-topCount).reduce((x,y)=>x+y,0)/total:0,previous=s.social||{};
  const tension=clamp((gini-.22)*105+(s.stats.crimes/Math.max(1,n))*14+(55-s.cohesion)*.48,0,100);
- s.social={inequality:gini,tension,topShare,classes,medianWealth:median};
+ s.social={inequality:gini,tension,topShare,classes,medianWealth:median,lastReformYear:previous.lastReformYear??-100};
  if(gini>.52&&n>=90&&s.technology.includes("Moneta")&&!s.institutions.includes("Consiglio delle famiglie influenti")){
   s.institutions.push("Consiglio delle famiglie influenti");s.polity="Consiglio delle famiglie influenti";s.social.tension=clamp(s.social.tension+12,0,100);
   addEvent(s,"Le famiglie ricche concentrano il potere","Le famiglie che controllano più risorse ottengono un peso crescente nelle decisioni. L'accesso alle cariche e ai mercati diventa diseguale.","politics");
@@ -47,11 +47,11 @@ function updateSocial(s){
   s.institutions=s.institutions.filter(x=>x!=="Consiglio delle famiglie influenti");s.institutions.push("Assemblea dei cittadini");s.polity="Assemblea dei cittadini";
   addEvent(s,"Riforma delle assemblee","La pressione delle famiglie e dei lavoratori porta a distribuire il potere in un'assemblea più ampia. Le decisioni vengono sottoposte a una rappresentanza più inclusiva.","politics");
  }
- if(s.social.tension>78&&n>100&&random(s)<.32){
-  const elite=people.filter(p=>p.wealth>median*4),levy=Math.max(0,median*.18);
+ if(s.social.tension>78&&n>100&&s.year-(previous.lastReformYear??-100)>=5&&random(s)<.32){
+  const elite=people.filter(p=>p.wealth>median*4),levy=total/Math.max(1,n)*.18;
   for(const p of elite)p.wealth=Math.max(0,p.wealth-levy);
   const poor=people.filter(p=>p.wealth<=median);for(const p of poor)p.wealth+=levy*elite.length/Math.max(1,poor.length);
-  s.cohesion=clamp(s.cohesion+5,0,100);s.social.tension=clamp(s.social.tension-22,0,100);s.laws="Norme contro gli abusi di ricchezza";
+  s.cohesion=clamp(s.cohesion+5,0,100);s.social.tension=clamp(s.social.tension-22,0,100);s.social.lastReformYear=s.year;s.laws="Norme contro gli abusi di ricchezza";
   addEvent(s,"Riforma dopo le proteste","Proteste e controversie costringono il governo a redistribuire parte delle risorse e a limitare alcuni privilegi. La riforma riduce temporaneamente la tensione sociale.","politics");
  }
  if(previous.inequality!==undefined&&Math.abs(gini-previous.inequality)>.12&&n>70)addEvent(s,gini>previous.inequality?"Aumenta la distanza tra le classi":"Si riduce la distanza tra le classi",gini>previous.inequality?"Le risorse si concentrano progressivamente in una parte ridotta della popolazione. Crescono le differenze nelle condizioni materiali.":"La distribuzione delle risorse diventa più equilibrata e diminuiscono le distanze economiche.","society");
