@@ -238,6 +238,7 @@ $('musicToggle').addEventListener('click',async()=>{
 });
 document.addEventListener('pointerdown',startMusic);
 document.addEventListener('keydown',event=>{
+ startMusic();
  if(event.altKey||event.ctrlKey||event.metaKey)return;
  if(mode==='select'){
   if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
