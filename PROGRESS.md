@@ -88,3 +88,15 @@ La scena attuale usa un terreno di 96 × 96 unità (circa 9.216 m² = 0,009216 k
 - [ ] Definire cambio personaggio e combattimento prima di collegarli ai comandi di gioco.
 
 Il quarto protagonista usa una **lancia-reliquia**: differenzia il suo combattimento dagli altri tre e si lega al mistero della Soglia.
+
+
+## Interfaccia fantasy classica — 2026-11-13
+
+- [x] Introdotti Google Fonts **Cinzel** per titoli, menu e pulsanti e **Cormorant Garamond** per testi e descrizioni.
+- [x] Palette classica: pergamena, oro antico, verde bosco, legno scuro e bordeaux.
+- [x] Restilizzate schermata iniziale, creazione personaggio, pausa, impostazioni e mappa con cornici e pannelli ispirati a libri e ambienti fantasy.
+- [x] Aggiornato il testo introduttivo in italiano, inglese, spagnolo e francese.
+- [x] Aggiornato il nome visualizzato a **Terre Antiche · La Corona delle Ceneri**.
+- [ ] Verifica visiva nel browser dopo il deploy GitHub Pages.
+- [ ] Proseguire con l'implementazione delle meccaniche di gioco: interazione, missioni, combattimento e progressione dei quattro eroi.
+- [ ] Collegare i file musicali quando saranno presenti in `assets/audio/music/` e `assets/audio/ambient/`.
