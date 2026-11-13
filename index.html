@@ -1,1 +1,61 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101722">
+  <title>WORLD — Le Cronache di Vaelmar</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/main.js" defer></script>
+</head>
+<body class="menu-page">
+  <main class="menu-shell">
+    <div class="landscape" aria-hidden="true">
+      <div class="sky-glow"></div>
+      <div class="mountain mountain-back"></div>
+      <div class="mountain mountain-mid"></div>
+      <div class="mountain mountain-front"></div>
+      <div class="plain"></div>
+      <div class="ruin"><i></i><i></i><i></i></div>
+      <div class="mist mist-one"></div>
+      <div class="mist mist-two"></div>
+    </div>
+    <header class="brand">
+      <span class="brand-kicker">LE CRONACHE DI VAELMAR</span>
+      <h1>WORLD</h1>
+      <span class="brand-rule"></span>
+      <p>Un mondo da esplorare.</p>
+    </header>
+    <nav class="main-menu" aria-label="Menu principale">
+      <a class="menu-entry primary-entry" href="map.html">
+        <span class="entry-index">01</span>
+        <span class="entry-label">ENTRA NEL MONDO</span>
+        <span class="entry-arrow" aria-hidden="true">↗</span>
+      </a>
+      <button class="menu-entry settings-entry" id="open-settings" type="button">
+        <span class="entry-index">02</span>
+        <span class="entry-label">IMPOSTAZIONI AUDIO</span>
+        <span class="entry-arrow" aria-hidden="true">＋</span>
+      </button>
+    </nav>
+    <footer class="menu-footer"><span>VAELMAR</span><span>ESPLORAZIONE · AVVENTURA · STORIA</span></footer>
+  </main>
 
+  <section class="settings-screen" id="settings-screen" hidden aria-modal="true" role="dialog" aria-labelledby="settings-title">
+    <div class="settings-panel">
+      <button class="settings-close" id="close-settings" type="button" aria-label="Chiudi">×</button>
+      <span class="brand-kicker">WORLD / CONFIGURAZIONE</span>
+      <h2 id="settings-title">Audio</h2>
+      <label class="audio-row"><span>Musica</span><output id="music-value">20%</output></label>
+      <input id="music-volume" type="range" min="0" max="100" value="20">
+      <label class="toggle-row"><span>Attiva musica</span><input id="music-enabled" type="checkbox" checked></label>
+      <div class="settings-divider"></div>
+      <label class="audio-row"><span>Effetti sonori</span><output id="fx-value">100%</output></label>
+      <input id="fx-volume" type="range" min="0" max="100" value="100">
+      <label class="toggle-row"><span>Attiva effetti</span><input id="fx-enabled" type="checkbox" checked></label>
+      <button class="settings-done" id="done-settings" type="button">FATTO</button>
+    </div>
+  </section>
+  <audio id="intro-music" src="assets/audio/music/main-theme.mp3" loop preload="none"></audio>
+</body>
+</html>
