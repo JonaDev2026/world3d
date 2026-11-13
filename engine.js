@@ -57,14 +57,13 @@ function updateLeadership(s){
   const candidates=people.filter(p=>p.age>=20&&p.age<72);
   if(candidates.length){
    const median=s.social?.medianWealth||0;
-   const score=p=>{
+   const scored=candidates.map(p=>{
     const maturity=1-Math.min(1,Math.abs(p.age-43)/45);
     const institutional=s.institutions.includes("Assemblea dei cittadini")?p.traits.cooperation*1.4:s.institutions.includes("Consiglio degli anziani")?maturity*.65+p.skill*.3:p.traits.ambition*.8;
     const wealthBias=s.institutions.includes("Consiglio delle famiglie influenti")?Math.min(2,p.wealth/Math.max(1,median+1))*.5:0;
-    return p.skill*.8+p.traits.cooperation*.65+p.traits.ambition*.45+institutional+wealthBias+random(s)*.18;
-   };
-   candidates.sort((x,y)=>score(y)-score(x));
-   const chosen=candidates[0],previous=s.leadership.personId;
+    return {person:p,score:p.skill*.8+p.traits.cooperation*.65+p.traits.ambition*.45+institutional+wealthBias+random(s)*.18};
+   }).sort((x,y)=>y.score-x.score);
+   const chosen=scored[0].person,previous=s.leadership.personId;
    s.leadership={personId:chosen.id,termStarted:s.year,legitimacy:clamp(s.cohesion*.42+s.order*.28+(100-(s.social?.inequality||0)*100)*.18+12,20,95)};
    addEvent(s,previous?"Cambio alla guida della comunità":"Viene riconosciuta una guida","La comunità affida la guida a "+chosen.name+" "+chosen.family+". La legittimità dipenderà dalle decisioni, dalla sicurezza e dalla distribuzione delle risorse.","politics");
   }
@@ -98,16 +97,16 @@ function yearBoundary(s){
  if(s.knowledge>=500&&!s.technology.includes("Metallurgia del rame")){s.technology.push("Metallurgia del rame");addEvent(s,"Primi oggetti in rame","La lavorazione del rame introduce strumenti nuovi e una specializzazione artigiana.","technology");}
  if(s.knowledge>=900&&!s.technology.includes("Scrittura")){s.technology.push("Scrittura");s.institutions.push("Archivio");addEvent(s,"Nasce la scrittura","Segni incisi su tavolette vengono usati per registrare scorte, accordi e genealogie. La memoria della società supera quella dei singoli.","technology");}
  if(s.knowledge>=1500&&!s.technology.includes("Ruota")){s.technology.push("Ruota");addEvent(s,"La ruota viene adottata","Carri e trasporto su ruote riducono il costo degli scambi e ampliano il territorio accessibile.","technology");}
- if(s.knowledge>=2300&&!s.technology.includes("Bronzo")){s.technology.push("Bronzo");addEvent(s,"La lega di bronzo","La fusione di rame e stagno porta a utensili più resistenti e a nuove reti commerciali.","technology");}
- if(s.knowledge>=3500&&!s.technology.includes("Ferro")){s.technology.push("Ferro");addEvent(s,"La lavorazione del ferro","La metallurgia del ferro si diffonde tra gli artigiani della valle.","technology");}
- if(s.knowledge>=5000&&!s.technology.includes("Medicina organizzata")){s.technology.push("Medicina organizzata");s.institutions.push("Casa di cura");addEvent(s,"Primi guaritori riconosciuti","L'esperienza sulle ferite e sulle malattie viene raccolta e trasmessa da guaritori specializzati.","technology");}
- if(s.knowledge>=7000&&!s.technology.includes("Amministrazione scritta")){s.technology.push("Amministrazione scritta");s.polity="Consiglio e amministratori";addEvent(s,"Amministrazione stabile","Registri e incarichi permanenti rendono possibile coordinare un insediamento più ampio.","politics");}
- if(s.knowledge>=9500&&!s.technology.includes("Macchine semplici")){s.technology.push("Macchine semplici");addEvent(s,"Macchine e forza dell'acqua","Ruote idrauliche e dispositivi meccanici iniziano a svolgere parte del lavoro ripetitivo.","technology");}
  if(s.knowledge>=2200&&!s.technology.includes("Irrigazione")){s.technology.push("Irrigazione");addEvent(s,"Canali e irrigazione","Vengono scavati canali per portare l'acqua ai campi. La produzione diventa meno dipendente dalle piogge.","technology");}
+ if(s.knowledge>=2300&&!s.technology.includes("Bronzo")){s.technology.push("Bronzo");addEvent(s,"La lega di bronzo","La fusione di rame e stagno porta a utensili più resistenti e a nuove reti commerciali.","technology");}
  if(s.knowledge>=2800&&!s.technology.includes("Moneta")){s.technology.push("Moneta");s.economy="Mercati e scambi monetari";s.institutions.push("Luogo del mercato");addEvent(s,"Prime forme di moneta","Oggetti riconosciuti come unità di valore facilitano gli scambi e rendono più complessa la distribuzione della ricchezza.","economy");}
+ if(s.knowledge>=3500&&!s.technology.includes("Ferro")){s.technology.push("Ferro");addEvent(s,"La lavorazione del ferro","La metallurgia del ferro si diffonde tra gli artigiani della valle.","technology");}
  if(s.knowledge>=4200&&!s.technology.includes("Calendario")){s.technology.push("Calendario");s.institutions.push("Osservatori del cielo");addEvent(s,"Viene definito un calendario","L'osservazione delle stagioni permette di prevedere semine, raccolti e periodi di piena.","technology");}
+ if(s.knowledge>=5000&&!s.technology.includes("Medicina organizzata")){s.technology.push("Medicina organizzata");s.institutions.push("Casa di cura");addEvent(s,"Primi guaritori riconosciuti","L'esperienza sulle ferite e sulle malattie viene raccolta e trasmessa da guaritori specializzati.","technology");}
  if(s.knowledge>=5800&&!s.technology.includes("Mulino ad acqua")){s.technology.push("Mulino ad acqua");addEvent(s,"La forza del fiume","Un mulino ad acqua riduce il lavoro necessario per macinare i cereali e aumenta la capacità produttiva.","technology");}
+ if(s.knowledge>=7000&&!s.technology.includes("Amministrazione scritta")){s.technology.push("Amministrazione scritta");s.polity="Consiglio e amministratori";addEvent(s,"Amministrazione stabile","Registri e incarichi permanenti rendono possibile coordinare un insediamento più ampio.","politics");}
  if(s.knowledge>=8200&&!s.technology.includes("Scuola")){s.technology.push("Scuola");s.institutions.push("Scuola degli scribi");addEvent(s,"Istruzione organizzata","La trasmissione delle conoscenze viene affidata a insegnanti e apprendisti. La lettura non è più limitata agli amministratori.","technology");}
+ if(s.knowledge>=9500&&!s.technology.includes("Macchine semplici")){s.technology.push("Macchine semplici");addEvent(s,"Macchine e forza dell'acqua","Ruote idrauliche e dispositivi meccanici iniziano a svolgere parte del lavoro ripetitivo.","technology");}
  if(s.knowledge>=11000&&!s.technology.includes("Vetro")){s.technology.push("Vetro");addEvent(s,"La lavorazione del vetro","Artigiani specializzati producono contenitori e oggetti in vetro. Nuovi materiali entrano nella vita quotidiana.","technology");}
  if(s.year>80&&s.knowledge>500&&s.religion==="Culto degli antenati"&&random(s)<.018){s.religion="Pantheon delle forze naturali";addEvent(s,"Si forma un pantheon","Le tradizioni locali si riuniscono in culti dedicati alle forze della natura e ai cicli agricoli.","culture");}
  if(s.year>260&&s.knowledge>3500&&s.religion==="Pantheon delle forze naturali"&&random(s)<.004){s.religion="Tradizione del Sole";addEvent(s,"Una nuova corrente religiosa","Una comunità di sacerdoti e famiglie sviluppa una tradizione distinta dai culti locali.","culture");}
