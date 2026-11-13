@@ -16,6 +16,13 @@ function addEvent(s,title,description,type="society"){
  s.events.unshift(e);
 }
 function living(s){return s.population.filter(alive)}
+function killPerson(s,p){
+ if(!p||!p.alive)return;
+ const ids=new Set([...(p.children||[]),p.partner].filter(Boolean));
+ const heirs=s.population.filter(q=>q.alive&&q.id!==p.id&&ids.has(q.id));
+ if(heirs.length&&p.wealth>0){const share=p.wealth/heirs.length;for(const heir of heirs)heir.wealth=(Number(heir.wealth)||0)+share;p.wealth=0;}
+ p.alive=false;
+}
 function addPerson(s,parents=[]){
  const first=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara","Evan","Sela","Rian","Talia"];
  const p1=s.population.find(p=>p.id===parents[0]),p2=s.population.find(p=>p.id===parents[1]);
@@ -184,7 +191,7 @@ function daily(s){
  for(const p of people){
   p.health=clamp(p.health+(foodRatio<.3?-.12:.012)+(s.disease.active?-.16:0),0,100);
   if(p.age>55)p.health-=.012+(p.age-55)*.001;
-  if(p.health<=0||p.age>82&&random(s)<.00035+(p.age-82)*.00022){p.alive=false;s.stats.deaths++;continue;}
+  if(p.health<=0||p.age>82&&random(s)<.00035+(p.age-82)*.00022){killPerson(s,p);s.stats.deaths++;continue;}
   if(p.age>=15&&p.age<62&&p.role==="bambino")p.role=pick(s,["raccoglitore","cacciatore","artigiano"]);
   if(p.age>18&&p.age<45&&p.sex==="F"&&random(s)<.00066&&n<5000){
    const candidates=people.filter(q=>q.sex==="M"&&q.age>=18&&q.age<55&&q.alive&&q.id!==p.id&&(!p.partner||p.partner===q.id));
@@ -214,7 +221,7 @@ function daily(s){
     if(g.warDays===30&&enemyPower>ownPower*1.2){s.food=Math.max(0,s.food-Math.round(n*1.5));s.cohesion=clamp(s.cohesion-3,0,100);addEvent(s,"Incursione nella valle",g.name+" supera le difese di confine e saccheggia parte delle riserve. La popolazione si rifugia nell’insediamento principale.","war");}
     const ownLoss=Math.max(1,Math.round((random(s)*3+1)*(enemyPower/Math.max(1,ownPower))));
     const enemyLoss=Math.max(1,Math.round((random(s)*3+1)*(ownPower/Math.max(1,enemyPower))));
-    for(let k=0;k<ownLoss;k++){const victim=pick(s,living(s));if(victim){victim.alive=false;s.stats.deaths++;}}
+    for(let k=0;k<ownLoss;k++){const victim=pick(s,living(s));if(victim){killPerson(s,victim);s.stats.deaths++;}}
     g.population=Math.max(3,g.population-enemyLoss);s.food=Math.max(0,s.food-ownLoss*2);s.cohesion=clamp(s.cohesion-1.2,0,100);
     addEvent(s,"Scontro armato","Uno scontro con "+g.name+" provoca "+ownLoss+" perdite nella comunità e "+enemyLoss+" tra gli avversari.","war");
     const invasionRoll=random(s);
@@ -227,7 +234,7 @@ function daily(s){
      addEvent(s,"Avanzata oltre il confine","Le forze della valle penetrano nel territorio di "+g.name+". Vengono occupate aree di pascolo e raccolta e recuperate alcune provviste.","war");
     }else if(enemyPower>ownPower*1.2&&invasionRoll<.16){
      const damage=Math.max(1,Math.round(living(s).length*.012));
-     for(let k=0;k<damage;k++){const defenders=living(s);if(!defenders.length)break;const victim=pick(s,defenders);victim.alive=false;s.stats.deaths++;}
+     for(let k=0;k<damage;k++){const defenders=living(s);if(!defenders.length)break;const victim=pick(s,defenders);killPerson(s,victim);s.stats.deaths++;}
      s.food=Math.max(0,s.food-damage*2);
      s.cohesion=clamp(s.cohesion-2.5,0,100);
      addEvent(s,"Incursione nel territorio","Un'incursione di "+g.name+" supera le difese periferiche. Vengono sottratte provviste e la comunità deve riorganizzare la protezione del territorio.","war");
