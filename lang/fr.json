@@ -20,5 +20,17 @@
   "markerPrompt": "Nom de ce lieu :",
   "discoveredPlace": "Lieu découvert",
   "placeSaved": "Lieu enregistré sur la carte",
-  "noMarkers": "Aucun lieu enregistré. Appuie sur P pendant l’exploration."
+  "noMarkers": "Aucun lieu enregistré. Appuie sur P pendant l’exploration.",
+  "previewLabel": "APERÇU 3D",
+  "paused": "PAUSE",
+  "resume": "REPRENDRE",
+  "settings": "PARAMÈTRES",
+  "viewMode": "Vue caméra",
+  "firstPerson": "Première personne",
+  "thirdPerson": "Troisième personne",
+  "music": "Musique",
+  "sounds": "Effets sonores",
+  "audioSoon": "Commandes prêtes · audio bientôt disponible",
+  "pauseHint": "Appuie sur Échap pour revenir au jeu",
+  "close": "FERMER"
 }
