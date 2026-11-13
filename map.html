@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101722">
+  <title>Vaelmar — Mappa</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body{min-height:100svh;background:#101722}
+    .map-shell{min-height:100svh;display:grid;place-items:center;padding:28px;background:radial-gradient(ellipse at 50% 38%,#354253 0%,#1c2836 48%,#101722 100%)}
+    .map-frame{width:min(100%,1100px);min-height:min(72vh,680px);position:relative;display:grid;place-items:center;overflow:hidden;border:1px solid rgba(195,163,106,.48);background:linear-gradient(150deg,rgba(34,48,62,.78),rgba(12,19,27,.9));box-shadow:0 30px 100px #070b11}
+    .map-terrain{position:absolute;inset:0;opacity:.65;background:linear-gradient(145deg,transparent 35%,rgba(128,139,139,.12) 35.2%,transparent 52%),linear-gradient(35deg,transparent 42%,rgba(190,174,139,.12) 42.2%,transparent 59%);transform:scale(1.3) rotate(-9deg)}
+    .map-terrain:before,.map-terrain:after{content:"";position:absolute;inset:12%;border:1px solid rgba(198,177,137,.18);transform:rotate(22deg) skewX(-12deg);border-radius:45% 55% 38% 62%}
+    .map-terrain:after{inset:25% 18%;transform:rotate(-18deg) skewX(10deg);border-color:rgba(198,177,137,.12)}
+    .map-message{position:relative;text-align:center;padding:30px}
+    .map-message h1{font:500 clamp(30px,6vw,58px) 'Cinzel',Georgia,serif;letter-spacing:.12em;margin:12px 0;color:#eee7d8}
+    .map-message p{color:#b7b8b5;letter-spacing:.08em}
+    .map-back{display:inline-block;margin-top:25px;padding:13px 25px;border:1px solid #c3a36a;color:#e2c995;text-decoration:none;font:12px 'Cinzel',Georgia,serif;letter-spacing:.16em;background:rgba(160,126,76,.13)}
+  </style>
+</head>
+<body>
+  <main class="map-shell">
+    <section class="map-frame">
+      <div class="map-terrain" aria-hidden="true"></div>
+      <div class="map-message">
+        <span class="brand-kicker">LE CRONACHE DI VAELMAR</span>
+        <h1>La mappa</h1>
+        <p>La scena 3D del mondo verrà collegata qui.</p>
+        <a class="map-back" href="index.html">TORNA AL MENU</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
