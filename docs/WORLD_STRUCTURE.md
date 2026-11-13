@@ -80,3 +80,16 @@ Separare i dati salvati:
 - stato NPC essenziale.
 
 I dati statici del mondo vengono dal repository; i dati personali e le modifiche del giocatore restano nel browser. Prevedere esportazione/importazione del salvataggio prima di aggiungere grandi progressi di gioco.
+
+
+## 7. Protagonisti e trama
+
+La saga si intitola **La Corona delle Ceneri** ed è ambientata nei regni originali di Avarra. La frattura del Sigillo Celeste risveglia una minaccia antica. La prima tappa è Valdombra.
+
+Il gruppo principale è composto da quattro figure con ruoli e armi non sovrapponibili:
+- **Eldrin:** mago, bastone arcano e magia.
+- **Lyra:** esploratrice, arco lungo e frecce speciali.
+- **Kael:** guerriero, spada, parate e contrattacchi.
+- **Il Velato:** combattente enigmatico, maschera e lancia-reliquia.
+
+La storia completa, i segreti personali e la struttura in atti sono descritti in `docs/STORY.md`. I personaggi devono avere modelli, animazioni, equipaggiamenti, abilità e dialoghi specifici: non devono ridursi a quattro modelli intercambiabili.
