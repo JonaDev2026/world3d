@@ -65,10 +65,10 @@ Personaggio, lingua, posizione e luoghi salvati vengono conservati nel localStor
 - `css/style.css` — stile e interfaccia.
 - `js/main.js` — mondo 3D, personaggio, movimento e salvataggi.
 - `js/i18n.js` — caricamento delle traduzioni.
-- `lang/` — file lingua italiano, inglese, spagnolo e francese.
+- `lang/` — file lingua italiano, inglese, spagnolo e francese.\n- `docs/PROGRESS.md` — stato tecnico e progressi.\n- `docs/DIARY.md` — diario permanente del Master.\n- `docs/OBJECTIVES.md` — obiettivi e roadmap.\n- `docs/WORLD_DESIGN.md` — dimensioni, streaming e struttura del mondo.
 
 ## Stato
 
-**0.5 — The Player's Realm**
+**0.6 — Living Characters**
 
-Terreno continuo con superfici poligonali, pianura del villaggio, case appoggiate al suolo, acqua separata dalle aree edificabili, alberi e personaggi low-poly più morbidi. Il mondo iniziale misura 96 × 96 unità: assumendo 1 unità = 1 metro, circa 9.216 m² (0,0092 km²). Comprende anteprima 3D live del personaggio, prima persona predefinita, terza persona selezionabile, menu pausa e impostazioni in quattro lingue (IT/EN/ES/FR).
+Terreno continuo con superfici poligonali, pianura del villaggio, case appoggiate al suolo, acqua separata dalle aree edificabili, alberi e personaggi low-poly più morbidi. Il prototipo giocabile misura attualmente 96 × 96 unità: assumendo 1 unità = 1 metro, circa 9.216 m² (0,0092 km²). Il progetto di espansione è un mondo di 300 km², suddiviso in regioni e chunk caricati progressivamente; il mondo completo non è ancora implementato. Comprende anteprima 3D live, visuale in prima persona predefinita e terza persona selezionabile, menu pausa, impostazioni in quattro lingue e primi personaggi articolati con animazioni idle/camminata.
