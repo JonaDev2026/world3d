@@ -121,7 +121,7 @@ func _make_street() -> void:
 		for z in range(7):
 			var px := -14.0 + float(x) * 1.65 + randf_range(-0.10, 0.10)
 			var pz := -9.0 + float(z) * 1.75 + randf_range(-0.10, 0.10)
-			_box("SquarePaving", Vector3(px, 0.095, pz), Vector3(randf_range(1.35, 1.58), 0.055, randf_range(1.42, 1.62)), "road" if (x + z) % 3 else "stone_light", false, randf_range(-0.025, 0.025))
+			_box("SquarePaving", Vector3(px, 0.095, pz), Vector3(randf_range(1.35, 1.58), 0.055, randf_range(1.42, 1.62)), "road" if (x + z) % 3 != 0 else "stone_light", false, randf_range(-0.025, 0.025))
 
 	_make_fountain()
 	_make_market_stall()
@@ -174,10 +174,10 @@ func _house(origin: Vector3, width: float, depth: float, wall_height: float, wal
 	var window_count := 2 if style != 1 else 3
 	for index in range(window_count):
 		var wx := -width * 0.31 + float(index) * (width * 0.31) if window_count == 3 else (-1.0 if index == 0 else 1.0) * width * 0.29
-		var wy := 2.65 if style != 1 else 3.0
+		var wy := 2.65 if style != 1 else 4.85
 		_box_at(root, "WindowShadow", Vector3(wx, wy, -depth * 0.5 - 0.16), Vector3(1.18, 1.28, 0.12), "timber", false)
 		_box_at(root, "WindowGlass", Vector3(wx, wy, -depth * 0.5 - 0.24), Vector3(0.78, 0.92, 0.06), "window", false)
-		_box_at(root, "WindowMullionV", Vector3(wx, wy, -depth * 0.29 - 0.5), Vector3(0.07, 0.92, 0.06), "wood_light", false)
+		_box_at(root, "WindowMullionV", Vector3(wx, wy, -depth * 0.5 - 0.30), Vector3(0.07, 0.92, 0.06), "wood_light", false)
 		_box_at(root, "WindowMullionH", Vector3(wx, wy, -depth * 0.29 - 0.5), Vector3(0.78, 0.07, 0.06), "wood_light", false)
 		_box_at(root, "WindowSill", Vector3(wx, wy - 0.66, -depth * 0.5 - 0.29), Vector3(1.38, 0.16, 0.42), "stone_light", false)
 		for side in [-1.0, 1.0]:
@@ -253,7 +253,7 @@ func _make_fountain() -> void:
 	_sphere("FountainFinial", Vector3(-8.0, 1.95, -4.0), 0.34, "stone_light")
 
 func _make_market_stall() -> void:
-	var p := Vector3(-13.1, 0, -2.1)
+	var p := Vector3(-13.1, 0, -4.4)
 	for side in [-1.0, 1.0]:
 		_cylinder("StallPost", p + Vector3(side * 1.55, 1.35, 0), 0.09, 2.7, "timber", true)
 		_cylinder("StallPostBack", p + Vector3(side * 1.55, 1.35, 1.35), 0.09, 2.7, "timber", true)
