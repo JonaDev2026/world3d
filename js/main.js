@@ -61,7 +61,8 @@ function makeWall(x1,z1,x2,z2){const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),g=n
 function sign(x,z,title,lines){const g=new THREE.Group();box(g,new THREE.BoxGeometry(.2,2.5,.2),mats.darkWood,0,1.25,0);box(g,new THREE.BoxGeometry(2.8,1.15,.2),mats.wood,0,1.8,.1);const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');ctx.fillStyle='#2d3026';ctx.fillRect(0,0,512,256);ctx.strokeStyle='#c5a66b';ctx.lineWidth=9;ctx.strokeRect(9,9,494,238);ctx.fillStyle='#f1d99b';ctx.font='bold 38px Georgia';ctx.textAlign='center';ctx.fillText(title,256,66);ctx.fillStyle='#eee4ca';ctx.font='26px Georgia';lines.forEach((v,i)=>ctx.fillText(v,256,125+i*42));const board=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.3),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)}));board.position.set(0,1.82,.22);g.add(board);g.position.set(x,terrainY(x,z),z);scene.add(g)}
 // Prima città: Valdombra, raccolta in una terrazza pianeggiante.
 const CITY={x:-165,z:165},wallR=69;
-for(let i=0;i<32;i++){const a=i*Math.PI*2/32,b=(i+1)*Math.PI*2/32;makeWall(CITY.x+Math.cos(a)*wallR,CITY.z+Math.sin(a)*wallR,CITY.x+Math.cos(b)*wallR,CITY.z+Math.sin(b)*wallR)}
+for(let i=0;i<32;i++){if(i===23||i===24)continue;const a=i*Math.PI*2/32,b=(i+1)*Math.PI*2/32;makeWall(CITY.x+Math.cos(a)*wallR,CITY.z+Math.sin(a)*wallR,CITY.x+Math.cos(b)*wallR,CITY.z+Math.sin(b)*wallR)}
+const cityGate=new THREE.Group();box(cityGate,new THREE.BoxGeometry(16,2.2,4),mats.pale,0,8,0);for(const sx of [-6.5,6.5])box(cityGate,new THREE.BoxGeometry(3,12,4),mats.pale,sx,5,0);cityGate.position.set(CITY.x,terrainY(CITY.x,CITY.z-69),CITY.z-69);scene.add(cityGate);
 for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5])makeTower(CITY.x+Math.cos(a)*wallR,CITY.z+Math.sin(a)*wallR,16);
 makeTower(CITY.x-43,CITY.z+43,19);makeTower(CITY.x+43,CITY.z-43,19);
 makeHouse(CITY.x,CITY.z-53,1.45,'hall');
@@ -92,7 +93,7 @@ function person(x,z,name,coat=0x9a6845,role='wanderer'){
  g.position.set(x,y,z);scene.add(g);
  const c=document.createElement('canvas');c.width=256;c.height=64;const ctx=c.getContext('2d');ctx.fillStyle='#14231ee8';ctx.fillRect(0,0,256,64);ctx.fillStyle='#fff1c9';ctx.font='bold 28px Georgia';ctx.textAlign='center';ctx.fillText(name,128,42);
  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));sprite.position.set(x,y+2.8,z);sprite.scale.set(2.1,.52,1);scene.add(sprite);
- animatedActors.push({group:g,arms,legs,head,phase:hash(x,z)*6.28,role});return g
+ const torso=new THREE.Group();torso.position.y=1.08;g.add(torso);animatedActors.push({group:g,torso,arms,legs,head,phase:hash(x,z)*6.28,role});return g
 }
 person(CITY.x-18,CITY.z+4,'Arven',0x526b57,'elf');person(CITY.x+17,CITY.z-4,'Darian',0x7b5942,'guard');person(CITY.x-4,CITY.z+27,'Maelis',0x62517c,'mage');person(CITY.x+35,CITY.z+28,'Borin',0x8a6847,'wanderer');person(CITY.x-42,CITY.z-34,'Sentinella',0x59675c,'guard');person(-105,205,'Liora',0x637c83,'ranger');
 const gateX=52,gateZ=-178,gateY=terrainY(gateX,gateZ),portalMat=new THREE.MeshStandardMaterial({color:0x9bc7c0,emissive:0x3b8578,emissiveIntensity:1.2,metalness:.35,roughness:.25});
