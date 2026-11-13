@@ -71,30 +71,34 @@ function tower(x,z){const g=new THREE.Group();g.position.set(x,0,z);city.add(g);
 for(let a=0;a<4;a++){const x=a%2?330:-330,z=a<2?330:-330;tower(x,z)}
 wallSegment(0,-330,640);wallSegment(0,330,640);wallSegment(-330,0,640,Math.PI/2);wallSegment(330,0,640,Math.PI/2);
 // gatehouses
-function gate(x,z,rot){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;city.add(g);box(g,-24,17,0,15,34,22,stoneLight);box(g,24,17,0,15,34,22,stoneLight);box(g,0,32,0,36,6,22,darkStone);box(g,0,9,0,16,18,24,wood[0]);box(g,0,9,12,14,16,1.2,wood[1]);for(let i=-5;i<=5;i+=2)box(g,i,9,12.8,.35,15,.4,gold)}
+function gate(x,z,rot){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;city.add(g);box(g,-8,6,0,9,12,12,stoneLight);box(g,8,6,0,9,12,12,stoneLight);box(g,0,12.5,0,8,3,12,darkStone);box(g,0,2.5,0,4.2,5,13,wood[0]);box(g,0,2.5,6.7,3.8,4.6,.35,wood[1]);for(let i=-1;i<=1;i++)box(g,i*1.1,2.5,7,.12,4.2,.12,gold)}
 gate(0,330,0);gate(-330,0,Math.PI/2);gate(330,0,Math.PI/2);
 // detailed house construction
 function roofMesh(parent,w,d,h,material){const geo=new THREE.BufferGeometry();const v=[-w/2,0,-d/2,w/2,0,-d/2,0,h,-d/2,-w/2,0,d/2,w/2,0,d/2,0,h,d/2,-w/2,0,-d/2,-w/2,0,d/2,0,h,0,w/2,0,-d/2,w/2,0,d/2,0,h,0];geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));geo.setIndex([0,1,2,3,5,4,6,7,8,9,11,10]);geo.computeVertexNormals();const m=new THREE.Mesh(geo,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function house(x,z,w=30,d=26,h=22,seed=0,kind='house'){const g=new THREE.Group();g.position.set(x,0,z);city.add(g);const p=plaster[seed%plaster.length],r=roof[seed%roof.length],woodm=wood[seed%wood.length];const base=box(g,0,h/2,0,w,h,d,p);box(g,0,1,0,w+1,2,d+1,stoneLight);
-const roofG=new THREE.Group();roofG.position.y=h;g.add(roofG);roofMesh(roofG,w+5,d+5,Math.max(8,h*.48),r);
-const ridge=box(roofG,0,Math.max(8,h*.48),0,2,1.8,d+7,woodm);
-const floors=Math.max(1,Math.floor(h/9));for(let f=0;f<floors;f++){const yy=5+f*8;for(const side of [-1,1]){for(let n=-1;n<=1;n++){const xx=n*w*.29;const zz=side*(d/2+.12);box(g,xx,yy,zz,4.8,6,.35,woodm);box(g,xx,yy,zz+side*.24,3.4,4,.18,glass);box(g,xx,yy-2.5,zz+side*.35,6,.65,.7,woodm);box(g,xx,yy+2.5,zz+side*.35,6,.65,.7,woodm);box(g,xx-2.7,yy,zz+side*.35,.55,6,.7,woodm);box(g,xx+2.7,yy,zz+side*.35,.55,6,.7,woodm);box(g,xx,yy,zz+side*.42,.35,5,.25,woodm)}}}
-for(const side of [-1,1]){const zz=side*(d/2+.18);for(let xx=-w/2+3;xx<w/2-2;xx+=5){box(g,xx,h*.53,zz,.45,h*.94,.55,woodm)}}
-box(g,0,5,d/2+.3,5,9,.8,wood[0]);box(g,0,5,d/2+.8,3.8,7,.3,woodm);cyl(g,1.2,5,d/2+1, .25,.25,.3,gold,8);
-for(let xx=-w/2+3;xx<w/2;xx+=5){box(g,xx,2,d/2+.6,.3,4,.35,woodm)}
-// chimney stacks
-for(let c=-1;c<=1;c+=2){const cx=c*w*.28;box(g,cx,h+Math.max(8,h*.48)*.55,-d*.22,3,9,3,stone);box(g,cx,h+Math.max(8,h*.48)*.55+4,-d*.22,4,.8,4,darkStone)}
-if(kind==='inn'){box(g,0,h+3,d/2+1,w*.6,2,1.2,wood[0]);const sign=box(g,0,h-1,d/2+1.7,9,5,.6,wood[1]);sign.rotation.z=-.04}
-if(kind==='shop'){for(let xx=-w*.35;xx<=w*.35;xx+=w*.7){cyl(g,xx,8,d/2+5,.35,.35,9,woodm,8)}const aw=box(g,0,12,d/2+5,w*.9,1,d*.32,roof[2]);aw.rotation.x=.15}
-if(kind==='guild'){box(g,0,h+2,d/2+1,w*.7,1.4,1,gold);for(let xx of [-w*.32,w*.32])cyl(g,xx,h+4,d/2+1,1,1,4,gold,8)}
+function house(x,z,w=13,d=11,h=9,seed=0,kind='house',angle=0){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=angle;city.add(g);const p=plaster[seed%plaster.length],r=roof[seed%roof.length],wm=wood[seed%wood.length];
+// Corpo: piano terra 3,2 m e piani superiori di circa 2,8 m
+box(g,0,h/2,0,w,h,d,p);box(g,0,.35,0,w+.35,.7,d+.35,stoneLight);
+const roofH=Math.max(3.2,Math.min(5.2,h*.38)),roofG=new THREE.Group();roofG.position.y=h;g.add(roofG);roofMesh(roofG,w+1.2,d+1.2,roofH,r);box(roofG,0,roofH,0,.45,.35,d+2,wm);
+// Porta d'ingresso: 1,15 x 2,15 m, con architrave e soglia
+box(g,0,1.12,d/2+.08,1.15,2.24,.18,wood[0]);box(g,0,1.08,d/2+.19,.88,2.05,.12,wm);box(g,0,2.28,d/2+.2,1.45,.16,.24,stoneLight);cyl(g,.34,1.1,d/2+.28,.045,.045,.12,gold,8);
+// Finestre dimensionate su aperture reali (circa 1,1 x 1,35 m)
+const floors=h<6.5?1:h<9.5?2:3;for(let f=0;f<floors;f++){const yy=3.25+f*2.85;if(yy+1.1>h-.35)continue;const count=w>15?3:2;for(const side of [-1,1])for(let n=0;n<count;n++){const xx=(n-(count-1)/2)*Math.min(4.1,w*.32),zz=side*(d/2+.09);box(g,xx,yy,zz,1.25,1.55,.16,wm);box(g,xx,yy,zz+side*.11,1.02,1.3,.08,glass);box(g,xx,yy-.78,zz+side*.18,1.5,.12,.25,wm);box(g,xx,yy+.78,zz+side*.18,1.5,.12,.25,wm);box(g,xx-.68,yy,zz+side*.18,.12,1.55,.25,wm);box(g,xx+.68,yy,zz+side*.18,.12,1.55,.25,wm)}}
+// Travature solo agli angoli, senza griglie sovradimensionate
+for(const xx of [-w/2+.22,w/2-.22])for(const zz of [-d/2-.08,d/2+.08])box(g,xx,h/2,zz,.22,h,.22,wm);
+// Camino proporzionato
+const cx=(seed%2?1:-1)*w*.27;box(g,cx,h+roofH*.55,-d*.18,.8,2.6,.8,stone);box(g,cx,h+roofH*.55+1.35,-d*.18,1.05,.18,1.05,darkStone);
+if(kind==='inn'){box(g,0,3.25,d/2+.45,w*.48,.22,.35,wood[0]);box(g,0,4.05,d/2+.5,1.8,1.1,.16,wood[1]);}
+if(kind==='shop'){for(const xx of [-w*.32,w*.32])cyl(g,xx,2.0,d/2+1.15,.09,.09,3.8,wm,8);const aw=box(g,0,3.75,d/2+1.15,w*.92,.18,2.1,roof[(seed+1)%roof.length]);aw.rotation.x=.12;}
+if(kind==='guild'){box(g,0,h+.5,d/2+.35,w*.48,.35,.25,gold)}
 return g}
-// Compact blocks, varied building sizes and uses
-const blocks=[[-265,-250],[-175,-250],[0,-250],[175,-250],[265,-250],[-265,-165],[-175,-165],[175,-165],[265,-165],[-265,165],[-175,165],[175,165],[265,165],[-265,250],[-175,250],[0,250],[175,250],[265,250],[-250,0],[250,0],[-250,85],[250,85],[-250,-85],[250,-85]];
-let bcount=0;for(const [cx,cz] of blocks){for(const [ox,oz] of [[-22,-22],[22,-22],[-22,22],[22,22]]){const seed=(bcount*7+Math.abs(ox+oz))%5;const kind=bcount%13===0?'inn':bcount%9===0?'shop':'house';house(cx+ox,cz+oz,25+(seed%3)*4,23+(seed%2)*5,18+(seed%4)*3,seed,kind);bcount++}}
+// Quartieri irregolari: lotti sfalsati, orientamenti e altezze non ripetitivi
+let bcount=0;let seedRand=9173;function rnd(){seedRand=(seedRand*16807)%2147483647;return (seedRand-1)/2147483646}
+const districts=[[-255,-245,5],[-145,-255,4],[45,-255,5],[235,-245,4],[-260,-135,4],[250,-125,5],[-255,135,5],[245,145,4],[-235,245,4],[-105,250,5],[95,245,4],[245,250,4],[-250,35,4],[250,35,4],[-155,85,3],[155,-75,3],[-165,-85,3],[155,95,3]];
+for(const [cx,cz,n] of districts){for(let k=0;k<n;k++){const x=cx+(rnd()-.5)*48,z=cz+(rnd()-.5)*43;const w=9+rnd()*8,d=8+rnd()*7,h=5.8+rnd()*5.4;const seed=Math.floor(rnd()*plaster.length),kind=bcount%17===0?'inn':bcount%7===0?'shop':bcount%19===0?'guild':'house';house(x,z,w,d,h,seed,kind,(rnd()-.5)*.22);bcount++}}
 // central cathedral and civic square
 const square=mat(0xaaa18e);plane(city,0,.08,0,150,150,square);
 for(let i=-3;i<=3;i++){for(let j=-3;j<=3;j++){if((i+j)%2===0)box(city,i*18,.16,j*18,17,.16,17,stoneLight,false)}}
-function cathedral(){const g=new THREE.Group();g.position.set(-5,0,-72);city.add(g);box(g,0,19,0,62,38,92,stoneLight);box(g,0,40,-12,68,5,108,darkStone);for(let x of [-21,21]){box(g,x,48,0,9,18,9,stone);const sp=new THREE.Mesh(new THREE.ConeGeometry(7,22,8),roof[0]);sp.position.set(x,68,0);g.add(sp)}for(let x of [-18,-6,6,18]){box(g,x,22,47,5,17,1,darkStone);box(g,x,22,47.8,3.5,14,.4,glass)}box(g,0,13,47,14,26,2,wood[0]);box(g,0,13,48.2,10,22,.4,wood[1]);cyl(g,0,50,0,4,4,1,gold,12);const dome=new THREE.Mesh(new THREE.SphereGeometry(13,16,10,0,Math.PI*2,0,Math.PI/2),roof[2]);dome.position.set(0,42,-5);g.add(dome);for(let z of [-38,38])for(let x of [-24,24])cyl(g,x,14,z,3,3,28,stone,10)}
+function cathedral(){const g=new THREE.Group();g.position.set(-5,0,-72);city.add(g);box(g,0,19,0,62,38,92,stoneLight);box(g,0,40,-12,68,5,108,darkStone);for(let x of [-21,21]){box(g,x,48,0,9,18,9,stone);const sp=new THREE.Mesh(new THREE.ConeGeometry(7,22,8),roof[0]);sp.position.set(x,68,0);g.add(sp)}for(let x of [-18,-6,6,18]){box(g,x,22,47,5,17,1,darkStone);box(g,x,22,47.8,3.5,14,.4,glass)}box(g,0,3.5,47,4.2,7,2,wood[0]);box(g,0,3.5,48.2,3.5,6.5,.4,wood[1]);cyl(g,0,50,0,4,4,1,gold,12);const dome=new THREE.Mesh(new THREE.SphereGeometry(13,16,10,0,Math.PI*2,0,Math.PI/2),roof[2]);dome.position.set(0,42,-5);g.add(dome);for(let z of [-38,38])for(let x of [-24,24])cyl(g,x,14,z,3,3,28,stone,10)}
 cathedral();
 function fountain(x,z){const g=new THREE.Group();g.position.set(x,0,z);city.add(g);cyl(g,0,.8,0,13,14,1.6,stoneLight,16);cyl(g,0,1.8,0,10,11,1,water,16);cyl(g,0,4,0,2,3,4,stone,10);cyl(g,0,6.5,0,4,1,1,stoneLight,12);cyl(g,0,7.3,0,1,1,1.5,water,12)}
 fountain(0,48);
