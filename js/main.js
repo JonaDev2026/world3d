@@ -82,14 +82,14 @@ function sign(x,z,title,lines) {
  board.position.set(x,y+1.08,z+.215);scene.add(board);
 }
 function person(x,z,name,coat=0x9a6845) {
- const y=terrainY(x,z),group=new THREE.Group();
- const body=new THREE.Mesh(new THREE.BoxGeometry(.62,.9,.38),new THREE.MeshLambertMaterial({color:coat}));
- body.position.y=1.05;group.add(body);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.29,8,7),new THREE.MeshLambertMaterial({color:0xd4a77d}));
- head.position.y=1.72;group.add(head);
- const hood=new THREE.Mesh(new THREE.BoxGeometry(.68,.18,.46),new THREE.MeshLambertMaterial({color:0x3b3328}));
- hood.position.y=1.96;group.add(hood);
- for(const dx of [-.19,.19]){const leg=new THREE.Mesh(new THREE.BoxGeometry(.2,.62,.25),new THREE.MeshLambertMaterial({color:0x493b31}));leg.position.set(dx,.31,0);group.add(leg)}
+ const y=terrainY(x,z),group=new THREE.Group(),mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.85});
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.3,.55,5,10),mat(coat));body.position.y=1.05;group.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.27,16,12),mat(0xd4a77d));head.position.y=1.78;group.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.285,14,9,0,Math.PI*2,0,Math.PI*.55),mat(0x493326));hair.position.y=1.91;group.add(hair);
+ for(const side of [-1,1]){
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.42,4,8),mat(coat));arm.position.set(side*.38,1.08,0);arm.rotation.z=side*.18;group.add(arm);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.11,.42,4,8),mat(0x493b31));leg.position.set(side*.15,.35,0);group.add(leg);
+ }
  group.position.set(x,y,z);scene.add(group);
  const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');
  g.fillStyle='#14231ee8';g.fillRect(0,0,256,64);g.fillStyle='#fff1c9';g.font='bold 30px sans-serif';g.textAlign='center';g.fillText(name,128,43);
