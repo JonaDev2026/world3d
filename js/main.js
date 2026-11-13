@@ -168,7 +168,7 @@ function updateWorldLighting(state){
 }
 const $=id=>document.getElementById(id);
 const audio=$('mainMusic');audio.volume=.20;
-function show(id){for(const el of document.querySelectorAll('.screen'))el.classList.add('hidden');$(id).classList.remove('hidden')}
+function show(id){for(const el of document.querySelectorAll('.screen'))el.classList.add('hidden');$(id).classList.remove('hidden');document.body.classList.toggle('show-heroes',id==='characterSelect')}
 function chooseHero(i){selected=i;const d=heroData[i];$('heroName').textContent=d.name;$('heroRole').textContent=d.role;$('heroDescription').textContent=d.description;$('heroWeapon').textContent='ARMA · '+d.weapon;document.querySelectorAll('.hero-card').forEach((c,n)=>c.classList.toggle('selected',n===i));heroes.forEach((h,n)=>{h.userData.selected=n===i;h.scale.setScalar(n===i?1.16:0.92);h.position.z=n===i?0.25:-0.25;});}
 
 
