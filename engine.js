@@ -62,9 +62,9 @@ function daily(s){
   if(p.age>55)p.health-=.012+(p.age-55)*.001;
   if(p.health<=0||p.age>82&&random(s)<.00035+(p.age-82)*.00022){p.alive=false;s.stats.deaths++;continue;}
   if(p.age>=15&&p.age<62&&p.role==="bambino")p.role=pick(s,["raccoglitore","cacciatore","artigiano"]);
-  if(p.age>18&&p.age<45&&p.sex==="F"&&random(s)<.00016&&n<5000){
+  if(p.age>18&&p.age<45&&p.sex==="F"&&random(s)<.0012&&n<5000){
    const candidates=people.filter(q=>q.sex==="M"&&q.age>=18&&q.age<55&&q.alive&&q.id!==p.id&&(!p.partner||p.partner===q.id));
-   if(candidates.length){const mate=pick(s,candidates);if(random(s)<.08){addPerson(s,[p.id,mate.id]);}}
+   if(candidates.length){const mate=pick(s,candidates);if(random(s)<.45){addPerson(s,[p.id,mate.id]);}}
   }
   p.age+=1/365;
  }
