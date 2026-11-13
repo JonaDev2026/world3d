@@ -202,7 +202,7 @@ func _house(origin: Vector3, width: float, depth: float, wall_height: float, wal
 	for side in [-1.0, 1.0]:
 		for course in range(7):
 			var along := (float(course) + 0.5) * half_w / 7.0
-			var rx := side * (half_w - along)
+			var rx: float = side * (half_w - along)
 			var ry := roof_base + rise * (along / half_w) + 0.18
 			for tile in range(7):
 				var rz := -depth * 0.5 - 0.35 + float(tile) * (depth + 0.7) / 6.0
