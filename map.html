@@ -1,35 +1,213 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101722">
-  <title>Vaelmar — Mappa</title>
-  <link rel="stylesheet" href="css/style.css">
-  <style>
-    body{min-height:100svh;background:#101722}
-    .map-shell{min-height:100svh;display:grid;place-items:center;padding:28px;background:radial-gradient(ellipse at 50% 38%,#354253 0%,#1c2836 48%,#101722 100%)}
-    .map-frame{width:min(100%,1100px);min-height:min(72vh,680px);position:relative;display:grid;place-items:center;overflow:hidden;border:1px solid rgba(195,163,106,.48);background:linear-gradient(150deg,rgba(34,48,62,.78),rgba(12,19,27,.9));box-shadow:0 30px 100px #070b11}
-    .map-terrain{position:absolute;inset:0;opacity:.65;background:linear-gradient(145deg,transparent 35%,rgba(128,139,139,.12) 35.2%,transparent 52%),linear-gradient(35deg,transparent 42%,rgba(190,174,139,.12) 42.2%,transparent 59%);transform:scale(1.3) rotate(-9deg)}
-    .map-terrain:before,.map-terrain:after{content:"";position:absolute;inset:12%;border:1px solid rgba(198,177,137,.18);transform:rotate(22deg) skewX(-12deg);border-radius:45% 55% 38% 62%}
-    .map-terrain:after{inset:25% 18%;transform:rotate(-18deg) skewX(10deg);border-color:rgba(198,177,137,.12)}
-    .map-message{position:relative;text-align:center;padding:30px}
-    .map-message h1{font:500 clamp(30px,6vw,58px) 'Cinzel',Georgia,serif;letter-spacing:.12em;margin:12px 0;color:#eee7d8}
-    .map-message p{color:#b7b8b5;letter-spacing:.08em}
-    .map-back{display:inline-block;margin-top:25px;padding:13px 25px;border:1px solid #c3a36a;color:#e2c995;text-decoration:none;font:12px 'Cinzel',Georgia,serif;letter-spacing:.16em;background:rgba(160,126,76,.13)}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111923">
+<title>Vaelmar — Il mondo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap');
+:root{--gold:#c7a875;--paper:#e8dfcc}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111923;color:var(--paper);font-family:Georgia,serif}
+canvas{display:block;width:100%;height:100%}
+#loading{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,#34404a,#111923 70%);transition:opacity .7s}
+#loading.hide{opacity:0;pointer-events:none}
+.loadbox{text-align:center;width:min(80vw,440px)}
+.kicker{font:11px 'Cinzel',serif;letter-spacing:.3em;color:var(--gold)}
+.loadbox h1{font:500 clamp(34px,7vw,58px) 'Cinzel',serif;letter-spacing:.16em;margin:15px 0}
+.loadbox p{color:#b9b9b2;font-size:14px;letter-spacing:.08em}
+.track{height:2px;background:#53606a;margin:28px 0;overflow:hidden}
+.track i{display:block;width:0;height:100%;background:var(--gold);transition:width .2s}
+#enter{display:none;margin:22px auto 0;padding:14px 32px;border:1px solid var(--gold);background:#6d5734;color:#f1e5ce;font:12px 'Cinzel',serif;letter-spacing:.18em;cursor:pointer}
+#hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s}
+#hud.active{opacity:1}
+.topbar{position:absolute;top:0;left:0;right:0;padding:20px 26px;display:flex;justify-content:space-between;align-items:flex-start;background:linear-gradient(#101720bb,transparent)}
+.worldname{font:12px 'Cinzel',serif;letter-spacing:.22em;color:#e7dcc6}
+.worldname small{display:block;margin-top:6px;color:#b6aa91;font:10px Georgia,serif;letter-spacing:.08em}
+.coords{font:11px Georgia,serif;color:#c5c2b8;text-align:right;line-height:1.7}
+.bottom{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:end;padding:24px 26px;background:linear-gradient(transparent,#101720c9)}
+.hint{font-size:12px;line-height:1.8;color:#d2cbbd}
+.hint b{font:11px 'Cinzel',serif;color:var(--gold);letter-spacing:.1em}
+#area{font:12px 'Cinzel',serif;letter-spacing:.14em;color:#e7dcc6;text-align:right}
+#crosshair{position:absolute;left:50%;top:50%;width:4px;height:4px;border-radius:50%;background:#f3e8d4;box-shadow:0 0 5px #111}
+#exit{pointer-events:auto;position:absolute;right:22px;top:76px;border:1px solid #b99b6a66;background:#11192399;color:#d9c7a5;padding:9px 13px;font:10px 'Cinzel',serif;letter-spacing:.12em;cursor:pointer}
+#notice{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font:11px 'Cinzel',serif;letter-spacing:.13em;color:#eee1c8;text-shadow:0 2px 8px #000;white-space:nowrap}
+@media(max-width:600px){.topbar{padding:14px}.bottom{padding:16px}.hint{font-size:10px}.coords{font-size:10px}#exit{top:68px;right:14px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js"}}</script>
 </head>
 <body>
-  <main class="map-shell">
-    <section class="map-frame">
-      <div class="map-terrain" aria-hidden="true"></div>
-      <div class="map-message">
-        <span class="brand-kicker">LE CRONACHE DI VAELMAR</span>
-        <h1>La mappa</h1>
-        <p>La scena 3D del mondo verrà collegata qui.</p>
-        <a class="map-back" href="index.html">TORNA AL MENU</a>
-      </div>
-    </section>
-  </main>
+<div id="loading"><div class="loadbox"><span class="kicker">LE CRONACHE DI VAELMAR</span><h1>VAELMAR</h1><p id="loadtext">Preparazione del mondo…</p><div class="track"><i id="progress"></i></div><button id="enter">ENTRA NEL MONDO</button></div></div>
+<div id="hud">
+ <div class="topbar"><div class="worldname">VAELMAR <small>UN MONDO DI 300 KM²</small></div><div class="coords" id="coords">X 0 · Z 0<br>GIORNO I</div></div>
+ <button id="exit">ESCI AL MENU</button><div id="crosshair"></div><div id="notice">CLICCA NEL MONDO PER GUARDARE INTORNO</div>
+ <div class="bottom"><div class="hint"><b>W A S D</b> · MUOVITI<br><b>MOUSE</b> · GUARDA INTORNO<br><b>SHIFT</b> · CORRI &nbsp; <b>ESC</b> · LIBERA IL MOUSE</div><div id="area">LE PIANURE DI VAELMAR</div></div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+
+const WORLD=17320, HALF=WORLD/2, CHUNK= WORLD/5, GRID=64;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x9ba7a7);
+scene.fog=new THREE.FogExp2(0x9ba7a7,0.00034);
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,4200);
+camera.position.set(-420,0,620);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.12;
+document.body.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xdce7ed,0x4b493c,1.65));
+const sun=new THREE.DirectionalLight(0xffe5bd,2.1);
+sun.position.set(-900,1500,-700);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-1100;sun.shadow.camera.right=1100;sun.shadow.camera.top=1100;sun.shadow.camera.bottom=-1100;
+scene.add(sun);
+const matGround=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1});
+const treeMat=new THREE.MeshStandardMaterial({color:0x34483d,roughness:1});
+const treeMat2=new THREE.MeshStandardMaterial({color:0x52604b,roughness:1});
+const trunkMat=new THREE.MeshStandardMaterial({color:0x594735,roughness:1});
+const rockMat=new THREE.MeshStandardMaterial({color:0x77766d,roughness:1});
+const waterMat=new THREE.MeshStandardMaterial({color:0x527d86,roughness:.25,metalness:.12,transparent:true,opacity:.86});
+const loaded=new Map();
+const key=(x,z)=>x+','+z;
+function hash(a,b){let n=(a*374761393+b*668265263)|0;n=(n^(n>>>13))*1274126177;return ((n^(n>>>16))>>>0)/4294967295}
+function heightAt(x,z){
+ const rolling=Math.sin(x*.00042+Math.sin(z*.00019))*13+Math.cos(z*.00051-x*.00013)*9+Math.sin((x+z)*.0011)*3;
+ const hills=Math.max(0,Math.sin((x+z*.35)*.00029))*Math.max(0,Math.cos((z-x*.2)*.00025))*95;
+ const north=Math.max(0,(-z-1900)/1900);
+ const ridge=north*north*230*(.6+.4*Math.sin(x*.0008));
+ const valley=-28*Math.exp(-((x-900)**2+(z+700)**2)/1800000);
+ return rolling+hills+ridge+valley;
+}
+function biome(x,z){
+ if(z < -5700) return 'highlands';
+ if(x < -2600 && z> -4000) return 'forest';
+ if(x > 3500 && z < 1800) return 'forest';
+ if(z > 5600) return 'meadow';
+ return 'plains';
+}
+function makeTerrain(cx,cz){
+ const geo=new THREE.PlaneGeometry(CHUNK,CHUNK,GRID,GRID);geo.rotateX(-Math.PI/2);
+ const p=geo.attributes.position, colors=[];
+ for(let i=0;i<p.count;i++){
+  const gx=p.getX(i)+cx*CHUNK, gz=p.getZ(i)+cz*CHUNK, h=heightAt(gx,gz);
+  p.setY(i,h);
+  const b=biome(gx,gz);
+  let c=b==='highlands'?new THREE.Color(0x77776c):b==='forest'?new THREE.Color(0x52634b):b==='meadow'?new THREE.Color(0x8b9065):new THREE.Color(0x78805c);
+  const variation=(hash(Math.floor(gx/37),Math.floor(gz/37))-.5)*.095;
+  c.offsetHSL(0,0,variation);
+  if(h>125)c.lerp(new THREE.Color(0x89877e),Math.min(.72,(h-125)/220));
+  colors.push(c.r,c.g,c.b);
+ }
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.computeVertexNormals();
+ const mesh=new THREE.Mesh(geo,matGround);mesh.position.set(cx*CHUNK,0,cz*CHUNK);mesh.receiveShadow=true;mesh.frustumCulled=true;scene.add(mesh);
+ return mesh;
+}
+const crownGeo=new THREE.ConeGeometry(1,1,6,1);
+const trunkGeo=new THREE.CylinderGeometry(.13,.2,1,5);
+function makeForest(cx,cz){
+ const trees=[],trunks=[];
+ for(let i=0;i<100;i++){
+  const x=(cx-.5+hash(cx*73+i,cz*97+3))*CHUNK;
+  const z=(cz-.5+hash(cx*131+i*3,cz*43+9))*CHUNK;
+  if(Math.abs(x)>HALF-100||Math.abs(z)>HALF-100)continue;
+  const b=biome(x,z);if(b!=='forest'&&hash(i+cx*11,cz*19)>.19)continue;
+  if(Math.hypot(x-900,z+700)<850)continue;
+  const y=heightAt(x,z);const scale=7+hash(i+cx*31,cz*17)*13;
+  const m=new THREE.Matrix4();m.compose(new THREE.Vector3(x,y+scale*.55,z),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),hash(i,cx+cz)*6),new THREE.Vector3(scale*.48,scale,scale*.48));trees.push(m);
+  const t=new THREE.Matrix4();t.compose(new THREE.Vector3(x,y+scale*.17,z),new THREE.Quaternion(),new THREE.Vector3(scale*.10,scale*.36,scale*.10));trunks.push(t);
+ }
+ if(trees.length){
+  const crowns=new THREE.InstancedMesh(crownGeo,treeMat,trees.length);trees.forEach((m,i)=>crowns.setMatrixAt(i,m));crowns.castShadow=true;scene.add(crowns);
+  const stems=new THREE.InstancedMesh(trunkGeo,trunkMat,trunks.length);trunks.forEach((m,i)=>stems.setMatrixAt(i,m));scene.add(stems);
+  return [crowns,stems];
+ }
+ return [];
+}
+function makeRocks(cx,cz){
+ const arr=[];
+ for(let i=0;i<18;i++){
+  const x=(cx-.5+hash(i+cx*19,cz*31+i))*CHUNK,z=(cz-.5+hash(i*7+cx,cz*13+i))*CHUNK;
+  if(biome(x,z)!=='highlands')continue;
+  const s=4+hash(i,cz+cx)*15;
+  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),rockMat);
+  rock.position.set(x,heightAt(x,z)+s*.35,z);rock.rotation.set(hash(i,cx)*.5,hash(cz,i)*3,hash(i+2,cz)*.4);rock.castShadow=true;scene.add(rock);arr.push(rock);
+ }
+ return arr;
+}
+function loadChunk(cx,cz){
+ const k=key(cx,cz);if(loaded.has(k))return;
+ const objects=[makeTerrain(cx,cz),...makeForest(cx,cz),...makeRocks(cx,cz)];
+ loaded.set(k,objects);
+}
+function unloadChunk(cx,cz){
+ const k=key(cx,cz),objects=loaded.get(k);if(!objects)return;
+ const dispose=o=>{if(Array.isArray(o)){o.forEach(dispose);return}if(!o)return;if(o.isMesh||o.isInstancedMesh){scene.remove(o);if(o.geometry && o.geometry!==crownGeo&&o.geometry!==trunkGeo)o.geometry.dispose()}};
+ objects.forEach(dispose);loaded.delete(k);
+}
+function updateChunks(){
+ const cx=Math.floor(camera.position.x/CHUNK),cz=Math.floor(camera.position.z/CHUNK),needed=new Set();
+ for(let z=-1;z<=1;z++)for(let x=-1;x<=1;x++){
+  const a=cx+x,b=cz+z;if(a>=-2&&a<=2&&b>=-2&&b<=2){needed.add(key(a,b));loadChunk(a,b)}
+ }
+ for(const k of loaded.keys())if(!needed.has(k)){const [x,z]=k.split(',').map(Number);unloadChunk(x,z)}
+}
+function makeRiver(){
+ const pts=[];
+ for(let i=0;i<=80;i++){const z=-8000+i*200;const x=1250+Math.sin(i*.105)*680+Math.sin(i*.31)*150;pts.push(new THREE.Vector3(x,heightAt(x,z)-3,z))}
+ const curve=new THREE.CatmullRomCurve3(pts);
+ const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,320,24,8,false),waterMat);scene.add(mesh);
+}
+function makeRuins(){
+ const group=new THREE.Group();const stone=new THREE.MeshStandardMaterial({color:0x827e70,roughness:.92});
+ const baseY=heightAt(900,-700);
+ const platform=new THREE.Mesh(new THREE.CylinderGeometry(115,125,9,8),stone);platform.position.y=baseY+4;platform.receiveShadow=true;group.add(platform);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4,x=Math.cos(a)*83,z=Math.sin(a)*83;const h=24+(i%3)*9;const col=new THREE.Mesh(new THREE.CylinderGeometry(5,7,h,6),stone);col.position.set(x,baseY+9+h/2,z);col.castShadow=true;group.add(col)}
+ const lintel=new THREE.Mesh(new THREE.BoxGeometry(180,8,18),stone);lintel.position.set(0,baseY+48,0);group.add(lintel);
+ group.position.set(900,0,-700);scene.add(group);
+}
+makeRiver();makeRuins();updateChunks();
+const yaw=new THREE.Object3D(),pitch=new THREE.Object3D();yaw.add(pitch);pitch.add(camera);scene.add(yaw);
+yaw.position.set(-420,heightAt(-420,620)+1.7,620);
+let locked=false,started=false;
+const keys={};
+renderer.domElement.addEventListener('click',()=>{if(started&&!locked)renderer.domElement.requestPointerLock()});
+document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer.domElement;document.querySelector('#notice').style.display=locked?'none':'block'});
+document.addEventListener('mousemove',e=>{if(!locked)return;yaw.rotation.y-=e.movementX*.0022;pitch.rotation.x-=e.movementY*.0022;pitch.rotation.x=Math.max(-1.48,Math.min(1.48,pitch.rotation.x))});
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault()});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+document.querySelector('#exit').addEventListener('click',()=>location.href='index.html');
+document.querySelector('#enter').addEventListener('click',()=>{started=true;document.querySelector('#loading').classList.add('hide');document.querySelector('#hud').classList.add('active');renderer.domElement.requestPointerLock()});
+const progress=document.querySelector('#progress'),loadtext=document.querySelector('#loadtext'),enter=document.querySelector('#enter');
+let ready=0;const total=25;
+function loadingStep(){ready++;progress.style.width=(ready/total*100)+'%';loadtext.textContent='Caricamento dei territori… '+ready+'/'+total;if(ready>=total){loadtext.textContent='Il mondo è pronto.';enter.style.display='block'}}
+const all=[];for(let z=-2;z<=2;z++)for(let x=-2;x<=2;x++)all.push([x,z]);
+let idx=0;function preload(){const batch=()=>{for(let n=0;n<3&&idx<all.length;n++,idx++){const [x,z]=all[idx];loadChunk(x,z);loadingStep()}if(idx<all.length)setTimeout(batch,20);else{updateChunks();}};batch()}
+preload();
+let last=performance.now(),coordTimer=0;
+function animate(now){
+ requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.05);last=now;
+ if(started){
+  const forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
+  const side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+  const len=Math.hypot(forward,side)||1,speed=(keys.ShiftLeft||keys.ShiftRight?58:24)*dt;
+  if(forward||side){const a=yaw.rotation.y;const dx=(Math.sin(a)*forward+Math.cos(a)*side)/len*speed;const dz=(Math.cos(a)*forward-Math.sin(a)*side)/len*speed;
+   const nx=THREE.MathUtils.clamp(yaw.position.x+dx,-HALF+30,HALF-30),nz=THREE.MathUtils.clamp(yaw.position.z+dz,-HALF+30,HALF-30);
+   yaw.position.x=nx;yaw.position.z=nz;
+  }
+  const ground=heightAt(yaw.position.x,yaw.position.z);yaw.position.y=THREE.MathUtils.damp(yaw.position.y,ground+1.7,12,dt);
+  updateChunks();coordTimer+=dt;
+  if(coordTimer>.25){coordTimer=0;document.querySelector('#coords').innerHTML='X '+Math.round(yaw.position.x)+' · Z '+Math.round(yaw.position.z)+'<br>GIORNO I';const b=biome(yaw.position.x,yaw.position.z);document.querySelector('#area').textContent=b==='forest'?'BOSCHI ANTICHI':b==='highlands'?'ALTOPIANI DEL NORD':b==='meadow'?'PRATERIE ORIENTALI':'LE PIANURE DI VAELMAR'}
+ }
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7))});
+</script>
 </body>
 </html>
