@@ -72,28 +72,30 @@ function mapFeatures(s){
   settlements:{type:"FeatureCollection",features:settlements},
   territories:{type:"FeatureCollection",features:territories},
   neighbors:{type:"FeatureCollection",features:neighbors},
-  features:{type:"FeatureCollection",features:(s.geographicFeatures||[]).filter(f=>f.discovered&&f.name).map(f=>({type:"Feature",geometry:{type:"Point",coordinates:project(f.x,f.y)},properties:{name:f.name,featureType:f.type}}))}
+  features:{type:"FeatureCollection",features:(s.geographicFeatures||[]).filter(f=>f.discovered&&f.name).map(f=>({type:"Feature",geometry:{type:"Point",coordinates:project(f.x,f.y)},properties:{name:f.name,featureType:f.type}}))},
+  explored:{type:"FeatureCollection",features:settlements.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,areaType:"area conosciuta"}}))}
  };
 }
 function applyMapMode(){
  if(!worldMap)return;
  const set=(id,show)=>{if(worldMap.getLayer(id))worldMap.setLayoutProperty(id,"visibility",show?"visible":"none");};
  const modes={
-  geografia:["settlement-points","settlement-labels","neighbor-points","geographic-feature-points","geographic-feature-labels"],
+  geografia:["settlement-points","settlement-labels","neighbor-points","geographic-feature-points","geographic-feature-labels","explored-fill","explored-outline"],
   politica:["territory-fill","territory-outline","territory-labels","settlement-points","settlement-labels","neighbor-points"],
   popolazione:["population-points","settlement-labels","neighbor-points"],
   risorse:["resource-points","settlement-labels","geographic-feature-points","geographic-feature-labels"]
  };
  const active=new Set(modes[mapMode]||modes.geografia);
- for(const id of ["settlement-points","settlement-labels","neighbor-points","territory-fill","territory-outline","territory-labels","population-points","resource-points","geographic-feature-points","geographic-feature-labels"])set(id,active.has(id));
+ for(const id of ["settlement-points","settlement-labels","neighbor-points","territory-fill","territory-outline","territory-labels","population-points","resource-points","geographic-feature-points","geographic-feature-labels","explored-fill","explored-outline"])set(id,active.has(id));
 }
 function updateSimulationMap(s){
  if(!worldMap||!worldMap.isStyleLoaded())return;
- const data=mapFeatures(s),settlementSource=worldMap.getSource("simulation-settlements"),neighborSource=worldMap.getSource("simulation-neighbors"),territorySource=worldMap.getSource("simulation-territories"),featureSource=worldMap.getSource("simulation-features");
+ const data=mapFeatures(s),settlementSource=worldMap.getSource("simulation-settlements"),neighborSource=worldMap.getSource("simulation-neighbors"),territorySource=worldMap.getSource("simulation-territories"),featureSource=worldMap.getSource("simulation-features"),exploredSource=worldMap.getSource("simulation-explored");
  if(settlementSource)settlementSource.setData(data.settlements);
  if(neighborSource)neighborSource.setData(data.neighbors);
  if(territorySource)territorySource.setData(data.territories);
  if(featureSource)featureSource.setData(data.features);
+ if(exploredSource)exploredSource.setData(data.explored);
  if(!settlementSource){
   worldMap.addSource("simulation-settlements",{type:"geojson",data:data.settlements});
   worldMap.addLayer({id:"settlement-points",type:"circle",source:"simulation-settlements",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,4,5,8,10,11],"circle-color":"#d94f55","circle-stroke-color":"#ffffff","circle-stroke-width":2}});
@@ -105,6 +107,9 @@ function updateSimulationMap(s){
   worldMap.addSource("simulation-features",{type:"geojson",data:data.features});
   worldMap.addLayer({id:"geographic-feature-points",type:"circle",source:"simulation-features",paint:{"circle-radius":5,"circle-color":["match",["get","featureType"],"lago","#398fc1","fiume","#247ba0","#9b875d"],"circle-stroke-color":"#fff","circle-stroke-width":1.5}});
   worldMap.addLayer({id:"geographic-feature-labels",type:"symbol",source:"simulation-features",layout:{"text-field":["get","name"],"text-font":["Open Sans Semibold"],"text-size":12,"text-offset":[0,1.1],"text-anchor":"top","text-allow-overlap":false},paint:{"text-color":"#24516b","text-halo-color":"#ffffff","text-halo-width":2}});
+  worldMap.addSource("simulation-explored",{type:"geojson",data:data.explored});
+  worldMap.addLayer({id:"explored-fill",type:"fill",source:"simulation-explored",layout:{visibility:"none"},paint:{"fill-color":"#4b91c8","fill-opacity":0.16}});
+  worldMap.addLayer({id:"explored-outline",type:"line",source:"simulation-explored",layout:{visibility:"none"},paint:{"line-color":"#3978b9","line-width":1.4,"line-dasharray":[2,2],"line-opacity":0.8}});
   worldMap.addSource("simulation-territories",{type:"geojson",data:data.territories});
   worldMap.addLayer({id:"territory-fill",type:"fill",source:"simulation-territories",layout:{visibility:"none"},paint:{"fill-color":["get","color"],"fill-opacity":0.22}});
   worldMap.addLayer({id:"territory-outline",type:"line",source:"simulation-territories",layout:{visibility:"none"},paint:{"line-color":["get","color"],"line-width":2.2,"line-opacity":0.95}});
@@ -115,7 +120,7 @@ function updateSimulationMap(s){
    const popup="<strong>"+esc(p.name)+"</strong><br>"+kind+"<br>"+fmt(Number(p.population)||0)+" abitanti"+(p.polity?"<br>Forma politica: "+esc(p.polity):"")+(p.stores!==undefined?"<br>Riserve locali: "+fmt(Number(p.stores)||0):"")+(p.atWar?"<br>In guerra":"")+(p.allied?"<br>Alleata":"");
    new maplibregl.Popup({closeButton:true,offset:12,maxWidth:"280px"}).setLngLat(event.lngLat).setHTML(popup).addTo(worldMap);
   });
-  for(const layer of ["settlement-points","population-points","resource-points","neighbor-points","territory-fill"]){worldMap.on("mouseenter",layer,()=>worldMap.getCanvas().style.cursor="pointer");worldMap.on("mouseleave",layer,()=>worldMap.getCanvas().style.cursor="");}
+  for(const layer of ["settlement-points","population-points","resource-points","neighbor-points","territory-fill","geographic-feature-points"]){worldMap.on("mouseenter",layer,()=>worldMap.getCanvas().style.cursor="pointer");worldMap.on("mouseleave",layer,()=>worldMap.getCanvas().style.cursor="");}
   applyMapMode();
  }
  const home=s.settlements?.[0];
