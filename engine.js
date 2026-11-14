@@ -86,14 +86,17 @@ function addEvent(s,title,description,type="society"){
 function living(s){return s.population.filter(alive)}
 function prunePopulation(s){
  if(s.population.length<=15000)return;
- const dead=s.population.filter(p=>!p.alive);
- if(dead.length<=8000)return;
- const keep=new Set(dead.slice(-8000).map(p=>p.id));
- const removed=dead.length-keep.size;
- if(!s.familyArchive)s.familyArchive={};
- for(const person of dead){if(!keep.has(person.id))s.familyArchive[person.id]=person.parents||[];}
- s.population=s.population.filter(p=>p.alive||keep.has(p.id));
- s.archivedDeaths=(s.archivedDeaths||0)+removed;
+ const alivePeople=s.population.filter(p=>p.alive),deadCount=s.population.length-alivePeople.length;
+ if(deadCount<=8000)return;
+ const byId=new Map(s.population.map(p=>[p.id,p])),needed=new Set(alivePeople.flatMap(p=>p.parents||[])),archive={};
+ for(const id of needed){
+  const person=byId.get(id);
+  if(person)archive[id]=person.parents||[];
+  else if(s.familyArchive?.[id])archive[id]=s.familyArchive[id];
+ }
+ s.population=alivePeople;
+ s.familyArchive=archive;
+ s.archivedDeaths=(s.archivedDeaths||0)+deadCount;
 }
 function killPerson(s,p){
  if(!p||!p.alive)return;
