@@ -1,4 +1,4 @@
-export const VERSION = 2;
+export const VERSION = 3;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|0;return (x>>>0)/4294967296}
 const pick=(s,a)=>a[Math.floor(random(s)*a.length)];
@@ -66,8 +66,16 @@ export function createWorld(start={}){
 function addEvent(s,title,description,type="society"){
  const e={id:s.nextEventId++,year:s.year,day:s.day,title,description,type};
  s.events.unshift(e);
+ if(s.events.length>600)s.events.length=600;
 }
 function living(s){return s.population.filter(alive)}
+function closeKin(a,b,people){
+ if(!a||!b||a.id===b.id)return true;
+ const ap=a.parents||[],bp=b.parents||[];
+ if(ap.includes(b.id)||bp.includes(a.id))return true;
+ if((a.children||[]).includes(b.id)||(b.children||[]).includes(a.id))return true;
+ return ap.some(id=>bp.includes(id));
+}
 function killPerson(s,p){
  if(!p||!p.alive)return;
  const ids=new Set([...(p.children||[]),p.partner].filter(Boolean));
@@ -193,7 +201,7 @@ function yearBoundary(s){
  if(n>=75&&!s.institutions.includes("Custodi delle riserve")){s.institutions.push("Custodi delle riserve");s.economy="Riserve e distribuzione organizzata";addEvent(s,"Le riserve diventano un'istituzione","La gestione delle scorte viene affidata a custodi scelti dalla comunità. La distribuzione del cibo diventa una responsabilità collettiva.","economy");}
  if(n>=110&&!s.institutions.includes("Consuetudini codificate")){s.institutions.push("Consuetudini codificate");s.laws="Prime norme comunitarie";s.order+=7;addEvent(s,"Le consuetudini vengono codificate","Le regole tramandate oralmente vengono raccolte e riconosciute come norme comuni.","politics");}
  if(n>=55&&s.religion==="Tradizioni orali"&&random(s)<.12){s.religion="Culto degli antenati";addEvent(s,"Si consolida il culto degli antenati","Riti funerari e racconti condivisi danno forma a una tradizione spirituale riconoscibile.","culture");}
- if(s.knowledge>=100&&!s.technology.includes("Agricoltura")){s.technology.push("Agricoltura");s.settlements[0].fields=8;s.settlements[0].kind="villaggio";s.settlements[0].homes+=8;addEvent(s,"Inizia la coltivazione","La comunità seleziona semi e coltiva una parte della valle. La produzione alimentare non dipende più soltanto dalla raccolta e dalla caccia.","technology");}
+ if(s.knowledge>=100&&!s.technology.includes("Agricoltura")){s.technology.push("Agricoltura");for(const st of s.settlements){st.fields=Math.max(st.fields||0,Math.max(4,Math.round((st.population||20)*.22)));if(st===s.settlements[0]){st.kind="villaggio";st.homes+=8;}}addEvent(s,"Inizia la coltivazione","La comunità seleziona semi e coltiva una parte della valle. La produzione alimentare non dipende più soltanto dalla raccolta e dalla caccia.","technology");}
  if(s.knowledge>=260&&!s.technology.includes("Ceramica")){s.technology.push("Ceramica");addEvent(s,"La ceramica cambia la conservazione","Vasi cotti al fuoco permettono di conservare meglio acqua e alimenti.","technology");}
  if(s.knowledge>=500&&!s.technology.includes("Metallurgia del rame")){s.technology.push("Metallurgia del rame");addEvent(s,"Primi oggetti in rame","La lavorazione del rame introduce strumenti nuovi e una specializzazione artigiana.","technology");}
  if(s.knowledge>=900&&!s.technology.includes("Scrittura")){s.technology.push("Scrittura");s.institutions.push("Archivio");s.language.written=true;addEvent(s,"Nasce la scrittura","La comunità sviluppa segni per conservare parole e conoscenze. I nomi di persone, insediamenti, fiumi e territori possono ora essere tramandati senza dipendere soltanto dalla memoria orale.","technology");}
@@ -222,18 +230,42 @@ function daily(s){
  const people=living(s),n=people.length,sett=s.settlements[0];
  for(const p of people)if(!p.settlementId)p.settlementId=sett.id;
  if(!n)return;
- // subsistence and production
- const workers=people.filter(p=>p.age>=15&&p.age<65);
- const countRole=role=>workers.filter(p=>p.role===role).length;
+ // Workforce is counted once, then resources are produced and consumed locally.
+ const workers=people.filter(p=>p.age>=15&&p.age<65),roleCounts=new Map();
+ for(const p of workers)roleCounts.set(p.role,(roleCounts.get(p.role)||0)+1);
+ const countRole=role=>roleCounts.get(role)||0;
  const farmers=countRole("agricoltore"),gatherers=countRole("raccoglitore"),hunters=countRole("cacciatore");
  const artisans=countRole("artigiano"),builders=countRole("costruttore"),traders=countRole("mercante");
  const administrators=countRole("amministratore"),guards=countRole("guardia"),healers=countRole("guaritore"),priests=countRole("sacerdote");
- let production=gatherers*.18+hunters*.16+farmers*.45+artisans*.08+builders*.10+traders*.05+administrators*.04+guards*.04+healers*.04+priests*.02;
- if(s.technology.includes("Agricoltura"))production*=1.08;
- const climate=s.climate||{type:"normale",days:0,severity:0};
- if(climate.days>0){if(climate.type==="siccità")production*=1-climate.severity*.72;else if(climate.type==="alluvione")production*=1-climate.severity*.48;else if(climate.type==="inverno rigido")production*=1-climate.severity*.38;}
- const surplus=production-n*.105;
- s.food=clamp(s.food+surplus,0,Math.max(240,n*45));sett.stores=s.food;
+ const climate=s.climate||{type:"normale",days:0,severity:0},tech=s.technology||[];
+ const residents=new Map(s.settlements.map(st=>[st.id,[]]));
+ for(const p of people){if(!residents.has(p.settlementId))p.settlementId=sett.id;residents.get(p.settlementId)?.push(p);}
+ const foodRatios=new Map();let production=0,consumption=0,totalFood=0;
+ for(const st of s.settlements){
+  const locals=residents.get(st.id)||[],count=locals.length;
+  st.population=count;
+  const active=locals.filter(p=>p.age>=15&&p.age<65),roles=new Map();
+  for(const p of active)roles.set(p.role,(roles.get(p.role)||0)+1);
+  const role=(name)=>roles.get(name)||0;
+  const terrain=s.geography?.terrain,idx=Math.round(st.y)*s.geography.width+Math.round(st.x),land=terrain?.[idx]??1;
+  let output=role("raccoglitore")*.18+role("cacciatore")*.16+role("agricoltore")*.45+role("artigiano")*.08+role("costruttore")*.10+role("mercante")*.05+role("amministratore")*.04+role("guardia")*.04+role("guaritore")*.04+role("sacerdote")*.02;
+  if(tech.includes("Agricoltura"))output*=1.08+Math.min(.18,(st.fields||0)*.006);
+  if(tech.includes("Irrigazione"))output*=1.14;
+  if(tech.includes("Mulino ad acqua"))output*=1.08;
+  if(tech.includes("Macchine semplici"))output*=1.10;
+  if(tech.includes("Bronzo")||tech.includes("Ferro"))output*=1.045;
+  if(tech.includes("Ruota"))output*=1.035;
+  if(land===2)output*=1.08;
+  if(land===1||land===6)output*=1.10;
+  if(land===4||land===7)output*=.78;
+  if(climate.days>0){if(climate.type==="siccità")output*=1-climate.severity*(tech.includes("Irrigazione")?.38:.72);else if(climate.type==="alluvione")output*=1-climate.severity*(tech.includes("Irrigazione")?.32:.48);else if(climate.type==="inverno rigido")output*=1-climate.severity*.38;}
+  const need=count*.105,localSurplus=output-need;
+  st.stores=clamp((Number(st.stores)||0)+localSurplus,0,Math.max(240,count*45));
+  production+=output;consumption+=need;totalFood+=st.stores;
+  foodRatios.set(st.id,clamp(st.stores/Math.max(1,count*12),0,1));
+ }
+ const surplus=production-consumption;
+ s.food=totalFood;
  if(surplus>0){
   const adults=people.filter(p=>p.age>=15&&p.age<70),pool=surplus*(s.technology.includes("Moneta")?.035:.012);
   const weights=adults.map(p=>(.55+p.skill*.25+p.traits.ambition*.8)*(["artigiano","mercante","amministratore","costruttore"].includes(p.role)?1.35:p.role==="agricoltore"?.95:1));
@@ -246,14 +278,24 @@ function daily(s){
  s.order=clamp(s.order+(s.institutions.length?.006:-.002),0,100);
  // aging, health and mortality
  for(const p of people){
-  p.health=clamp(p.health+(foodRatio<.3?-.12:.012)+(s.disease.active?-.16:0),0,100);
+  const localFood=foodRatios.get(p.settlementId)??foodRatio;
+  p.health=clamp(p.health+(localFood<.3?-.12:.012)+(s.disease.active?-.16:0)+(tech.includes("Medicina organizzata")?.018:0)+(healers>0?.002:0),0,100);
   if(p.age>55)p.health-=.012+(p.age-55)*.001;
   if(p.health<=0||p.age>82&&random(s)<.00035+(p.age-82)*.00022){killPerson(s,p);s.stats.deaths++;continue;}
   if(p.age>=15&&p.age<62&&p.role==="bambino")p.role=pick(s,["raccoglitore","cacciatore","artigiano"]);
-  if(p.age>18&&p.age<45&&p.sex==="F"&&random(s)<.00066&&n<5000){
-   const candidates=people.filter(q=>q.sex==="M"&&q.age>=18&&q.age<55&&q.alive&&q.id!==p.id&&(!p.partner||p.partner===q.id));
-   if(candidates.length){const mate=pick(s,candidates);if(random(s)<.4){addPerson(s,[p.id,mate.id]);}}
+  if(!Number.isFinite(p.pregnancyDays))p.pregnancyDays=0;
+  if(p.pregnancyDays>0){
+   p.pregnancyDays--;
+   if(p.pregnancyDays<=0){
+    const birthRisk=.00012+(p.age>36?Math.max(0,p.age-36)*.000035:0);
+    if(random(s)<birthRisk){p.health=clamp(p.health-18,0,100);if(random(s)<.12){p.pregnancyDays=0;}}
+    else{addPerson(s,[p.id,p.partner]);p.health=clamp(p.health-3,0,100);}
+   }
+  }else if(p.age>=18&&p.age<43&&p.sex==="F"&&random(s)<.00048&&n<5000){
+   const candidates=people.filter(q=>q.sex==="M"&&q.age>=18&&q.age<58&&q.alive&&q.id!==p.id&&q.settlementId===p.settlementId&&(!p.partner||p.partner===q.id)&&!closeKin(p,q,people));
+   if(candidates.length){const mate=pick(s,candidates);if(random(s)<.42){p.partner=mate.id;mate.partner=p.id;p.pregnancyDays=280;}}
   }
+  if(p.age<1&&random(s)<.00045+(localFood<.25?.0012:0)){killPerson(s,p);s.stats.deaths++;}
   p.age+=1/365;
  }
  // Other societies have their own demographic and resource cycles.
@@ -301,12 +343,40 @@ function daily(s){
    }
   }
  }
- // Disease ecology: outbreaks arise from density, water stress and chance.
+ // Epidemics spread between residents of the same settlement; survivors acquire temporary immunity.
+ if(!s.disease)s.disease={active:false,strain:0,days:0};
+ for(const p of s.population){if(!Number.isFinite(p.pregnancyDays))p.pregnancyDays=0;if(!Number.isFinite(p.infectionDays))p.infectionDays=0;if(!Number.isFinite(p.immunityDays))p.immunityDays=0;}
+ for(const st of s.settlements)if(!Number.isFinite(st.stores))st.stores=st.population?Math.max(0,s.food*st.population/Math.max(1,living(s).length)):0;
+ const dayIndex=s.year*365+s.day,medicine=tech.includes("Medicina organizzata"),hasHealers=healers>0;
  if(!s.disease.active&&n>35&&random(s)<(n>150?.00004:.000025)+(climate.type==="alluvione"&&climate.days>0?.000035:0)){
-  s.disease.active=true;s.disease.days=0;s.disease.strain=.25+random(s)*.55;s.stats.epidemics++;
-  addEvent(s,"Malattia contagiosa","Una malattia si diffonde tra gli abitanti. Le cause non sono ancora comprese e la comunità non dispone di cure efficaci.","disease");
+  const candidates=people.filter(p=>(p.immunityDays||0)<=0&&!(p.infectionDays>0));
+  if(candidates.length){const first=pick(s,candidates);first.infectionDays=28+Math.floor(random(s)*55);s.disease.active=true;s.disease.days=0;s.disease.strain=.25+random(s)*.55;s.stats.epidemics++;addEvent(s,"Focolaio di malattia","Una malattia compare in un insediamento. La diffusione dipenderà dai contatti, dalla densità abitativa e dalle cure disponibili.","disease");}
  }
- if(s.disease.active){s.disease.days++;for(const p of people){if(random(s)<.012*s.disease.strain)p.health-=.5+random(s)*.7;}if(s.disease.days>45+random(s)*45){s.disease.active=false;addEvent(s,"L'epidemia si esaurisce","La diffusione della malattia diminuisce. I sopravvissuti conservano memoria dell'epidemia.","disease");}}
+ const infectedBySite=new Map();
+ for(const p of people)if((p.infectionDays||0)>0)infectedBySite.set(p.settlementId,(infectedBySite.get(p.settlementId)||0)+1);
+ for(const st of s.settlements){
+  const locals=residents.get(st.id)||[],infected=infectedBySite.get(st.id)||0;
+  if(!infected)continue;
+  const crowding=clamp(locals.length/Math.max(12,(st.homes||6)*5),.25,3);
+  const spread=.34*(infected/Math.max(1,locals.length))*crowding*(medicine?.58:1);
+  for(const p of locals){
+   if((p.infectionDays||0)>0||(p.immunityDays||0)>0)continue;
+   if(random(s)<spread){p.infectionDays=24+Math.floor(random(s)*50);p.health=clamp(p.health-(medicine?0.08:0.22),0,100);}
+  }
+ }
+ let activeInfections=0;
+ for(const p of people){
+  if((p.immunityDays||0)>0)p.immunityDays--;
+  if((p.infectionDays||0)>0){
+   p.infectionDays--;activeInfections++;
+   const severity=s.disease.strain*(medicine?.45:1)*(hasHealers?.82:1);
+   p.health=clamp(p.health-(.18+random(s)*.28)*severity,0,100);
+   if(p.infectionDays<=0)p.immunityDays=365+Math.floor(random(s)*730);
+  }
+ }
+ s.disease.active=activeInfections>0;
+ if(s.disease.active)s.disease.days++;
+ else if(s.disease.days>0){s.disease.days=0;addEvent(s,"Il focolaio si esaurisce","I contagi si sono fermati. I sopravvissuti conservano una protezione temporanea contro la stessa malattia.","disease");}
  const survivors=living(s);if(survivors.length)s.health=Math.round(survivors.reduce((total,p)=>total+p.health,0)/survivors.length);
  // Knowledge is generated by practice, exchange and accumulated experience.
  const learners=people.filter(p=>p.age>=8&&p.age<60).length;
@@ -324,7 +394,7 @@ function daily(s){
  }
  const settlementCounts=new Map(s.settlements.map(st=>[st.id,0]));
  for(const p of people){if(!settlementCounts.has(p.settlementId))p.settlementId=sett.id;settlementCounts.set(p.settlementId,(settlementCounts.get(p.settlementId)||0)+1);}
- for(const st of s.settlements){st.population=settlementCounts.get(st.id)||0;st.stores=n?s.food*st.population/n:0;}
+ for(const st of s.settlements){st.population=settlementCounts.get(st.id)||0;}
  // seasonal turnover and annual records
  if(s.day%90===0&&random(s)<.08){const p=pick(s,people);if(p)p.skill+=.05;}
  if(climate.days>0){climate.days--;if(climate.days===0){s.climate={type:"normale",days:0,severity:0};addEvent(s,"Fine dell emergenza climatica","Le condizioni meteorologiche tornano gradualmente alla normalità. La comunità avvia il recupero delle risorse.","climate");}}
@@ -344,7 +414,7 @@ export function summary(s){
  return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,geography:s.geography,language:s.language,leadership:s.leadership||{personId:null,legitimacy:0},leader:people.find(p=>p.id===s.leadership?.personId)||null,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:people.filter(p=>p.age>=15&&p.age<65).length,roles:Object.fromEntries(["agricoltore","raccoglitore","cacciatore","artigiano","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].map(role=>[role,people.filter(p=>p.age>=15&&p.age<65&&p.role===role).length])),technology:s.technology,events:s.events.slice(0,80),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
 }
 export function validateWorld(s){
- if(!s||![1,VERSION].includes(s.version)||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
+ if(!s||![1,2,VERSION].includes(s.version)||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
  if(!Number.isFinite(s.day)||!Number.isFinite(s.year)||!Number.isFinite(s.rng))throw new Error("Calendario o generatore casuale non valido");
  if(!s.climate)s.climate={type:"normale",days:0,severity:0};
  if(!s.geography)s.geography=generateGeography(s.rng||9041987);
