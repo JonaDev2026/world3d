@@ -131,7 +131,7 @@ function updateAtmosphere(s){
  else if(season==="Estate"){weather="Sereno";weatherIcon="sunny";}else if(season==="Autunno"){weather="Variabile";weatherIcon="cloud";}else if(season==="Inverno"){weather="Freddo stagionale";weatherIcon="cloudy_snowing";}
  const local=s.settlement?.localClimate;if(local)detail+=" · "+(local.humidity>.68?"umidità elevata":local.humidity<.3?"aria secca":"umidità moderata");
  $("weather-icon").textContent=weatherIcon;$("weather-label").textContent=weather;$("season-label").textContent=detail;
- const phase=(elapsedMs%60000)/60000;let label="Notte",icon="dark_mode";
+ const phase=(elapsedMs%60000)/60000;worldMap?.setSun(23.4*Math.sin(((s.day||1)/365)*Math.PI*2),phase*360-180);let label="Notte",icon="dark_mode";
  if(phase>=.17&&phase<.29){label="Alba";icon="wb_twilight";}else if(phase>=.29&&phase<.72){label="Giorno";icon="light_mode";}else if(phase>=.72&&phase<.84){label="Tramonto";icon="wb_twilight";}
  $("sky-icon").textContent=icon;$("sky-label").textContent=label;$("sky-time").textContent=phase<.17||phase>=.84?"Ore notturne":phase<.29?"Prime luci":phase<.72?"Luce diurna":"Ultima luce";
  const pct=Math.round(phase*100);$("day-progress-label").textContent=pct+"%";$("day-progress-bar").style.width=pct+"%";
