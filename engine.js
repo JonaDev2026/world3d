@@ -60,7 +60,7 @@ function inventPlaceName(s,language=s.language){
  const consonants=language?.consonants||["k","m","t","s","r","n","l","v","d","g"];
  const vowels=language?.vowels||["a","e","i","o","u"];
  const codas=language?.codas||["n","r","l","s","m"];
- const used=new Set([...s.settlements.map(x=>x.name),...(s.neighbors||[]).map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name)].filter(Boolean));
+ const used=new Set([...s.settlements.map(x=>x.name),...(s.neighbors||[]).map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name),s.civilizationName].filter(Boolean));
  for(let attempt=0;attempt<24;attempt++){
   let word="",count=2+Math.floor(random(s)*2);
   for(let i=0;i<count;i++){
@@ -238,13 +238,30 @@ function updateNamedRoutes(s){
   if(!route.name&&a.name&&b.name){route.name=inventPlaceName(s);addEvent(s,"Nasce una strada tra gli insediamenti","La via che collega "+a.name+" e "+b.name+" riceve un nome condiviso: «"+route.name+"».","exploration");}
  }
 }
+export function evolveCivilizationName(s){
+ if(!s?.civilizationName)return false;
+ const previous=s.civilizationName;
+ let next=inventPlaceName(s);
+ if(next===previous)next=inventPlaceName(s);
+ if(next===previous)return false;
+ if(!Array.isArray(s.civilizationNameHistory))s.civilizationNameHistory=[{name:previous,fromYear:0,toYear:null}];
+ const current=[...s.civilizationNameHistory].reverse().find(entry=>entry.toYear==null);
+ if(current)current.toYear=s.year;
+ s.civilizationName=next;
+ s.civilizationNameHistory.push({name:next,fromYear:s.year,toYear:null});
+ s.lastCivilizationNameYear=s.year;
+ addEvent(s,"La comunità cambia nome","Dopo una trasformazione della lingua e delle tradizioni, gli abitanti adottano un nuovo nome per la propria identità: «"+next+"». Il nome precedente resta nella memoria storica.","culture");
+ return true;
+}
 function yearBoundary(s){
  const people=living(s),n=people.length;
  s.year++;s.day=1;
  if(!s.language)s.language={consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false};
+ if(!Array.isArray(s.civilizationNameHistory))s.civilizationNameHistory=s.civilizationName?[{name:s.civilizationName,fromYear:0,toYear:null}]:[];
  const home=s.settlements[0];
  if(home&&!home.name&&n>=24&&s.year>=1){home.name=inventPlaceName(s);addEvent(s,"La comunità dà un nome al proprio luogo","Dopo generazioni di racconti e riferimenti condivisi, gli abitanti scelgono una parola della propria lingua per indicare il luogo in cui vivono: «"+home.name+"».","culture");}
- if(!s.civilizationName&&n>=45&&s.year>=2){s.civilizationName=inventPlaceName(s);addEvent(s,"Nasce un’identità culturale condivisa","La comunità adotta un nome per riconoscere la propria lingua, memoria e tradizione: «"+s.civilizationName+"».","culture");}
+ if(!s.civilizationName&&n>=45&&s.year>=2){s.civilizationName=inventPlaceName(s);s.civilizationNameHistory=[{name:s.civilizationName,fromYear:s.year,toYear:null}];s.lastCivilizationNameYear=s.year;addEvent(s,"Nasce un’identità culturale condivisa","La comunità adotta un nome per riconoscere la propria lingua, memoria e tradizione: «"+s.civilizationName+"».","culture");}
+  if(s.civilizationName&&s.year>=150&&s.year%150===0&&s.lastCivilizationNameYear!==s.year)evolveCivilizationName(s);
  for(const st of s.settlements)if(!st.name&&(st.population||0)>=8&&s.year>=(st.foundingYear||0)+1){st.name=inventPlaceName(s);addEvent(s,"Un nuovo luogo riceve un nome","Le famiglie dell’insediamento scelgono nella propria lingua un nome per il luogo che hanno colonizzato: «"+st.name+"».","culture");}
  if(!s.nationName&&n>=140&&s.settlements.length>=2){s.nationName=inventPlaceName(s);s.nationType=s.institutions.includes("Assemblea dei villaggi")?"Confederazione":s.technology.includes("Amministrazione scritta")?"Stato amministrato":"Unione territoriale";for(const st of s.settlements)st.nationId=1;addEvent(s,"Nasce una nuova entità politica","Gli insediamenti riconoscono un nome comune e istituiscono un’autorità territoriale: «"+s.nationName+"».","politics");}
  for(const feature of s.geography?.features||[]){if(feature.discovered||!s.settlements.some(st=>Math.hypot(st.x-feature.x,st.y-feature.y)<17))continue;feature.discovered=true;if(n>=24&&s.year>=1){feature.name=inventPlaceName(s);const title=feature.type==="lago"?"Viene nominato un lago":feature.type==="fiume"?"Viene nominato un corso d’acqua":feature.type==="continente"?"Un continente riceve un nome":"Viene nominato un mare";addEvent(s,title,"Gli abitanti adottano il nome «"+feature.name+"» per questo elemento geografico, entrato nella loro conoscenza del mondo.","exploration");}}
