@@ -51,7 +51,10 @@ function generateGeography(seed){
  const features=[];
  for(const l of lakes)features.push({id:features.length+1,type:"lago",x:l.x,y:l.y,name:null,discovered:false});
  for(let i=0;i<Math.min(2,rivers.length);i++){const p=rivers[i][Math.floor(rivers[i].length*.58)];features.push({id:features.length+1,type:"fiume",x:p[0],y:p[1],name:null,discovered:false});}
- return {mapVersion:2,width,height,tileKm:5,terrain,features,explored:[]};
+ const nearest=(x,y,water)=>{let best=null,distance=Infinity;for(let yy=1;yy<height-1;yy++)for(let xx=1;xx<width-1;xx++){if((terrain[at(xx,yy)]===0)!==water)continue;const d=Math.hypot(xx-x,yy-y);if(d<distance){distance=d;best={x:xx,y:yy};}}return best;};
+ for(const [x,y] of [[64,44],[22,17],[9,43],[108,18],[111,68],[23,78]]){const p=nearest(x,y,false);if(p&&!features.some(f=>f.type==="continente"&&Math.hypot(f.x-p.x,f.y-p.y)<12))features.push({id:features.length+1,type:"continente",x:p.x,y:p.y,name:null,discovered:false});}
+ for(const [x,y] of [[47,13],[91,42],[65,75]]){const p=nearest(x,y,true);if(p&&!features.some(f=>f.type==="mare"&&Math.hypot(f.x-p.x,f.y-p.y)<10))features.push({id:features.length+1,type:"mare",x:p.x,y:p.y,name:null,discovered:false});}
+ return {mapVersion:3,width,height,tileKm:5,terrain,features,explored:[]};
 }
 function inventPlaceName(s,language=s.language){
  const consonants=language?.consonants||["k","m","t","s","r","n","l","v","d","g"];
@@ -92,7 +95,7 @@ export function createWorld(start={}){
  const geoSeed=Number.isFinite(start.latitude)&&Number.isFinite(start.longitude)?((Math.round((start.latitude+90)*100003)^Math.round((start.longitude+180)*10007)^9041987)>>>0):9041987;
  const geography=generateGeography(geoSeed);
  if([1,2,3,4,7].includes(start.terrainCode))geography.terrain[43*geography.width+62]=start.terrainCode;
- const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
+ const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,routes:[],civilizationName:null,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
  for(const neighbor of s.neighbors)Object.assign(neighbor,nearbyCoordinates(s.settlements[0],neighbor.x,neighbor.y));
  const names=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const surnames=["della Riva","delle Selci","del Salice","della Valle","del Guado","della Quercia"];
@@ -224,15 +227,28 @@ function updateLeadership(s){
   }
  }
 }
+function updateNamedRoutes(s){
+ if(!Array.isArray(s.routes))s.routes=[];
+ const enabled=s.technology.includes("Ruota")||s.technology.includes("Strade")||s.technology.includes("Scambi tra insediamenti");
+ if(!enabled||s.settlements.length<2)return;
+ for(let i=0;i<s.settlements.length;i++)for(let j=i+1;j<s.settlements.length;j++){
+  const a=s.settlements[i],b=s.settlements[j];if(Math.hypot(a.x-b.x,a.y-b.y)>48)continue;
+  let route=s.routes.find(r=>r.from===a.id&&r.to===b.id);
+  if(!route){route={id:s.routes.length+1,from:a.id,to:b.id,name:null};s.routes.push(route);}
+  if(!route.name&&a.name&&b.name){route.name=inventPlaceName(s);addEvent(s,"Nasce una strada tra gli insediamenti","La via che collega "+a.name+" e "+b.name+" riceve un nome condiviso: «"+route.name+"».","exploration");}
+ }
+}
 function yearBoundary(s){
  const people=living(s),n=people.length;
  s.year++;s.day=1;
  if(!s.language)s.language={consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false};
  const home=s.settlements[0];
  if(home&&!home.name&&n>=24&&s.year>=1){home.name=inventPlaceName(s);addEvent(s,"La comunità dà un nome al proprio luogo","Dopo generazioni di racconti e riferimenti condivisi, gli abitanti scelgono una parola della propria lingua per indicare il luogo in cui vivono: «"+home.name+"».","culture");}
+ if(!s.civilizationName&&n>=45&&s.year>=2){s.civilizationName=inventPlaceName(s);addEvent(s,"Nasce un’identità culturale condivisa","La comunità adotta un nome per riconoscere la propria lingua, memoria e tradizione: «"+s.civilizationName+"».","culture");}
  for(const st of s.settlements)if(!st.name&&(st.population||0)>=8&&s.year>=(st.foundingYear||0)+1){st.name=inventPlaceName(s);addEvent(s,"Un nuovo luogo riceve un nome","Le famiglie dell’insediamento scelgono nella propria lingua un nome per il luogo che hanno colonizzato: «"+st.name+"».","culture");}
  if(!s.nationName&&n>=140&&s.settlements.length>=2){s.nationName=inventPlaceName(s);s.nationType=s.institutions.includes("Assemblea dei villaggi")?"Confederazione":s.technology.includes("Amministrazione scritta")?"Stato amministrato":"Unione territoriale";for(const st of s.settlements)st.nationId=1;addEvent(s,"Nasce una nuova entità politica","Gli insediamenti riconoscono un nome comune e istituiscono un’autorità territoriale: «"+s.nationName+"».","politics");}
- for(const feature of s.geography?.features||[]){if(feature.discovered||!s.settlements.some(st=>Math.hypot(st.x-feature.x,st.y-feature.y)<17))continue;feature.discovered=true;if(n>=24&&s.year>=1){feature.name=inventPlaceName(s);addEvent(s,feature.type==="lago"?"Viene nominato un lago":"Viene nominato un corso d’acqua","Gli abitanti adottano il nome «"+feature.name+"» per questo elemento del territorio, entrato nella loro esperienza quotidiana.","exploration");}}
+ for(const feature of s.geography?.features||[]){if(feature.discovered||!s.settlements.some(st=>Math.hypot(st.x-feature.x,st.y-feature.y)<17))continue;feature.discovered=true;if(n>=24&&s.year>=1){feature.name=inventPlaceName(s);const title=feature.type==="lago"?"Viene nominato un lago":feature.type==="fiume"?"Viene nominato un corso d’acqua":feature.type==="continente"?"Un continente riceve un nome":"Viene nominato un mare";addEvent(s,title,"Gli abitanti adottano il nome «"+feature.name+"» per questo elemento geografico, entrato nella loro conoscenza del mondo.","exploration");}}
+ updateNamedRoutes(s);
  if(!s.climate)s.climate={type:"normale",days:0,severity:0};
  if(s.climate.days<=0){
   const roll=random(s);
@@ -518,7 +534,7 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length,roleCounts=Object.create(null);for(const p of people)if(p.age>=15&&p.age<65)roleCounts[p.role]=(roleCounts[p.role]||0)+1;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:(()=>{const p=people.find(person=>person.id===s.leadership?.personId);return p?{id:p.id,name:p.name,family:p.family}:null;})(),social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:Object.values(roleCounts).reduce((a,b)=>a+b,0),roles:Object.fromEntries(["agricoltore","raccoglitore","cacciatore","artigiano","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].map(role=>[role,roleCounts[role]||0])),technology:s.technology,events:s.events.slice(-80).reverse(),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,nationName:s.nationName,nationType:s.nationType,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,geographicFeatures:s.geography?.features||[],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.stats.deaths||s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:(()=>{const p=people.find(person=>person.id===s.leadership?.personId);return p?{id:p.id,name:p.name,family:p.family}:null;})(),social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:Object.values(roleCounts).reduce((a,b)=>a+b,0),roles:Object.fromEntries(["agricoltore","raccoglitore","cacciatore","artigiano","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].map(role=>[role,roleCounts[role]||0])),technology:s.technology,events:s.events.slice(-80).reverse(),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,nationName:s.nationName,nationType:s.nationType,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,civilizationName:s.civilizationName,nationName:s.nationName,routes:s.routes||[],geographicFeatures:s.geography?.features||[],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.stats.deaths||s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||![1,2,VERSION].includes(s.version)||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
@@ -552,6 +568,8 @@ export function validateWorld(s){
  for(const id of neededAncestors)if(s.familyArchive[id])compactArchive[id]=s.familyArchive[id];
  s.familyArchive=compactArchive;
  if(!s.nationName)s.nationName=null;
+  if(!s.civilizationName)s.civilizationName=null;
+  if(!Array.isArray(s.routes))s.routes=[];
  if(!s.nationType)s.nationType=null;
  for(const g of s.neighbors){if(g.allied===undefined)g.allied=false;if(!Number.isFinite(g.truceUntil))g.truceUntil=0;}
  if(!s.social)s.social={inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:living(s).length,agiati:0,"élite":0},medianWealth:0};
