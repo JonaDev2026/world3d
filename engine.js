@@ -56,21 +56,16 @@ function generateGeography(seed){
  for(const [x,y] of [[47,13],[91,42],[65,75]]){const p=nearest(x,y,true);if(p&&!features.some(f=>f.type==="mare"&&Math.hypot(f.x-p.x,f.y-p.y)<10))features.push({id:features.length+1,type:"mare",x:p.x,y:p.y,name:null,discovered:false});}
  return {mapVersion:3,width,height,tileKm:5,terrain,features,explored:[]};
 }
-function inventPlaceName(s,language=s.language){
- const consonants=language?.consonants||["k","m","t","s","r","n","l","v","d","g"];
- const vowels=language?.vowels||["a","e","i","o","u"];
- const codas=language?.codas||["n","r","l","s","m"];
- const used=new Set([...s.settlements.map(x=>x.name),...(s.neighbors||[]).map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name),s.civilizationName].filter(Boolean));
- for(let attempt=0;attempt<24;attempt++){
-  let word="",count=2+Math.floor(random(s)*2);
-  for(let i=0;i<count;i++){
-   word+=pick(s,consonants)+pick(s,vowels);
-   if(random(s)<.3)word+=pick(s,codas);
-  }
-  const candidate=word.charAt(0).toUpperCase()+word.slice(1);
-  if(!used.has(candidate))return candidate;
+function inventPlaceName(s){
+ const used=new Set([...s.settlements.map(x=>x.name),...(s.neighbors||[]).map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name),s.civilizationName].filter(Boolean).map(x=>String(x).toLocaleLowerCase()));
+ const words=Array.isArray(s.nameWords)?s.nameWords:[];
+ for(let attempt=0;attempt<100;attempt++){
+  if(!words.length)break;
+  const first=pick(s,words),second=random(s)<.18?pick(s,words):"";
+  const candidate=(first+second).replace(/^\\p{L}/u,letter=>letter.toLocaleUpperCase());
+  if(candidate.length>=4&&!used.has(candidate.toLocaleLowerCase()))return candidate;
  }
- return "Lu"+String(s.nextNameId++);
+ return "Luogo"+String(s.nextNameId++);
 }
 function neighborLanguage(id){
  const sets=[
@@ -97,7 +92,7 @@ export function createWorld(start={}){
  if([1,2,3,4,7].includes(start.terrainCode))geography.terrain[43*geography.width+62]=start.terrainCode;
  const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,routes:[],civilizationName:null,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
  for(const neighbor of s.neighbors)Object.assign(neighbor,nearbyCoordinates(s.settlements[0],neighbor.x,neighbor.y));
- const names=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
+ const names=Array.isArray(s.personalNames)&&s.personalNames.length?s.personalNames:["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const surnames=["della Riva","delle Selci","del Salice","della Valle","del Guado","della Quercia"];
  for(let i=0;i<24;i++){s.population.push({id:i+1,name:names[i],family:pick(s,surnames),age:Math.floor(8+random(s)*43),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",settlementId:1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
  addEvent(s,"La comunità si stabilisce","Ventiquattro persone scelgono un luogo vicino all’acqua. Il territorio non ha ancora un nome condiviso.","society");
@@ -131,7 +126,7 @@ function killPerson(s,p){
  p.alive=false;p.deathYear=s.year;s.deadCount=(s.deadCount||0)+1;
 }
 function addPerson(s,parents=[]){
- const first=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara","Evan","Sela","Rian","Talia"];
+ const first=Array.isArray(s.personalNames)&&s.personalNames.length?s.personalNames:["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara","Evan","Sela","Rian","Talia"];
  const p1=s.population.find(p=>p.id===parents[0]),p2=s.population.find(p=>p.id===parents[1]);
  const surname=p1?.family||p2?.family||"della Valle";
  const person={id:s.nextPersonId++,name:pick(s,first),family:surname,age:0,sex:random(s)<.5?"F":"M",alive:true,health:90+random(s)*10,skill:.2+random(s)*.4,wealth:0,partner:null,parents,children:[],role:"bambino",settlementId:p1?.settlementId||p2?.settlementId||1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}};
