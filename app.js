@@ -140,7 +140,7 @@ function render(s){
  const foodPct=Math.min(100,Math.round(s.food/Math.max(1,s.population*12)*100));
  for(const [name,val] of [["health",s.health],["cohesion",s.cohesion],["food",foodPct],["order",s.order]]){$(name+"-value").textContent=val+"%";$(name+"-bar").style.width=val+"%";}
  $("knowledge-value").textContent=fmt(s.knowledge);$("knowledge-bar").style.width=Math.min(100,s.knowledge/100)+"%";
- $("polity").textContent=s.polity;$("belief").textContent=s.religion;$("climate").textContent=s.climate?.type!=="normale"?(s.climate.type+" · "+s.climate.days+" giorni"):"Stagione regolare";
+ $("polity").textContent=s.polity;$("belief").textContent=s.religion;const localWeather=s.settlement?.localClimate,humidityLabel=localWeather?(localWeather.humidity>.68?"microclima umido":localWeather.humidity<.3?"microclima arido":"microclima temperato"):"microclima in osservazione";$("climate").textContent=(s.climate?.type!=="normale"?(s.climate.type+" · "+s.climate.days+" giorni"):"Stagione regolare")+" · "+humidityLabel;
  $("relations").textContent=s.relations.length?s.relations.join(", "):"Nessun contatto esterno";
  $("laws").textContent=s.laws;$("economy").textContent=s.economy;$("tech-list").textContent=s.technology.join(" · ");
  $("workers").textContent=fmt(s.workers);$("births").textContent=fmt(s.stats.births);$("deaths").textContent=fmt(s.stats.deaths);$("crimes").textContent=fmt(s.stats.crimes);$("wars").textContent=fmt(s.stats.wars);$("epidemics").textContent=fmt(s.stats.epidemics);
@@ -163,6 +163,7 @@ function updateAtmosphere(s){
  let weather="Tempo mite",weatherIcon="partly_cloudy_day",detail=season+" · condizioni regolari";
  if(climate.days>0){if(climate.type==="siccità"){weather="Siccità";weatherIcon="wb_sunny";detail="Scarsità di pioggia · "+climate.days+" giorni";}else if(climate.type==="alluvione"){weather="Piogge intense";weatherIcon="rainy";detail="Piena e terreni saturi · "+climate.days+" giorni";}else if(climate.type==="inverno rigido"){weather="Freddo intenso";weatherIcon="ac_unit";detail="Inverno anomalo · "+climate.days+" giorni";}}
  else if(season==="Estate"){weather="Sereno";weatherIcon="sunny";}else if(season==="Autunno"){weather="Variabile";weatherIcon="cloud";}else if(season==="Inverno"){weather="Freddo stagionale";weatherIcon="cloudy_snowing";}
+ const local=s.settlement?.localClimate;if(local)detail+=" · "+(local.humidity>.68?"umidità elevata":local.humidity<.3?"aria secca":"umidità moderata");
  $("weather-icon").textContent=weatherIcon;$("weather-label").textContent=weather;$("season-label").textContent=detail;
  const phase=(elapsedMs%60000)/60000;let label="Notte",icon="dark_mode";
  if(phase>=.17&&phase<.29){label="Alba";icon="wb_twilight";}else if(phase>=.29&&phase<.72){label="Giorno";icon="light_mode";}else if(phase>=.72&&phase<.84){label="Tramonto";icon="wb_twilight";}
