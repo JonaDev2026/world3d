@@ -1,3 +1,4 @@
+import {cellAt} from "./planet.js";
 export const VERSION = 3;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|0;return (x>>>0)/4294967296}
@@ -19,8 +20,37 @@ function areCloseKin(a,b,byId,archive={}){
 function nearbyCoordinates(origin,x,y){const lat=Math.max(-84,Math.min(84,(Number(origin.latitude)||0)-(y-origin.y)*.18));const lon=((Number(origin.longitude||0)+(x-origin.x)*.18/Math.max(.18,Math.cos(lat*Math.PI/180))+540)%360)-180;return {latitude:lat,longitude:lon};}
 function haversine(a,b){const r=Math.PI/180,d1=(b.latitude-a.latitude)*r,d2=(b.longitude-a.longitude)*r,q=Math.sin(d1/2)**2+Math.cos(a.latitude*r)*Math.cos(b.latitude*r)*Math.sin(d2/2)**2;return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));}
 function hashNoise(x,y,seed){const n=Math.sin(x*127.1+y*311.7+seed*74.7)*43758.5453;return (n-Math.floor(n))*2-1;}
-function generateGeography(seed){
+export function generateGeography(seed,planet=null,origin={}){
  const width=128,height=88,heights=new Array(width*height),terrain=new Array(width*height),at=(x,y)=>y*width+x;
+ if(planet?.alt&&planet?.terrain){
+  const originLat=Number.isFinite(origin.latitude)?origin.latitude:0,originLon=Number.isFinite(origin.longitude)?origin.longitude:0;
+  for(let y=0;y<height;y++){
+   const lat=Math.max(-84,Math.min(84,originLat-(y-43)*.18));
+   for(let x=0;x<width;x++){
+    const lon=((originLon+(x-62)*.18/Math.max(.18,Math.cos(lat*Math.PI/180))+540)%360)-180,c=cellAt(planet,lat,lon),i=at(x,y);
+    terrain[i]=planet.terrain[c];heights[i]=planet.alt[c];
+   }
+  }
+  const features=[],seen=new Uint8Array(width*height);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+   const i=at(x,y);if(seen[i]||terrain[i]!==5)continue;
+   const stack=[i];seen[i]=1;let sx=0,sy=0,n=0;
+   while(stack.length){const q=stack.pop(),qx=q%width,qy=(q-qx)/width;sx+=qx;sy+=qy;n++;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const xx=qx+dx,yy=qy+dy;if(xx<0||yy<0||xx>=width||yy>=height)continue;const k=at(xx,yy);if(!seen[k]&&terrain[k]===5){seen[k]=1;stack.push(k);}}
+   }
+   if(n>=2)features.push({id:features.length+1,type:"lago",x:Math.round(sx/n),y:Math.round(sy/n),name:null,discovered:false});
+  }
+  seen.fill(0);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+   const i=at(x,y);if(seen[i]||terrain[i]!==6)continue;
+   const stack=[i];seen[i]=1;let sx=0,sy=0,n=0;
+   while(stack.length){const q=stack.pop(),qx=q%width,qy=(q-qx)/width;sx+=qx;sy+=qy;n++;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const xx=qx+dx,yy=qy+dy;if(xx<0||yy<0||xx>=width||yy>=height)continue;const k=at(xx,yy);if(!seen[k]&&terrain[k]===6){seen[k]=1;stack.push(k);}}
+   }
+   if(n>=4)features.push({id:features.length+1,type:"fiume",x:Math.round(sx/n),y:Math.round(sy/n),name:null,discovered:false});
+  }
+  return {mapVersion:2,width,height,tileKm:5,terrain,heights,features,explored:[]};
+ }
  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
   const nx=(x-width*.5)/(width*.49),ny=(y-height*.5)/(height*.49);
   const main=1-Math.pow((x-64)/43,2)-Math.pow((y-44)/31,2);
@@ -71,10 +101,11 @@ function findColonizationSite(s,origin){
  candidates.sort((a,b)=>b.score-a.score);return candidates[0]||null;
 }
 export function createWorld(start={}){
- const geoSeed=Number.isFinite(start.latitude)&&Number.isFinite(start.longitude)?((Math.round((start.latitude+90)*100003)^Math.round((start.longitude+180)*10007)^9041987)>>>0):9041987;
- const geography=generateGeography(geoSeed);
+ const startLatitude=Number.isFinite(start.latitude)?clamp(start.latitude,-84,84):0,startLongitude=Number.isFinite(start.longitude)?((start.longitude+540)%360)-180:0;
+ const geoSeed=((Math.round((startLatitude+90)*100003)^Math.round((startLongitude+180)*10007)^9041987)>>>0);
+ const geography=generateGeography(geoSeed,start.planet||null,{...start,latitude:startLatitude,longitude:startLongitude});
  if([1,2,3,4,7].includes(start.terrainCode))geography.terrain[43*geography.width+62]=start.terrainCode;
- const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
+ const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:startLatitude,longitude:startLongitude,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},planet:start.planet||null,geography,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
  for(const neighbor of s.neighbors)Object.assign(neighbor,nearbyCoordinates(s.settlements[0],neighbor.x,neighbor.y));
  const names=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const surnames=["della Riva","delle Selci","del Salice","della Valle","del Guado","della Quercia"];
