@@ -1,5 +1,6 @@
 import {createWorld,advance,summary,validateWorld} from "./engine.js";
-import * as maplibregl from "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js";
+const maplibregl = window.maplibregl;
+if (!maplibregl?.Map) throw new Error("MapLibre GL JS non è stato caricato correttamente.");
 const $=id=>document.getElementById(id),DB="anno-zero-world",STORE="state";
 let world,paused=false,speed=1,worker=null,workerReady=false,latestSummary=null,busy=false,lastSaved=0,eventsSeen=-1,elapsedMs=0,worldMap=null,startMap=null,startMarker=null,chosenStart=null,mapMode="geografia";
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
