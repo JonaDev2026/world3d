@@ -85,6 +85,7 @@ function addEvent(s,title,description,type="society"){
 }
 function living(s){return s.population.filter(alive)}
 function prunePopulation(s){
+ if(s.population.length<=15000&&(s.deadCount||0)<=4000)return;
  const alivePeople=s.population.filter(p=>p.alive),deadCount=s.population.length-alivePeople.length;
  if(deadCount<=4000&&s.population.length<=15000)return;
  const byId=new Map(s.population.map(p=>[p.id,p])),needed=new Set(alivePeople.flatMap(p=>p.parents||[])),archive={};
@@ -95,6 +96,7 @@ function prunePopulation(s){
  }
  s.population=alivePeople;
  s.familyArchive=archive;
+ s.deadCount=0;
  s.archivedDeaths=(s.archivedDeaths||0)+deadCount;
 }
 function killPerson(s,p){
@@ -102,7 +104,7 @@ function killPerson(s,p){
  const ids=new Set([...(p.children||[]),p.partner].filter(Boolean));
  const heirs=s.population.filter(q=>q.alive&&q.id!==p.id&&ids.has(q.id));
  if(heirs.length&&p.wealth>0){const share=p.wealth/heirs.length;for(const heir of heirs)heir.wealth=(Number(heir.wealth)||0)+share;p.wealth=0;}
- p.alive=false;p.deathYear=s.year;
+ p.alive=false;p.deathYear=s.year;s.deadCount=(s.deadCount||0)+1;
 }
 function addPerson(s,parents=[]){
  const first=["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara","Evan","Sela","Rian","Talia"];
@@ -518,6 +520,7 @@ export function validateWorld(s){
  for(const st of s.settlements){if(st.name==="Valle del Primo Fiume"||st.name==="Nuovo Guado")st.name=null;if(!Number.isFinite(st.foundingYear))st.foundingYear=s.year||0;}
  for(const g of s.neighbors||[])if(g.name==="Gente della Quercia"||g.name==="Clan delle Colline")g.name=null;
  s.version=VERSION;
+ if(!Number.isFinite(s.deadCount))s.deadCount=s.population.reduce((count,p)=>count+(p.alive?0:1),0);
  if(!s.disease)s.disease={active:false,strain:0,days:0};
  for(const p of s.population){if(!Number.isFinite(p.pregnancyDays))p.pregnancyDays=0;if(!Number.isFinite(p.infectionDays))p.infectionDays=0;if(!Number.isFinite(p.immunityDays))p.immunityDays=0;}
  for(const st of s.settlements)if(!Number.isFinite(st.stores))st.stores=st.population?Math.max(0,s.food*st.population/Math.max(1,living(s).length)):0;
