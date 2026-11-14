@@ -339,13 +339,14 @@ function daily(s){
  for(const g of s.neighbors){
   const gx=Math.round(g.x),gy=Math.round(g.y),terrainCode=s.geography?.terrain?.[gy*s.geography.width+gx]??1;
   const fertility=terrainCode===1||terrainCode===6?1.09:terrainCode===2?1.04:terrainCode===4||terrainCode===7?.82:1;
-  const productivity=.105*fertility+Math.min(.035,g.technology*.00002);
-  const growth=g.food>g.population*5?.00003:g.food<g.population*2?-.00016:-.000025;
+  const productivity=.112*fertility+Math.min(.035,g.technology*.00002),need=g.population*.105;
+  const growth=g.food>g.population*9?.00012:g.food<g.population*2?-.00032:-.00004;
   g.population=Math.max(3,Math.round(g.population+g.population*growth+(random(s)<.0006?1:0)));
-  g.food=clamp(g.food+g.population*(productivity-.105),0,Math.max(240,g.population*45));
+  g.food=clamp(g.food+g.population*productivity-need,0,Math.max(240,g.population*45));
+  if(g.food>g.population*18&&random(s)<.000025){const direction=pick(s,[[1,0],[-1,0],[0,1],[0,-1]]),nx=clamp(g.x+direction[0]*3,2,s.geography.width-3),ny=clamp(g.y+direction[1]*3,2,s.geography.height-3),code=s.geography.terrain[Math.round(ny)*s.geography.width+Math.round(nx)];if(code!==0&&code!==4&&code!==5&&code!==6){g.x=nx;g.y=ny;g.knownArea=(g.knownArea||4)+1;}}
   g.technology+=g.population*.00008;
   const routeDistance=Number.isFinite(g.latitude)&&Number.isFinite(g.longitude)&&Number.isFinite(sett.latitude)&&Number.isFinite(sett.longitude)?haversine(g,sett):Math.hypot(g.x-sett.x,g.y-sett.y)*20;
-  const proximity=Math.max(.15,1-routeDistance/5000);
+  const proximity=Math.max(.05,1-routeDistance/5000),territorialPressure=Math.max(0,1-routeDistance/900);
   if(!g.discovered&&n>28&&random(s)<.00011*proximity){g.discovered=true;if(!g.name)g.name=inventPlaceName(s);s.stats.discoveries++;addEvent(s,"Primo incontro con "+g.name,"Esploratori incontrano una comunità indipendente oltre la valle. Le due società hanno lingue e consuetudini differenti.","diplomacy");}
   if(g.discovered){
    if(random(s)<.00018*proximity){g.hostility=clamp(g.hostility+(s.food<n*3?6:3),0,100);addEvent(s,"Tensione al confine","Un incidente tra membri delle due comunità peggiora i rapporti con "+g.name+".","diplomacy");}
@@ -357,7 +358,7 @@ function daily(s){
     s.knowledge+=1+g.technology*.025;g.technology+=.025;g.hostility=clamp(g.hostility-(g.allied?2:1),0,100);
     addEvent(s,g.allied?"Scambio tra alleati":"Si apre una rotta commerciale",g.name+" e la comunità scambiano conoscenze e beni"+(shipment?" per "+Math.abs(shipment)+" unità di provviste":"")+". I contatti rendono più familiari usi e tecniche differenti.","diplomacy");
    }
-   if(!g.atWar&&!g.allied&&s.year>=(g.truceUntil||0)&&n>70&&g.population>25&&g.hostility>45&&random(s)<0.00008*proximity){g.atWar=true;g.warDays=0;s.stats.wars++;addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war");}
+   if(!g.atWar&&!g.allied&&s.year>=(g.truceUntil||0)&&n>70&&g.population>25&&g.hostility>45&&territorialPressure>.12&&random(s)<0.00016*proximity*territorialPressure){g.atWar=true;g.warDays=0;s.stats.wars++;addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war");}
    if(g.atWar){g.warDays++;if(g.warDays%30===0){
     const ownPower=n*0.32+s.order*0.35+s.technology.length*5,enemyPower=g.population*0.42+g.technology*2;
     if(g.warDays===30&&enemyPower>ownPower*1.2){const raid=Math.round(n*1.5);sett.stores=Math.max(0,sett.stores-raid);s.food=Math.max(0,s.food-raid);s.cohesion=clamp(s.cohesion-3,0,100);addEvent(s,"Incursione nella valle",g.name+" supera le difese di confine e saccheggia parte delle riserve. La popolazione si rifugia nell’insediamento principale.","war");}
@@ -427,11 +428,20 @@ function daily(s){
  if(n>70&&random(s)<.000025+(s.social?.inequality||0)*.000035){s.stats.crimes++;s.cohesion=clamp(s.cohesion-.15,0,100);if(s.institutions.includes("Guardia civica"))s.order=clamp(s.order+.02,0,100);if(random(s)<.15)addEvent(s,"Violazione delle norme","Un abitante viene accusato di aver violato una regola della comunità. Il consiglio deve stabilire una risposta.","crime");}
  if(s.institutions.length&&random(s)<.00016){s.order=clamp(s.order-2,0,100);addEvent(s,"Controversia tra famiglie","Una disputa su risorse e responsabilità richiede la mediazione del consiglio.","politics");}
  // A settlement expands when its population and material base can sustain it.
- if(n>65&&sett.kind==="accampamento"){sett.kind="villaggio";sett.homes=18;addEvent(s,"L'accampamento diventa villaggio","Abitazioni più stabili e depositi comuni segnano il passaggio a un insediamento permanente.","settlement");}
- if(n>240&&sett.kind==="villaggio"){sett.kind="centro urbano";sett.homes=70;addEvent(s,"Nasce il primo centro urbano","L'insediamento si espande oltre il nucleo originario. Artigiani, depositi e spazi collettivi diventano permanenti.","settlement");}
+ for(const st of s.settlements){const local=st.population||0;if(local>=24&&st.kind==="accampamento"){st.kind="villaggio";st.homes=Math.max(st.homes||0,Math.ceil(local/3));addEvent(s,"L'accampamento diventa villaggio","Le famiglie costruiscono abitazioni permanenti, depositi e spazi comuni.","settlement");}if(local>=120&&st.kind==="villaggio"){st.kind="centro urbano";st.homes=Math.max(st.homes||0,Math.ceil(local/2.5));addEvent(s,"Nasce un centro urbano","L'insediamento sviluppa quartieri, artigiani e istituzioni permanenti.","settlement");}if(tech.includes("Agricoltura")&&local>=12)st.fields=Math.max(st.fields||0,Math.round(local*.18));if(tech.includes("Irrigazione")&&local>=20)st.fields=Math.max(st.fields||0,Math.round(local*.25));}
  if(n>95&&s.food>n*5&&s.settlements.length<Math.floor(n/85)&&random(s)<.00022){
-  const site=findColonizationSite(s,sett),candidates=people.filter(p=>p.age>=16&&p.settlementId===sett.id);
-  if(site&&candidates.length>=10){const id=s.nextSettlementId++,geo=nearbyCoordinates(sett,site.x,site.y),migrantCount=Math.min(candidates.length,Math.max(10,Math.floor(n*.07))),transfer=Math.min(sett.stores*.2,migrantCount*8),newSite={id,name:null,x:site.x,y:site.y,latitude:geo.latitude,longitude:geo.longitude,kind:"accampamento",homes:8,fields:0,stores:transfer,water:400,knownArea:4,population:0,foundingYear:s.year,nationId:s.nationName?1:null};sett.stores-=transfer;s.settlements.push(newSite);for(let i=0;i<migrantCount;i++){const migrant=pick(s,candidates);migrant.settlementId=id;candidates.splice(candidates.indexOf(migrant),1);}s.stats.migrations++;addEvent(s,"Un gruppo parte per nuove terre","Famiglie e lavoratori lasciano l’insediamento principale e si stabiliscono in un’area scelta per l’acqua e le risorse. Il nuovo luogo non ha ancora un nome.","migration");}
+  const origins=s.settlements.filter(st=>(st.population||0)>=35&&st.stores>(st.population||0)*8);
+  if(origins.length){
+   const origin=pick(s,origins),site=findColonizationSite(s,origin),candidates=people.filter(p=>p.age>=16&&p.settlementId===origin.id);
+   const migrantCount=Math.min(candidates.length,Math.max(8,Math.floor((origin.population||0)*.12)));
+   if(site&&migrantCount>=8){
+    const id=s.nextSettlementId++,geo=nearbyCoordinates(origin,site.x,site.y),transfer=Math.min(origin.stores*.28,migrantCount*9);
+    const newSite={id,name:null,x:site.x,y:site.y,latitude:geo.latitude,longitude:geo.longitude,kind:"accampamento",homes:8,fields:tech.includes("Agricoltura")?Math.max(2,Math.round(migrantCount*.16)):0,stores:transfer,water:400,knownArea:4,population:0,foundingYear:s.year,nationId:s.nationName?1:null,originId:origin.id};
+    origin.stores-=transfer;s.settlements.push(newSite);
+    for(let i=0;i<migrantCount;i++){const migrant=pick(s,candidates);migrant.settlementId=id;candidates.splice(candidates.indexOf(migrant),1);}
+    s.stats.migrations++;addEvent(s,"Un gruppo parte per nuove terre","Famiglie e lavoratori lasciano "+(origin.name||"l'insediamento")+" e fondano una comunità autonoma in un territorio con acqua e risorse proprie.","migration");
+   }
+  }
  }
  const settlementCounts=new Map(s.settlements.map(st=>[st.id,0]));
  for(const p of people){if(!settlementCounts.has(p.settlementId))p.settlementId=sett.id;settlementCounts.set(p.settlementId,(settlementCounts.get(p.settlementId)||0)+1);}
