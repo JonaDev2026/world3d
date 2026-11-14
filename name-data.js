@@ -22,7 +22,7 @@ async function cachedText(key,url){
 }
 function clean(value){return String(value||"").normalize("NFC").trim().replace(/^[^\p{L}]+|[^\p{L}]+$/gu,"");}
 function sampleWords(text,limit,seed){
-  const source=text.split(/[\r\n\t ]+/).map(clean).filter(w=>w.length>=4&&w.length<=13&&/\p{L}/u.test(w)&&!/[0-9_]/.test(w));
+  const source=[...new Set(text.split(/[\r\n\t ]+/).map(clean).filter(w=>w.length>=4&&w.length<=13&&/\p{L}/u.test(w)&&!/[0-9_]/.test(w)).map(w=>w.toLocaleLowerCase()))];
   let state=seed>>>0||1;const next=()=>{state^=state<<13;state^=state>>>17;state^=state<<5;return (state>>>0)/4294967296;};
   const picked=new Set();if(source.length<=limit)return source;
   while(picked.size<limit){picked.add(source[Math.floor(next()*source.length)].toLocaleLowerCase());}
