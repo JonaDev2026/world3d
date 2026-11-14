@@ -31,6 +31,7 @@ test("la popolazione morta viene compattata senza perdere gli antenati dei viven
  world.population.push({id:parentId,alive:false,parents:[],children:[world.population[0].id]});
  world.population[0].parents=[parentId];
  for(let i=0;i<15001;i++)world.population.push({id:world.nextPersonId++,alive:false,parents:[]});
+ world.deadCount=15002;
  advance(world,1);
  assert.ok(world.population.length<100,"i morti non devono restare nell'array attivo");
  assert.deepEqual(world.familyArchive[parentId],[]);
