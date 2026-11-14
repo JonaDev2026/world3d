@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createWorld,advance} from "./engine.js";
+import {createWorld,advance,refreshWorldNames} from "./engine.js";
 
 test("la comunità iniziale comprende adulti e giovani senza anziani",()=>{
  const world=createWorld();
@@ -36,4 +36,22 @@ test("la popolazione morta viene compattata senza perdere gli antenati dei viven
  assert.ok(world.population.length<100,"i morti non devono restare nell'array attivo");
  assert.deepEqual(world.familyArchive[parentId],[]);
  assert.ok(world.archivedDeaths>=15000);
+});
+
+test("i nomi esistenti vengono rigenerati usando parole reali del dizionario",()=>{
+ const world=createWorld();
+ world.year=20;
+ world.nameWords=["fiume","foresta","montagna","valle","pietra","sorgente"];
+ world.settlements[0].name="Ludun";
+ world.civilizationName="Kesti";
+ world.civilizationNameHistory=[{name:"Kesti",fromYear:2,toYear:null}];
+ world.neighbors[0].discovered=true;
+ world.neighbors[0].name="Clan delle Colline";
+ assert.equal(refreshWorldNames(world),true);
+ assert.ok(world.nameWords.includes(world.settlements[0].name.toLocaleLowerCase()));
+ assert.ok(world.nameWords.includes(world.civilizationName.toLocaleLowerCase()));
+ assert.notEqual(world.settlements[0].name,"Ludun");
+ assert.notEqual(world.civilizationName,"Kesti");
+ assert.equal(world.civilizationNameHistory.at(-1).name,world.civilizationName);
+ assert.equal(refreshWorldNames(world),false);
 });
