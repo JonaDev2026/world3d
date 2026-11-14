@@ -22,9 +22,11 @@ async function ensureMapLibre(){
  catch{
   try{await loadMapScript("https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js");}
   catch{
-   const module=await import("https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/+esm");
-   maplibregl=module.default?.Map?module.default:module;
-   return Boolean(maplibregl?.Map);
+   try{
+    const module=await import("https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/+esm");
+    maplibregl=module.default?.Map?module.default:module;
+    return Boolean(maplibregl?.Map);
+   }catch{return false;}
   }
  }
  maplibregl=window.maplibregl;
@@ -178,6 +180,7 @@ function initWorldMap(s){
  if(worldMap||!maplibregl?.Map)return;
  const home=s?.settlements?.[0],center=home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)?[home.longitude,home.latitude]:[0,20];
  worldMap=createMap("map",center,home?3.1:1.5);
+ if(!worldMap)return;
  worldMap.on("load",()=>{if(world)updateSimulationMap(summary(world));});
  document.querySelectorAll("[data-map-mode]").forEach(button=>button.addEventListener("click",()=>{
   mapMode=button.dataset.mapMode;
