@@ -294,9 +294,18 @@ function daily(s){
   const farmShare=role("agricoltore")*.45;
   output=(output-farmShare)+farmShare*fertility*waterAccess;
   if(land===4||land===7)output*=.94;
+  const humidity=clamp((land===2?.72:land===1?.56:land===3?.44:land===7?.18:land===4?.34:.46)+(nearWater<=1?.24:nearWater<=3?.12:0),.08,.98);
+  const floodRisk=nearWater<=1?.82:nearWater<=3?.54:.2,temperature=land===4?-.22:land===7?.16:0;
+  st.localClimate={humidity,floodRisk,temperature};
   output*=1.18;
-  if(climate.days>0){const forecast=tech.includes("Calendario")?.88:1;if(climate.type==="siccità")output*=1-climate.severity*(tech.includes("Irrigazione")?.18:.72)*forecast;else if(climate.type==="alluvione")output*=1-climate.severity*(tech.includes("Irrigazione")?.32:.48)*forecast;else if(climate.type==="inverno rigido")output*=1-climate.severity*.38*forecast;}
-  const need=count*.105,localSurplus=output-need,storageCapacity=Math.max(240,count*45)*(tech.includes("Ceramica")?1.2:1)*(tech.includes("Vetro")?1.08:1);
+  let weatherDemand=1;
+  if(climate.days>0){
+   const forecast=tech.includes("Calendario")?.88:1;
+   if(climate.type==="siccità"){const resistance=tech.includes("Irrigazione")?.18:.72*(1-humidity*.45);output*=1-climate.severity*resistance*forecast;}
+   else if(climate.type==="alluvione"){const damage=tech.includes("Irrigazione")?.16:.22+floodRisk*.32;output*=1-climate.severity*damage*forecast;}
+   else if(climate.type==="inverno rigido"){const cold= .24+Math.max(0,-temperature)*.55;output*=1-climate.severity*cold*forecast;weatherDemand+=climate.severity*(.08+Math.max(0,-temperature)*.08);}
+  }
+  const need=count*.105*weatherDemand,localSurplus=output-need,storageCapacity=Math.max(240,count*45)*(tech.includes("Ceramica")?1.2:1)*(tech.includes("Vetro")?1.08:1);
   st.stores=clamp((Number(st.stores)||0)+localSurplus,0,storageCapacity);
   if(count>0)st.knownArea=Math.min(100000,Math.max(4,Number(st.knownArea)||4)+Math.max(0,count*.00008+(st.fields||0)*.00012+(tech.includes("Ruota")?.0004:0)));
   production+=output;consumption+=need;totalFood+=st.stores;
