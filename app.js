@@ -101,7 +101,7 @@ function applyMapMode(){
  const set=(id,show)=>{if(worldMap.getLayer(id))worldMap.setLayoutProperty(id,"visibility",show?"visible":"none");};
  const modes={
   geografia:["settlement-points","settlement-labels","neighbor-points","neighbor-labels","geographic-feature-points","geographic-feature-labels","route-lines","route-labels","explored-fill","explored-outline"],
-  politica:["territory-fill","territory-outline","territory-labels","settlement-points","settlement-labels","neighbor-points","neighbor-labels","route-lines","route-labels"],
+  politica:["territory-fill","territory-outline","territory-labels","settlement-points","settlement-labels","neighbor-points","neighbor-labels","geographic-feature-points","geographic-feature-labels","route-lines","route-labels"],
   popolazione:["population-points","settlement-labels","neighbor-points","neighbor-labels","route-lines","route-labels"],
   risorse:["resource-points","settlement-labels","neighbor-labels","geographic-feature-points","geographic-feature-labels","route-lines","route-labels"]
  };
