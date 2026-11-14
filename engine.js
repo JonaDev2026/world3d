@@ -3,6 +3,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|0;return (x>>>0)/4294967296}
 const pick=(s,a)=>a[Math.floor(random(s)*a.length)];
 const alive=p=>p.alive;
+const climateAt=(st,day,terrainCode,humidity)=>{const latitude=Number(st.latitude)||0,abs=Math.abs(latitude),hemisphere=latitude<0?-1:1,phase=2*Math.PI*((((day-1)%365)+365)%365)/365,seasonal=Math.sin(phase-Math.PI/2)*hemisphere,altitude=terrainCode===4?8:terrainCode===3?2:0,base=29-abs*.52-altitude,amplitude=2+abs*.22,tempC=base+seasonal*amplitude,zone=abs<10?"equatoriale":abs<23.5?"tropicale":abs<35?"subtropicale":abs<45?"temperata calda":abs<60?"temperata":abs<68?"subpolare":"polare",biome=tempC<0?"tundra e ghiacci":humidity<.23?"deserto":abs<23.5&&humidity>.68?"foresta tropicale":abs<30?"savana":terrainCode===4?"montano":tempC<8?"taiga":humidity>.62?"foresta temperata":humidity<.38?"steppa":"prateria",rainfall=clamp(humidity*(1+Math.max(0,seasonal)*.35)*100,3,180);return {zone,biome,tempC:Math.round(tempC*10)/10,humidity,rainfall:Math.round(rainfall),seasonal};};
 const hasTech=(s,name)=>s.technology.includes(name);
 function areCloseKin(a,b,byId,archive={}){
  const pa=a.parents||[],pb=b.parents||[];
@@ -140,7 +141,7 @@ export function createWorld(start={}){
  const geoSeed=Number.isFinite(start.latitude)&&Number.isFinite(start.longitude)?((Math.round((start.latitude+90)*100003)^Math.round((start.longitude+180)*10007)^9041987)>>>0):9041987;
  const geography=generateGeography(geoSeed);
  if([1,2,3,4,7].includes(start.terrainCode))geography.terrain[43*geography.width+62]=start.terrainCode;
- const s={version:VERSION,day:1,year:0,nameWords:Array.isArray(start.nameWords)?start.nameWords:[],personalNames:Array.isArray(start.personalNames)?start.personalNames:[],familyNames:Array.isArray(start.familyNames)?start.familyNames:[],rng:((geoSeed^Date.now()^Math.floor(Math.random()*4294967296))>>>0)||1,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,routes:[],civilizationName:null,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
+ const s={version:VERSION,day:1,year:0,nameWords:Array.isArray(start.nameWords)?start.nameWords:[],personalNames:Array.isArray(start.personalNames)?start.personalNames:[],familyNames:Array.isArray(start.familyNames)?start.familyNames:[],rng:((geoSeed^Date.now()^Math.floor(Math.random()*4294967296))>>>0)||1,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,routes:[],civilizationName:null,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0,naturalDisasters:0},naturalEvents:[],nextNaturalEventId:1,deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
  for(const neighbor of s.neighbors){const site=nearestLandTile(geography,neighbor.x,neighbor.y);if(site){neighbor.x=site.x;neighbor.y=site.y;}Object.assign(neighbor,nearbyCoordinates(s.settlements[0],neighbor.x,neighbor.y));}
  const names=Array.isArray(s.personalNames)&&s.personalNames.length?s.personalNames:["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const usedGiven=new Set(),usedFamilies=new Set();
@@ -150,7 +151,45 @@ export function createWorld(start={}){
 }
 function addEvent(s,title,description,type="society"){
  const e={id:s.nextEventId++,year:s.year,day:s.day,title,description,type};
- s.events.push(e);if(s.events.length>500)s.events.splice(0,s.events.length-500);
+ s.events.push(e);if(s.events.length>500)s.events.splice(0,s.events.length-500);return e;
+}
+const tectonicBelts=[[-38,-75],[-20,-70],[0,-78],[18,-102],[38,-122],[55,-160],[36,140],[0,125],[-8,155],[-40,175],[38,28],[42,75]];
+function eventCoordinates(s,type){
+ const belt=tectonicBelts[Math.floor(random(s)*tectonicBelts.length)],jitter=(random(s)-.5)*18;
+ if(type==="terremoto"||type==="eruzione vulcanica")return {latitude:clamp(belt[0]+jitter,-65,70),longitude:((belt[1]+(random(s)-.5)*24+540)%360)-180};
+ if(type==="tifone"||type==="tsunami")return {latitude:(random(s)<.5?1:-1)*(8+random(s)*20),longitude:random(s)*360-180};
+ if(type==="alluvione"||type==="incendio boschivo"||type==="ondata di calore")return {latitude:random(s)*110-55,longitude:random(s)*360-180};
+ return {latitude:(random(s)<.5?1:-1)*(48+random(s)*35),longitude:random(s)*360-180};
+}
+function naturalHazardsDaily(s){
+ if(!Array.isArray(s.naturalEvents))s.naturalEvents=[];
+ for(const event of s.naturalEvents)if(event.active&&event.daysRemaining>0){event.daysRemaining--;if(event.daysRemaining<=0)event.active=false;}
+ const roll=random(s);let type=null;
+ if(roll<.000075)type="terremoto";
+ else if(roll<.000092)type="eruzione vulcanica";
+ else if(roll<.00012)type="tifone";
+ else if(roll<.000145)type="alluvione";
+ else if(roll<.00017)type="incendio boschivo";
+ else if(roll<.000184)type="tsunami";
+ else if(roll<.00022)type="ondata di calore";
+ else if(roll<.00024)type="bufera di neve";
+ if(!type)return;
+ const location=eventCoordinates(s,type),severity=.35+random(s)*.6,duration=type==="eruzione vulcanica"?20+Math.floor(random(s)*100):type==="tifone"?3+Math.floor(random(s)*8):type==="incendio boschivo"?5+Math.floor(random(s)*20):type==="ondata di calore"?5+Math.floor(random(s)*18):type==="bufera di neve"?2+Math.floor(random(s)*8):1;
+ const event={id:s.nextNaturalEventId++,type,latitude:location.latitude,longitude:location.longitude,year:s.year,day:s.day,severity,daysRemaining:duration,active:true};
+ s.naturalEvents.push(event);if(s.naturalEvents.length>160)s.naturalEvents.splice(0,s.naturalEvents.length-160);
+ const radius=type==="terremoto"?350:type==="eruzione vulcanica"?180:type==="tifone"?500:type==="tsunami"?250:type==="alluvione"?160:type==="incendio boschivo"?90:220;
+ const affected=s.settlements.filter(st=>haversine(st,location)<=radius);
+ for(const st of affected){const impact=severity*(1-haversine(st,location)/radius);
+  if(type==="terremoto"){st.stores=Math.max(0,(st.stores||0)*(1-impact*.28));st.homes=Math.max(0,(st.homes||0)*(1-impact*.2));}
+  else if(type==="eruzione vulcanica"||type==="incendio boschivo")st.stores=Math.max(0,(st.stores||0)*(1-impact*.32));
+  else if(type==="alluvione"||type==="tsunami"||type==="tifone")st.stores=Math.max(0,(st.stores||0)*(1-impact*.38));
+  else st.stores=Math.max(0,(st.stores||0)*(1-impact*.16));
+  s.health=clamp(s.health-impact*5,0,100);s.cohesion=clamp(s.cohesion-impact*3,0,100);
+ }
+ const labels={"terremoto":"Un terremoto scuote la regione","eruzione vulcanica":"Un vulcano entra in eruzione","tifone":"Un tifone attraversa l’oceano","alluvione":"Un’alluvione colpisce il territorio","incendio boschivo":"Un incendio si propaga nella vegetazione","tsunami":"Uno tsunami attraversa la costa","ondata di calore":"Un’ondata di calore investe la regione","bufera di neve":"Una bufera di neve colpisce le terre settentrionali"};
+ const detail="Evento registrato a "+Math.round(location.latitude*10)/10+"°, "+Math.round(location.longitude*10)/10+"°. "+(affected.length?affected.length+" insediamento/i nelle vicinanze subiscono conseguenze.":"Nessun insediamento conosciuto si trova nel raggio d’impatto.");
+ const history=addEvent(s,labels[type],detail,"natural");history.latitude=location.latitude;history.longitude=location.longitude;history.hazardType=type;history.severity=severity;
+ s.stats.naturalDisasters=(s.stats.naturalDisasters||0)+1;
 }
 function living(s){return s.population.filter(alive)}
 function prunePopulation(s){
@@ -395,15 +434,17 @@ function daily(s){
   output=(output-farmShare)+farmShare*fertility*waterAccess;
   if(land===4||land===7)output*=.94;
   const humidity=clamp((land===2?.72:land===1?.56:land===3?.44:land===7?.18:land===4?.34:.46)+(nearWater<=1?.24:nearWater<=3?.12:0),.08,.98);
-  const floodRisk=nearWater<=1?.82:nearWater<=3?.54:.2,temperature=land===4?-.22:land===7?.16:0;
-  st.localClimate={humidity,floodRisk,temperature};
+  const floodRisk=nearWater<=1?.82:nearWater<=3?.54:.2,localClimate=climateAt(st,s.day,land,humidity),temperature=localClimate.tempC;
+  st.localClimate={...localClimate,floodRisk,temperature};
+  const climateSuitability=temperature<0?.62:temperature>34?.72:temperature>27&&humidity<.3?.68:temperature>7&&temperature<28?1.08:.88;
+  output*=climateSuitability*clamp(.75+localClimate.rainfall/300,.75,1.08);
   output*=1.18;
   let weatherDemand=1;
   if(climate.days>0){
    const forecast=tech.includes("Calendario")?.88:1;
    if(climate.type==="siccità"){const resistance=tech.includes("Irrigazione")?.18:.72*(1-humidity*.45);output*=1-climate.severity*resistance*forecast;}
    else if(climate.type==="alluvione"){const damage=tech.includes("Irrigazione")?.16:.22+floodRisk*.32;output*=1-climate.severity*damage*forecast;}
-   else if(climate.type==="inverno rigido"){const cold= .24+Math.max(0,-temperature)*.55;output*=1-climate.severity*cold*forecast;weatherDemand+=climate.severity*(.08+Math.max(0,-temperature)*.08);}
+   else if(climate.type==="inverno rigido"){const cold=.24+Math.max(0,8-temperature)*.012;output*=1-climate.severity*cold*forecast;weatherDemand+=climate.severity*(.08+Math.max(0,8-temperature)*.002);}
   }
   const need=count*.105*weatherDemand,localSurplus=output-need,storageCapacity=Math.max(240,count*45)*(tech.includes("Ceramica")?1.2:1)*(tech.includes("Vetro")?1.08:1);
   st.stores=clamp((Number(st.stores)||0)+localSurplus,0,storageCapacity);
@@ -583,6 +624,7 @@ function daily(s){
  if(climate.days>0){climate.days--;if(climate.days===0){s.climate={type:"normale",days:0,severity:0};addEvent(s,"Fine dell emergenza climatica","Le condizioni meteorologiche tornano gradualmente alla normalità. La comunità avvia il recupero delle risorse.","climate");}}
  delete s._dailyPersonIndex;
  s.day++;if(s.day>365)yearBoundary(s);
+ naturalHazardsDaily(s);
  prunePopulation(s);
 }
 export function advance(world,days){
@@ -596,12 +638,13 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length,roleCounts=Object.create(null);for(const p of people)if(p.age>=15&&p.age<65)roleCounts[p.role]=(roleCounts[p.role]||0)+1;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:(()=>{const p=people.find(person=>person.id===s.leadership?.personId);return p?{id:p.id,name:p.name,family:p.family}:null;})(),social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:Object.values(roleCounts).reduce((a,b)=>a+b,0),roles:Object.fromEntries(["agricoltore","raccoglitore","cacciatore","artigiano","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].map(role=>[role,roleCounts[role]||0])),technology:s.technology,events:s.events.slice(-80).reverse(),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,nationName:s.nationName,nationType:s.nationType,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,civilizationName:s.civilizationName,nationName:s.nationName,routes:s.routes||[],geographicFeatures:s.geography?.features||[],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.stats.deaths||s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,leadership:s.leadership||{personId:null,legitimacy:0},leader:(()=>{const p=people.find(person=>person.id===s.leadership?.personId);return p?{id:p.id,name:p.name,family:p.family}:null;})(),social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:Object.values(roleCounts).reduce((a,b)=>a+b,0),roles:Object.fromEntries(["agricoltore","raccoglitore","cacciatore","artigiano","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].map(role=>[role,roleCounts[role]||0])),technology:s.technology,events:s.events.slice(-80).reverse(),eventTotal:s.events.length,naturalEvents:s.naturalEvents||[],neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,nationName:s.nationName,nationType:s.nationType,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,civilizationName:s.civilizationName,nationName:s.nationName,routes:s.routes||[],geographicFeatures:s.geography?.features||[],climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.stats.deaths||s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||![1,2,VERSION].includes(s.version)||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
  if(!Number.isFinite(s.day)||!Number.isFinite(s.year)||!Number.isFinite(s.rng))throw new Error("Calendario o generatore casuale non valido");
  if(!s.climate)s.climate={type:"normale",days:0,severity:0};
+ if(!Array.isArray(s.naturalEvents))s.naturalEvents=[];if(!Number.isFinite(s.nextNaturalEventId))s.nextNaturalEventId=s.naturalEvents.reduce((n,e)=>Math.max(n,Number(e.id)||0),0)+1;if(!Number.isFinite(s.stats?.naturalDisasters))s.stats.naturalDisasters=s.naturalEvents.length;
  if(!s.geography)s.geography=generateGeography(s.rng||9041987);
  if(s.geography.mapVersion!==3){
   const previous=s.geography,fresh=generateGeography(s.rng||9041987);
