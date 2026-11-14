@@ -153,12 +153,12 @@ function addEvent(s,title,description,type="society"){
  const e={id:s.nextEventId++,year:s.year,day:s.day,title,description,type};
  s.events.push(e);if(s.events.length>500)s.events.splice(0,s.events.length-500);return e;
 }
-const tectonicBelts=[[-38,-75],[-20,-70],[0,-78],[18,-102],[38,-122],[55,-160],[36,140],[0,125],[-8,155],[-40,175],[38,28],[42,75]];
+const tectonicBelts=[[-38,-75],[-20,-70],[0,-78],[18,-102],[38,-122],[55,-160],[36,140],[0,125],[-8,155],[-40,175],[38,28],[42,75]],landRegions=[[45,10],[20,78],[0,25],[35,-100],[-15,-60],[-25,135],[55,100]];
 function eventCoordinates(s,type){
  const belt=tectonicBelts[Math.floor(random(s)*tectonicBelts.length)],jitter=(random(s)-.5)*18;
  if(type==="terremoto"||type==="eruzione vulcanica")return {latitude:clamp(belt[0]+jitter,-65,70),longitude:((belt[1]+(random(s)-.5)*24+540)%360)-180};
  if(type==="tifone"||type==="tsunami")return {latitude:(random(s)<.5?1:-1)*(8+random(s)*20),longitude:random(s)*360-180};
- if(type==="alluvione"||type==="incendio boschivo"||type==="ondata di calore")return {latitude:random(s)*110-55,longitude:random(s)*360-180};
+ if(type==="alluvione"||type==="incendio boschivo"||type==="ondata di calore"){const region=landRegions[Math.floor(random(s)*landRegions.length)];return {latitude:clamp(region[0]+(random(s)-.5)*24,-60,75),longitude:((region[1]+(random(s)-.5)*32+540)%360)-180};}
  return {latitude:(random(s)<.5?1:-1)*(48+random(s)*35),longitude:random(s)*360-180};
 }
 function naturalHazardsDaily(s){
@@ -174,7 +174,7 @@ function naturalHazardsDaily(s){
  else if(roll<.00022)type="ondata di calore";
  else if(roll<.00024)type="bufera di neve";
  if(!type)return;
- const location=eventCoordinates(s,type),severity=.35+random(s)*.6,duration=type==="eruzione vulcanica"?20+Math.floor(random(s)*100):type==="tifone"?3+Math.floor(random(s)*8):type==="incendio boschivo"?5+Math.floor(random(s)*20):type==="ondata di calore"?5+Math.floor(random(s)*18):type==="bufera di neve"?2+Math.floor(random(s)*8):1;
+ const location=eventCoordinates(s,type),severity=.35+random(s)*.6,duration=type==="eruzione vulcanica"?20+Math.floor(random(s)*100):type==="tifone"?3+Math.floor(random(s)*8):type==="alluvione"?3+Math.floor(random(s)*18):type==="incendio boschivo"?5+Math.floor(random(s)*20):type==="ondata di calore"?5+Math.floor(random(s)*18):type==="bufera di neve"?2+Math.floor(random(s)*8):1;
  const event={id:s.nextNaturalEventId++,type,latitude:location.latitude,longitude:location.longitude,year:s.year,day:s.day,severity,daysRemaining:duration,active:true};
  s.naturalEvents.push(event);if(s.naturalEvents.length>160)s.naturalEvents.splice(0,s.naturalEvents.length-160);
  const radius=type==="terremoto"?350:type==="eruzione vulcanica"?180:type==="tifone"?500:type==="tsunami"?250:type==="alluvione"?160:type==="incendio boschivo"?90:220;
