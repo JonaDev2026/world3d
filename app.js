@@ -1,11 +1,13 @@
 import {createWorld,advance,summary,validateWorld} from "./engine.js";
 import {initLanguages} from "./languages.js";
+import {loadNameData} from "./name-data.js";
 let maplibregl = window.maplibregl;
 const $=id=>document.getElementById(id),DB="anno-zero-world",STORE="state";
 let world,paused=false,speed=1,worker=null,workerReady=false,latestSummary=null,busy=false,lastSaved=0,eventsSeen=-1,elapsedMs=0,realMinuteMs=0,pendingDays=0,worldMap=null,startMap=null,startMarker=null,chosenStart=null,mapMode="politica";
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
+let nameData={words:[],names:[]};
 initLanguages();
-const MAP_STYLE="https://tiles.openfreemap.org/styles/liberty";
+const MAP_STYLE={version:8,sources:{osm:{type:"raster",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],tileSize:256,attribution:"© OpenStreetMap contributors"}},layers:[{id:"osm-base",type:"raster",source:"osm",minzoom:0,maxzoom:19}]};
 function loadMapScript(src){
  return new Promise((resolve,reject)=>{
   const script=document.createElement("script");script.src=src;script.async=true;
@@ -17,7 +19,14 @@ function loadMapScript(src){
 async function ensureMapLibre(){
  if(window.maplibregl?.Map){maplibregl=window.maplibregl;return true;}
  try{await loadMapScript("https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js");}
- catch{await loadMapScript("https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js");}
+ catch{
+  try{await loadMapScript("https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js");}
+  catch{
+   const module=await import("https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/+esm");
+   maplibregl=module.default?.Map?module.default:module;
+   return Boolean(maplibregl?.Map);
+  }
+ }
  maplibregl=window.maplibregl;
  return Boolean(maplibregl?.Map);
 }
@@ -27,14 +36,8 @@ function createMap(container,center=[0,20],zoom=1.5){
  const map=new maplibregl.Map({container,style:MAP_STYLE,center,zoom,projection:{type:"globe"},maxPitch:70,dragRotate:true,touchPitch:true,scrollZoom:true,doubleClickZoom:true,attributionControl:true});
  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
  map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:"metric"}),"bottom-left");
- map.on("style.load",()=>{
-  for(const layer of map.getStyle().layers||[]){
-   if(layer.type==="symbol"||/admin|boundary|road|transport|transit|rail|building|poi|place|housenumber/i.test(layer.id)){
-    try{map.setLayoutProperty(layer.id,"visibility","none");}catch{}
-   }
-  }
- });
- map.once("load",()=>map.resize());
+ map.on("error",event=>console.warn("Errore mappa:",event.error||event));
+ map.once("load",()=>{map.resize();requestAnimationFrame(()=>map.resize());});
  return map;
 }
 function showStartWizard(){
@@ -55,7 +58,7 @@ function showStartWizard(){
  });
  $("begin-world").addEventListener("click",async()=>{
   if(!chosenStart||world)return;
-  world=createWorld(chosenStart);paused=false;elapsedMs=0;realMinuteMs=0;pendingDays=0;speed=1;
+  world=createWorld(chosenStart);world.nameWords=nameData.words;world.personalNames=nameData.names;paused=false;elapsedMs=0;realMinuteMs=0;pendingDays=0;speed=1;
   await runAdvance(0);setPaused(false);panel.hidden=true;startMap?.remove();startMap=null;
   initWorldMap(world);render(latestSummary||summary(world));await save();
  });
@@ -237,5 +240,5 @@ document.querySelectorAll("[data-speed]").forEach(button=>button.addEventListene
 $("save-now").addEventListener("click",()=>save().catch(()=>$("save-state").textContent="Errore salvataggio"));
 $("reset-world").addEventListener("click",async()=>{if(busy){$("save-state").textContent="Attendi la fine del ciclo in corso";return;}if(!window.confirm("Vuoi cancellare la civiltà attuale e ricominciare dall’Anno 0? Questa operazione non si può annullare."))return;setPaused(true);try{const db=await openDB();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();world=null;workerReady=false;latestSummary=null;worldMap?.remove();worldMap=null;chosenStart=null;startMarker=null;elapsedMs=0;speed=1;setPaused(true);showStartWizard();document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===1));eventsSeen=-1;$("save-state").textContent="Scegli il nuovo punto di partenza";}catch(error){console.error(error);$("save-state").textContent="Errore durante il riavvio";setPaused(true);}});
 window.addEventListener("pagehide",()=>{if(!world)return;const meta={timeRemainderMs:elapsedMs,realMinuteMs,pendingDays,speed,paused,lastWallTime:Date.now()};if(worker&&workerReady){worker.postMessage({id:++step.id,type:"save",meta});return;}Object.assign(world,meta);try{const request=indexedDB.open(DB,1);request.onsuccess=()=>{const db=request.result,tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=()=>db.close();};}catch{}});
-async function init(){try{await ensureMapLibre();if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);speed=Number(world.speed)||1;if(speed===120)speed=365;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;realMinuteMs=Number(world.realMinuteMs)||0;pendingDays=Number(world.pendingDays)||0;if(!paused){const offlineMs=Math.max(0,Date.now()-(world.lastWallTime||Date.now()));const wallRemainder=elapsedMs+offlineMs;const totalRealMs=realMinuteMs+offlineMs;const missedSeconds=Math.floor(totalRealMs/1000);elapsedMs=wallRemainder%60000;realMinuteMs=totalRealMs%1000;let missed=missedSeconds*speed+Math.floor(pendingDays);pendingDays=0;while(missed>0){const batch=Math.min(missed,3650);await runAdvance(batch);missed-=batch;}}}else{paused=true;showStartWizard();}setPaused(paused);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===speed));if(world){initWorldMap(world);render(latestSummary||summary(world));await save();}}catch(error){console.error(error);world=createWorld();elapsedMs=0;initWorldMap(world);render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs=(elapsedMs+1000)%60000;pendingDays+=speed;if(!busy&&!paused&&pendingDays>=1){const days=Math.min(3650,Math.floor(pendingDays));pendingDays-=days;step(days).then(applied=>{if(!applied)pendingDays+=days;});}}if(world){const state=latestSummary||summary(world);updateClock(state);updateAtmosphere(state);}},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
+async function init(){try{const mapAvailable=await ensureMapLibre();nameData=await loadNameData();if(!mapAvailable){$("map").textContent="Mappa non disponibile: MapLibre non è riuscito a caricarsi.";console.error("MapLibre non disponibile");}if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);world.nameWords=nameData.words;world.personalNames=nameData.names;speed=Number(world.speed)||1;if(speed===120)speed=365;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;realMinuteMs=Number(world.realMinuteMs)||0;pendingDays=Number(world.pendingDays)||0;if(!paused){const offlineMs=Math.max(0,Date.now()-(world.lastWallTime||Date.now()));const wallRemainder=elapsedMs+offlineMs;const totalRealMs=realMinuteMs+offlineMs;const missedSeconds=Math.floor(totalRealMs/1000);elapsedMs=wallRemainder%60000;realMinuteMs=totalRealMs%1000;let missed=missedSeconds*speed+Math.floor(pendingDays);pendingDays=0;while(missed>0){const batch=Math.min(missed,3650);await runAdvance(batch);missed-=batch;}}}else{paused=true;showStartWizard();}setPaused(paused);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===speed));if(world){initWorldMap(world);render(latestSummary||summary(world));await save();}}catch(error){console.error(error);world=createWorld();world.nameWords=nameData.words;world.personalNames=nameData.names;elapsedMs=0;initWorldMap(world);render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs=(elapsedMs+1000)%60000;pendingDays+=speed;if(!busy&&!paused&&pendingDays>=1){const days=Math.min(3650,Math.floor(pendingDays));pendingDays-=days;step(days).then(applied=>{if(!applied)pendingDays+=days;});}}if(world){const state=latestSummary||summary(world);updateClock(state);updateAtmosphere(state);}},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
 init();
