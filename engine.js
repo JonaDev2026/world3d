@@ -298,7 +298,7 @@ function daily(s){
   if(climate.days>0){const forecast=tech.includes("Calendario")?.88:1;if(climate.type==="siccità")output*=1-climate.severity*(tech.includes("Irrigazione")?.18:.72)*forecast;else if(climate.type==="alluvione")output*=1-climate.severity*(tech.includes("Irrigazione")?.32:.48)*forecast;else if(climate.type==="inverno rigido")output*=1-climate.severity*.38*forecast;}
   const need=count*.105,localSurplus=output-need,storageCapacity=Math.max(240,count*45)*(tech.includes("Ceramica")?1.2:1)*(tech.includes("Vetro")?1.08:1);
   st.stores=clamp((Number(st.stores)||0)+localSurplus,0,storageCapacity);
-  st.knownArea=Math.min(100000,Math.max(4,Number(st.knownArea)||4)+Math.max(0,count*.00008+(st.fields||0)*.00012+(tech.includes("Ruota")?.0004:0)));
+  if(count>0)st.knownArea=Math.min(100000,Math.max(4,Number(st.knownArea)||4)+Math.max(0,count*.00008+(st.fields||0)*.00012+(tech.includes("Ruota")?.0004:0)));
   production+=output;consumption+=need;totalFood+=st.stores;
   foodRatios.set(st.id,clamp(st.stores/Math.max(1,count*12),0,1));
  }
@@ -450,7 +450,7 @@ function daily(s){
  if(n>70&&random(s)<.000025+(s.social?.inequality||0)*.000035){s.stats.crimes++;s.cohesion=clamp(s.cohesion-.15,0,100);if(s.institutions.includes("Guardia civica"))s.order=clamp(s.order+.02,0,100);if(random(s)<.15)addEvent(s,"Violazione delle norme","Un abitante viene accusato di aver violato una regola della comunità. Il consiglio deve stabilire una risposta.","crime");}
  if(s.institutions.length&&random(s)<.00016){s.order=clamp(s.order-2,0,100);addEvent(s,"Controversia tra famiglie","Una disputa su risorse e responsabilità richiede la mediazione del consiglio.","politics");}
  // A settlement expands when its population and material base can sustain it.
- for(const st of s.settlements){const local=st.population||0;if(local>=24&&st.kind==="accampamento"){st.kind="villaggio";st.homes=Math.max(st.homes||0,Math.ceil(local/3));addEvent(s,"L'accampamento diventa villaggio","Le famiglie costruiscono abitazioni permanenti, depositi e spazi comuni.","settlement");}if(local>=120&&st.kind==="villaggio"){st.kind="centro urbano";st.homes=Math.max(st.homes||0,Math.ceil(local/2.5));addEvent(s,"Nasce un centro urbano","L'insediamento sviluppa quartieri, artigiani e istituzioni permanenti.","settlement");}if(tech.includes("Agricoltura")&&local>=12)st.fields=Math.max(st.fields||0,Math.round(local*.18));if(tech.includes("Irrigazione")&&local>=20)st.fields=Math.max(st.fields||0,Math.round(local*.25));}
+ for(const st of s.settlements){const local=st.population||0;if(local>=35&&st.kind==="accampamento"){st.kind="villaggio";st.homes=Math.max(st.homes||0,18,Math.ceil(local/3));addEvent(s,"L'accampamento diventa villaggio","Le famiglie costruiscono abitazioni permanenti, depositi e spazi comuni.","settlement");}if(local>=120&&st.kind==="villaggio"){st.kind="centro urbano";st.homes=Math.max(st.homes||0,70,Math.ceil(local/2.5));addEvent(s,"Nasce un centro urbano","L'insediamento sviluppa quartieri, artigiani e istituzioni permanenti.","settlement");}if(tech.includes("Agricoltura")&&local>=12)st.fields=Math.max(st.fields||0,Math.round(local*.18));if(tech.includes("Irrigazione")&&local>=20)st.fields=Math.max(st.fields||0,Math.round(local*.25));}
  if(n>95&&s.food>n*5&&s.settlements.length<Math.floor(n/85)&&random(s)<.00022){
   const origins=s.settlements.filter(st=>(st.population||0)>=35&&st.stores>(st.population||0)*8);
   if(origins.length){
