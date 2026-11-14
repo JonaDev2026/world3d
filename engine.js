@@ -53,12 +53,30 @@ function generateGeography(seed){
  for(let i=0;i<Math.min(2,rivers.length);i++){const p=rivers[i][Math.floor(rivers[i].length*.58)];features.push({id:features.length+1,type:"fiume",x:p[0],y:p[1],name:null,discovered:false});}
  return {mapVersion:2,width,height,tileKm:5,terrain,features,explored:[]};
 }
-function inventPlaceName(s){
- const c=s.language?.consonants||["k","m","t","s","r","n","l","v","d","g"],v=s.language?.vowels||["a","e","i","o","u"];
- let word="";for(let i=0,n=2+Math.floor(random(s)*2);i<n;i++){word+=pick(s,c)+pick(s,v);if(random(s)<.22)word+=pick(s,["n","r","l","s"]);}
- const candidate=word.charAt(0).toUpperCase()+word.slice(1);
- const used=[...s.settlements.map(x=>x.name),...(s.neighbors||[]).map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name)].filter(Boolean);
- return used.includes(candidate)?candidate+String(s.nextNameId++):candidate;
+function inventPlaceName(s,language=s.language){
+ const consonants=language?.consonants||["k","m","t","s","r","n","l","v","d","g"];
+ const vowels=language?.vowels||["a","e","i","o","u"];
+ const codas=language?.codas||["n","r","l","s","m"];
+ const used=new Set([...s.settlements.map(x=>x.name),...(s.neighbors||[]).map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name)].filter(Boolean));
+ for(let attempt=0;attempt<24;attempt++){
+  let word="",count=2+Math.floor(random(s)*2);
+  for(let i=0;i<count;i++){
+   word+=pick(s,consonants)+pick(s,vowels);
+   if(random(s)<.3)word+=pick(s,codas);
+  }
+  const candidate=word.charAt(0).toUpperCase()+word.slice(1);
+  if(!used.has(candidate))return candidate;
+ }
+ return "Lu"+String(s.nextNameId++);
+}
+function neighborLanguage(id){
+ const sets=[
+  {consonants:["p","b","m","f","v","t","d","n","l","r"],vowels:["a","e","i","o"],codas:["n","l","r"]},
+  {consonants:["k","g","h","x","s","z","r","m","n","j"],vowels:["a","i","u","e"],codas:["k","s","n","r"]},
+  {consonants:["t","c","s","sh","m","w","y","n","r","l"],vowels:["a","e","i","o","u"],codas:["n","m","y","l"]}
+ ];
+ const source=sets[(Math.max(1,id)-1)%sets.length];
+ return {consonants:[...source.consonants],vowels:[...source.vowels],codas:[...source.codas],written:false};
 }
 function findColonizationSite(s,origin){
  const g=s.geography;if(!g)return null;const {width,height,terrain}=g,candidates=[];
@@ -383,7 +401,7 @@ function daily(s){
   g.technology+=g.population*.00008;
   const routeDistance=Number.isFinite(g.latitude)&&Number.isFinite(g.longitude)&&Number.isFinite(frontier.latitude)&&Number.isFinite(frontier.longitude)?haversine(g,frontier):Math.hypot(g.x-frontier.x,g.y-frontier.y)*20;
   const proximity=Math.max(.05,1-routeDistance/5000),territorialPressure=Math.max(0,1-routeDistance/900);
-  if(!g.discovered&&n>28&&random(s)<.00011*proximity){g.discovered=true;if(!g.name)g.name=inventPlaceName(s);s.stats.discoveries++;addEvent(s,"Primo incontro con "+g.name,"Esploratori incontrano una comunità indipendente oltre la valle. Le due società hanno lingue e consuetudini differenti.","diplomacy");}
+  if(!g.discovered&&n>28&&random(s)<.00011*proximity){g.discovered=true;if(!g.language)g.language=neighborLanguage(g.id);if(!g.name)g.name=inventPlaceName(s,g.language);s.stats.discoveries++;addEvent(s,"Primo incontro con "+g.name,"Esploratori incontrano una comunità indipendente oltre la valle. Il nome viene trascritto usando i suoni della lingua locale.","diplomacy");}
   if(g.discovered){
    if(random(s)<.00018*proximity){g.hostility=clamp(g.hostility+(s.food<n*3?6:3),0,100);addEvent(s,"Tensione al confine","Un incidente tra membri delle due comunità peggiora i rapporti con "+g.name+".","diplomacy");}
    const tradeReach=tech.includes("Ruota")?2200:650,routeEfficiency=Math.max(.3,1-routeDistance/Math.max(1,tradeReach*1.5));
