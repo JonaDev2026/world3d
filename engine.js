@@ -329,7 +329,7 @@ function daily(s){
  // aging, health and mortality
  for(const p of people){
   const localFood=foodRatios.get(p.settlementId)??foodRatio;
-  p.health=clamp(p.health+(localFood<.3?-.12:.012)+(s.disease.active?-.16:0)+(tech.includes("Medicina organizzata")?.018:0)+(healers>0?.002:0),0,100);
+  p.health=clamp(p.health+(localFood<.3?-.12:.012)+(tech.includes("Medicina organizzata")?.022:0)+(healers>0?.002:0),0,100);
   if(p.age>55)p.health-=.012+(p.age-55)*.001;
   if(p.age<5)p.health-=p.age<1?.018:.006;
   if(p.age>70)p.health-=.012+(p.age-70)*.002;
