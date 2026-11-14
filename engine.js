@@ -85,9 +85,8 @@ function addEvent(s,title,description,type="society"){
 }
 function living(s){return s.population.filter(alive)}
 function prunePopulation(s){
- if(s.population.length<=15000&&(s.deadCount||0)<=4000)return;
+ if((s.deadCount||0)<=4000)return;
  const alivePeople=s.population.filter(p=>p.alive),deadCount=s.population.length-alivePeople.length;
- if(deadCount<=4000&&s.population.length<=15000)return;
  const byId=new Map(s.population.map(p=>[p.id,p])),needed=new Set(alivePeople.flatMap(p=>p.parents||[])),archive={};
  for(const id of needed){
   const person=byId.get(id);
