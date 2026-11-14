@@ -1,3 +1,4 @@
+import {cellAt} from "./planet.js";
 export const VERSION = 3;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|0;return (x>>>0)/4294967296}
@@ -50,7 +51,6 @@ export function generateGeography(seed,planet=null,origin={}){
   }
   return {mapVersion:2,width,height,tileKm:5,terrain,heights,features,explored:[]};
  }
- const width=128,height=88,heights=new Array(width*height),terrain=new Array(width*height),at=(x,y)=>y*width+x;
  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
   const nx=(x-width*.5)/(width*.49),ny=(y-height*.5)/(height*.49);
   const main=1-Math.pow((x-64)/43,2)-Math.pow((y-44)/31,2);
