@@ -1,11 +1,11 @@
 import {createWorld,advance,summary,validateWorld} from "./engine.js";
 const maplibregl = window.maplibregl;
-if (!maplibregl?.Map) throw new Error("MapLibre GL JS non è stato caricato correttamente.");
 const $=id=>document.getElementById(id),DB="anno-zero-world",STORE="state";
 let world,paused=false,speed=1,worker=null,workerReady=false,latestSummary=null,busy=false,lastSaved=0,eventsSeen=-1,elapsedMs=0,worldMap=null,startMap=null,startMarker=null,chosenStart=null,mapMode="politica";
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
 const MAP_STYLE="https://tiles.openfreemap.org/styles/liberty";
 function createMap(container,center=[0,20],zoom=1.5){
+ if(!maplibregl?.Map){const node=$(container);if(node)node.textContent="Mappa temporaneamente non disponibile. La simulazione può comunque funzionare.";return null;}
  const map=new maplibregl.Map({container,style:MAP_STYLE,center,zoom,projection:{type:"globe"},maxPitch:70,dragRotate:true,touchPitch:true,scrollZoom:true,doubleClickZoom:true,attributionControl:true});
  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
  map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:"metric"}),"bottom-left");
@@ -22,7 +22,8 @@ function createMap(container,center=[0,20],zoom=1.5){
 function showStartWizard(){
  const panel=$("start-wizard");panel.hidden=false;
  startMap=createMap("start-map",[12,18],1.35);
- startMap.on("click",event=>{
+ if(!startMap){chosenStart={longitude:12.5,latitude:42,terrainCode:1};$("start-coordinates").textContent="Mappa non disponibile · punto iniziale predefinito in Italia";$("begin-world").disabled=false;}
+ if(startMap)startMap.on("click",event=>{
   const waterLayers=startMap.getStyle().layers.filter(layer=>/water|ocean|lake|river/i.test(layer.id)).map(layer=>layer.id);
   const water=waterLayers.length&&startMap.queryRenderedFeatures(event.point,{layers:waterLayers}).length>0;
   if(water){chosenStart=null;$("begin-world").disabled=true;$("start-coordinates").textContent="Punto in acqua: scegli una zona di terraferma";if(startMarker){startMarker.remove();startMarker=null;}return;}
@@ -127,7 +128,7 @@ function updateSimulationMap(s){
  if(home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)&&worldMap.__centered!==true){worldMap.flyTo({center:[home.longitude,home.latitude],zoom:3.1,duration:900});worldMap.__centered=true;}
 }
 function initWorldMap(s){
- if(worldMap)return;
+ if(worldMap||!maplibregl?.Map)return;
  const home=s?.settlements?.[0],center=home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)?[home.longitude,home.latitude]:[0,20];
  worldMap=createMap("map",center,home?3.1:1.5);
  worldMap.on("load",()=>{if(world)updateSimulationMap(summary(world));});
@@ -184,8 +185,8 @@ function updateAtmosphere(s){
  
 }
 function setPaused(value){paused=value;$("pause").innerHTML=paused?'<span class="material-symbols-rounded">play_arrow</span> Riprendi':'<span class="material-symbols-rounded">pause</span> Pausa';$("status").textContent=paused?"SIMULAZIONE IN PAUSA":"SIMULAZIONE ATTIVA";$("status-dot").parentElement.classList.toggle("paused",paused);}
-function workerRequest(payload){return new Promise((resolve,reject)=>{const id=++step.id,handler=e=>{if(e.data.id!==id)return;worker.removeEventListener("message",handler);e.data.error?reject(new Error(e.data.error)):resolve(e.data);};worker.addEventListener("message",handler);worker.postMessage({id,...payload});});}
-async function runAdvance(days){if(worker){const result=await workerRequest(workerReady?{type:"advance",days}:{type:"init",world,days});workerReady=true;latestSummary=result.summary;if(result.world)world=result.world;}else{advance(world,days);latestSummary=summary(world);}}
+function workerRequest(payload){return new Promise((resolve,reject)=>{const id=++step.id;let settled=false;const cleanup=()=>{clearTimeout(timer);worker?.removeEventListener("message",handler);worker?.removeEventListener("error",failed);worker?.removeEventListener("messageerror",failed);};const finish=(fn,value)=>{if(settled)return;settled=true;cleanup();fn(value);};const handler=e=>{if(e.data.id!==id)return;e.data.error?finish(reject,new Error(e.data.error)):finish(resolve,e.data);};const failed=e=>finish(reject,new Error(e?.message||"Worker non disponibile"));const timer=setTimeout(()=>finish(reject,new Error("Timeout del worker")),8000);worker.addEventListener("message",handler);worker.addEventListener("error",failed);worker.addEventListener("messageerror",failed);try{worker.postMessage({id,...payload});}catch(error){finish(reject,error);}});}
+async function runAdvance(days){if(worker){try{const result=await workerRequest(workerReady?{type:"advance",days}:{type:"init",world,days});workerReady=true;latestSummary=result.summary;if(result.world)world=result.world;return;}catch(error){console.warn("Worker non disponibile, continuo senza worker:",error);worker.terminate();worker=null;workerReady=false;}}advance(world,days);latestSummary=summary(world);}
 async function step(days){if(busy||paused)return;busy=true;try{await runAdvance(days);render(latestSummary||summary(world));if((latestSummary?.day??world.day)%11===0)await save();}catch(error){console.error(error);$("save-state").textContent="Errore: "+error.message;setPaused(true);}busy=false;}step.id=0;
 $("pause").addEventListener("click",()=>setPaused(!paused));
 document.querySelectorAll("[data-speed]").forEach(button=>button.addEventListener("click",()=>{speed=Number(button.dataset.speed);document.querySelectorAll("[data-speed]").forEach(item=>item.classList.toggle("selected",item===button));}));
