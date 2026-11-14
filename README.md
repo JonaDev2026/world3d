@@ -5,6 +5,7 @@
 [Repository GitHub](https://github.com/JonaDev2026/world3d)
 
 ---
+![](preview.png)
 
 ## 🇮🇹 Italiano
 
