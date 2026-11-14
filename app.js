@@ -20,7 +20,7 @@ async function showStartWizard(){
  }catch(error){console.error("Cartina non disponibile:",error);chosenStart={longitude:12.5,latitude:42,terrainCode:1};$("start-coordinates").textContent="Cartina non disponibile · punto iniziale predefinito in Italia";$("begin-world").disabled=false;}
  $("begin-world").addEventListener("click",async()=>{
   if(!chosenStart||world)return;
-  world=createWorld(chosenStart);world.nameWords=nameData.words;world.personalNames=nameData.names;refreshWorldNames(world);paused=false;elapsedMs=0;realMinuteMs=0;pendingDays=0;speed=1;
+  world=createWorld({...chosenStart,nameWords:nameData.words,personalNames:nameData.names});refreshWorldNames(world);paused=false;elapsedMs=0;realMinuteMs=0;pendingDays=0;speed=1;
   await runAdvance(0);setPaused(false);panel.hidden=true;startMap?.destroy();startMap=null;
   await initWorldMap(world);render(latestSummary||summary(world));await save();
  },{once:true});
