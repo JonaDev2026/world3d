@@ -1,7 +1,78 @@
 import {createWorld,advance,summary,validateWorld} from "./engine.js";
+import maplibregl from "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js";
 const $=id=>document.getElementById(id),DB="anno-zero-world",STORE="state";
-let world,paused=false,speed=1,worker=null,busy=false,lastSaved=0,eventsSeen=-1,elapsedMs=0;
+let world,paused=false,speed=1,worker=null,busy=false,lastSaved=0,eventsSeen=-1,elapsedMs=0,worldMap=null,startMap=null,startMarker=null,chosenStart=null,mapMode="geografia";
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
+const MAP_STYLE="https://demotiles.maplibre.org/style.json";
+function createMap(container,center=[0,20],zoom=1.5){
+ const map=new maplibregl.Map({container,style:MAP_STYLE,center,zoom,projection:{type:"globe"},attributionControl:true,antialias:true});
+ map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
+ map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:"metric"}),"bottom-left");
+ map.on("style.load",()=>{try{map.setProjection({type:"globe"});}catch{}});
+ return map;
+}
+function showStartWizard(){
+ const panel=$("start-wizard");panel.hidden=false;
+ startMap=createMap("start-map",[12,18],1.35);
+ startMap.on("click",event=>{
+  chosenStart={longitude:Number(event.lngLat.lng.toFixed(5)),latitude:Number(event.lngLat.lat.toFixed(5))};
+  if(startMarker)startMarker.remove();
+  startMarker=new maplibregl.Marker({color:"#315efb"}).setLngLat([chosenStart.longitude,chosenStart.latitude]).addTo(startMap);
+  $("start-coordinates").textContent=chosenStart.latitude.toFixed(3)+"°, "+chosenStart.longitude.toFixed(3)+"°";
+  $("begin-world").disabled=false;
+ });
+ $("begin-world").addEventListener("click",async()=>{
+  if(!chosenStart||world)return;
+  world=createWorld(chosenStart);paused=false;elapsedMs=0;speed=1;
+  setPaused(false);panel.hidden=true;startMap?.remove();startMap=null;
+  initWorldMap(world);render(summary(world));await save();
+ });
+}
+function mapFeatures(s){
+ const home=s.settlements?.[0],originLat=Number(home?.latitude)||0,originLon=Number(home?.longitude)||0;
+ const project=(x,y,latValue,lonValue)=>{
+  if(Number.isFinite(latValue)&&Number.isFinite(lonValue))return [lonValue,latValue];
+  const lat=Math.max(-84,Math.min(84,originLat-(Number(y||0)-Number(home?.y||0))*.18));
+  const lon=((originLon+(Number(x||0)-Number(home?.x||0))*.18/Math.max(.18,Math.cos(lat*Math.PI/180))+540)%360)-180;
+  return [lon,lat];
+ };
+ const settlements=(s.settlementDetails||[]).map(st=>({type:"Feature",geometry:{type:"Point",coordinates:project(st.x,st.y,st.latitude,st.longitude)},properties:{id:st.id,name:st.name||"Insediamento senza nome",population:st.population||0,kind:st.kind||"accampamento"}}));
+ const neighbors=(s.neighbors||[]).filter(n=>n.discovered).map(n=>({type:"Feature",geometry:{type:"Point",coordinates:project(n.x,n.y,n.latitude,n.longitude)},properties:{id:n.id,name:n.name||"Comunità sconosciuta",population:n.population||0,atWar:!!n.atWar,allied:!!n.allied}}));
+ return {settlements:{type:"FeatureCollection",features:settlements},neighbors:{type:"FeatureCollection",features:neighbors}};
+}
+function updateSimulationMap(s){
+ if(!worldMap||!worldMap.isStyleLoaded())return;
+ const data=mapFeatures(s),a=worldMap.getSource("simulation-settlements"),b=worldMap.getSource("simulation-neighbors");
+ if(a)a.setData(data.settlements);if(b)b.setData(data.neighbors);
+ if(!a){
+  worldMap.addSource("simulation-settlements",{type:"geojson",data:data.settlements});
+  worldMap.addLayer({id:"settlement-points",type:"circle",source:"simulation-settlements",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,4,5,8,10,11],"circle-color":"#d94f55","circle-stroke-color":"#ffffff","circle-stroke-width":2}});
+  worldMap.addLayer({id:"settlement-labels",type:"symbol",source:"simulation-settlements",layout:{"text-field":["get","name"],"text-font":["Open Sans Semibold"],"text-size":12,"text-offset":[0,1.25],"text-anchor":"top","text-allow-overlap":false},paint:{"text-color":"#263247","text-halo-color":"#ffffff","text-halo-width":1.5}});
+  worldMap.addSource("simulation-neighbors",{type:"geojson",data:data.neighbors});
+  worldMap.addLayer({id:"neighbor-points",type:"circle",source:"simulation-neighbors",paint:{"circle-radius":6,"circle-color":["case",["==",["get","atWar"],true],"#d94f55",["==",["get","allied"],true],"#3978df","#9a875d"],"circle-stroke-color":"#fff","circle-stroke-width":1.5}});
+  worldMap.on("click",["settlement-points","neighbor-points"],event=>{
+   const f=event.features?.[0];if(!f)return;
+   const p=f.properties||{},popup="<strong>"+esc(p.name)+"</strong><br>"+fmt(Number(p.population)||0)+" abitanti"+(p.kind?"<br>"+esc(p.kind):"");
+   new maplibregl.Popup({closeButton:true,offset:12}).setLngLat(event.lngLat).setHTML(popup).addTo(worldMap);
+  });
+  worldMap.on("mouseenter","settlement-points",()=>worldMap.getCanvas().style.cursor="pointer");
+  worldMap.on("mouseleave","settlement-points",()=>worldMap.getCanvas().style.cursor="");
+ }
+ const home=s.settlements?.[0];
+ if(home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)&&worldMap.__centered!==true){worldMap.flyTo({center:[home.longitude,home.latitude],zoom:3.1,duration:900});worldMap.__centered=true;}
+}
+function initWorldMap(s){
+ if(worldMap)return;
+ const home=s?.settlements?.[0],center=home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)?[home.longitude,home.latitude]:[0,20];
+ worldMap=createMap("map",center,home?3.1:1.5);
+ worldMap.on("load",()=>{if(world)updateSimulationMap(summary(world));});
+ document.querySelectorAll("[data-map-mode]").forEach(button=>button.addEventListener("click",()=>{
+  mapMode=button.dataset.mapMode;
+  document.querySelectorAll("[data-map-mode]").forEach(b=>b.classList.toggle("selected",b===button));
+  const color=mapMode==="politica"?"#7b61c9":mapMode==="risorse"?"#d69a25":mapMode==="popolazione"?"#239b82":"#d94f55";
+  if(worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-color",color);
+ }));
+}
 function openDB(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});}
 async function load(){const db=await openDB();return new Promise((ok,no)=>{const r=db.transaction(STORE,"readonly").objectStore(STORE).get("world");r.onsuccess=()=>{db.close();ok(r.result||null);};r.onerror=()=>{db.close();no(r.error);};});}
 async function save(){if(!world)return;world.lastWallTime=Date.now();world.speed=speed;world.paused=paused;world.timeRemainderMs=elapsedMs;const db=await openDB();await new Promise((ok,no)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});db.close();lastSaved=Date.now();$("save-state").textContent="Salvato sul dispositivo";$("last-save").textContent="SALVATO "+new Date(lastSaved).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});}
@@ -33,7 +104,7 @@ function render(s){
  $("settlement-type").textContent=home?.kind||"—";
  $("settlement-list").textContent=(s.settlementDetails||[]).map(st=>(st.name||"Insediamento senza nome")+" · "+fmt(st.population||0)).join(" | ");
  const newest=s.events[0]?.id||0;if(eventsSeen!==newest){eventsSeen=newest;$("events").innerHTML=s.events.length?s.events.map(e=>'<article class="event"><time>ANNO '+e.year+' · G'+e.day+'</time><div><strong>'+esc(e.title)+'</strong><p>'+esc(e.description)+'</p></div></article>').join(""):'<div class="event empty">La storia deve ancora cominciare.</div>';}
- updateAtmosphere(s);drawMap(s);
+ updateAtmosphere(s);updateSimulationMap(s);
 }
 function updateAtmosphere(s){
  const climate=s.climate||{type:"normale",days:0,severity:0},d=((s.day-1)%365)+1,season=d<=91?"Primavera":d<=182?"Estate":d<=273?"Autunno":"Inverno";
@@ -45,44 +116,7 @@ function updateAtmosphere(s){
  if(phase>=.17&&phase<.29){label="Alba";icon="wb_twilight";}else if(phase>=.29&&phase<.72){label="Giorno";icon="light_mode";}else if(phase>=.72&&phase<.84){label="Tramonto";icon="wb_twilight";}
  $("sky-icon").textContent=icon;$("sky-label").textContent=label;$("sky-time").textContent=phase<.17||phase>=.84?"Ore notturne":phase<.29?"Prime luci":phase<.72?"Luce diurna":"Ultima luce";
  const pct=Math.round(phase*100);$("day-progress-label").textContent=pct+"%";$("day-progress-bar").style.width=pct+"%";
- $("map").style.filter=phase<.17||phase>=.84?"brightness(.84) saturate(.86)":phase<.29||phase>=.72?"sepia(.09)":"none";
-}
-function terrainColor(code,x,y){
- const n=Math.sin(x*12.9898+y*78.233)*43758.5453,noise=(n-Math.floor(n))-.5;
- const colors={0:[165,202,213],1:[222,224,197],2:[174,199,164],3:[195,194,164],4:[174,177,166],5:[125,181,197],6:[102,164,190],7:[177,194,163]};
- const c=colors[code]||colors[0],v=c.map(q=>Math.max(0,Math.min(255,Math.round(q+noise*9))));return "rgb("+v.join(",")+")";
-}
-function drawMap(s){
- const canvas=$("map"),ctx=canvas.getContext("2d"),geo=s.geography;if(!geo?.terrain)return;
- const w=geo.width,h=geo.height,tw=canvas.width/w,th=canvas.height/h,terrain=geo.terrain;
- const sea=ctx.createLinearGradient(0,0,canvas.width,canvas.height);sea.addColorStop(0,"#dceef5");sea.addColorStop(1,"#c8e1ed");ctx.fillStyle=sea;ctx.fillRect(0,0,canvas.width,canvas.height);
- ctx.save();ctx.globalAlpha=.17;ctx.strokeStyle="#8bb9cc";ctx.lineWidth=1;
- for(let i=0;i<15;i++){const y=30+i*61;ctx.beginPath();for(let x=0;x<=canvas.width;x+=12){const yy=y+Math.sin(x*.009+i*1.7)*5+Math.sin(x*.021+i)*2;if(x===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();}ctx.restore();
- const palette={0:"#d6eaf2",1:"#e8dfbd",2:"#9ebd91",3:"#c8b78e",4:"#aeb5b5",5:"#79b6d0",6:"#6eafd0",7:"#d8c9a2"};
- const raster=document.createElement("canvas");raster.width=w;raster.height=h;const rc=raster.getContext("2d"),img=rc.createImageData(w,h);
- for(let i=0;i<terrain.length;i++){const c=palette[terrain[i]]||palette[1],rgb=c.match(/[\da-f]{2}/gi).map(v=>parseInt(v,16));img.data[i*4]=rgb[0];img.data[i*4+1]=rgb[1];img.data[i*4+2]=rgb[2];img.data[i*4+3]=terrain[i]===0?0:255;}
- rc.putImageData(img,0,0);ctx.save();ctx.imageSmoothingEnabled=true;ctx.shadowColor="#536f7540";ctx.shadowBlur=18;ctx.drawImage(raster,0,0,canvas.width,canvas.height);ctx.restore();
- // Coastline: draw only land/water boundaries, never cell outlines.
- ctx.save();ctx.strokeStyle="#fffdf5";ctx.lineWidth=2.2;ctx.lineJoin="round";ctx.lineCap="round";ctx.beginPath();
- for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;if(!terrain[i])continue;const px=x*tw,py=y*th;if(!terrain[i-1]){ctx.moveTo(px,py);ctx.lineTo(px,py+th);}if(!terrain[i+1]){ctx.moveTo(px+tw,py);ctx.lineTo(px+tw,py+th);}if(!terrain[i-w]){ctx.moveTo(px,py);ctx.lineTo(px+tw,py);}if(!terrain[i+w]){ctx.moveTo(px,py+th);ctx.lineTo(px+tw,py+th);}}
- ctx.stroke();ctx.restore();
- // Soft relief shading and subtle terrain contours.
- ctx.save();ctx.globalAlpha=.17;ctx.strokeStyle="#8c8068";ctx.lineWidth=1.1;
- for(let y=3;y<h-3;y+=5)for(let x=3;x<w-3;x+=5){if(terrain[y*w+x]!==3)continue;const px=x*tw,py=y*th;ctx.beginPath();ctx.ellipse(px,py,tw*1.9,th*1.15,-.25,Math.PI*1.05,Math.PI*1.95);ctx.stroke();}ctx.restore();
- // Forests as irregular clusters of individual tree crowns.
- for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(terrain[y*w+x]!==2)continue;const seed=Math.sin(x*71.3+y*19.7)*43758.5,rand=seed-Math.floor(seed);if(rand<.38)continue;const px=(x+.5)*tw,py=(y+.5)*th,r=tw*(.20+rand*.12);ctx.fillStyle=rand>.72?"#668e69":"#789f73";ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();ctx.fillStyle="#a8c49a";ctx.beginPath();ctx.arc(px-r*.22,py-r*.25,r*.43,0,Math.PI*2);ctx.fill();}
- // Mountain ridges, with light-facing peaks and shaded slopes.
- for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(terrain[y*w+x]!==4)continue;const px=(x+.5)*tw,py=(y+.58)*th,sz=tw*.72;ctx.fillStyle="#8c989a";ctx.beginPath();ctx.moveTo(px-sz,py+th*.24);ctx.lineTo(px,py-th*.72);ctx.lineTo(px+sz,py+th*.24);ctx.closePath();ctx.fill();ctx.fillStyle="#f8f7ef";ctx.beginPath();ctx.moveTo(px-sz*.36,py-th*.19);ctx.lineTo(px,py-th*.72);ctx.lineTo(px+sz*.34,py-th*.2);ctx.lineTo(px+sz*.06,py-th*.31);ctx.lineTo(px,py-th*.43);ctx.lineTo(px-sz*.12,py-th*.28);ctx.closePath();ctx.fill();}
- // Rivers are continuous blue strokes over the generated river cells.
- ctx.save();ctx.strokeStyle="#4c9fc8";ctx.lineWidth=Math.max(3,tw*.34);ctx.lineCap="round";ctx.lineJoin="round";
- for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(terrain[y*w+x]!==6)continue;const px=(x+.5)*tw,py=(y+.5)*th;ctx.beginPath();ctx.moveTo(px,py);let found=false;for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]])if(terrain[(y+dy)*w+x+dx]===6){ctx.lineTo((x+dx+.5)*tw,(y+dy+.5)*th);found=true;break;}if(found)ctx.stroke();}
- ctx.restore();
- const sites=s.settlementDetails||[];
- if(sites.length>1){ctx.save();ctx.lineCap="round";ctx.strokeStyle="#fff";ctx.lineWidth=4;ctx.setLineDash([7,7]);for(let i=1;i<sites.length;i++){ctx.beginPath();ctx.moveTo((sites[0].x+.5)*tw,(sites[0].y+.5)*th);ctx.lineTo((sites[i].x+.5)*tw,(sites[i].y+.5)*th);ctx.stroke();}ctx.restore();}
- for(const st of sites){const px=(st.x+.5)*tw,py=(st.y+.5)*th;ctx.save();ctx.shadowColor="#394c5a55";ctx.shadowBlur=8;ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(px,py,10,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle="#d45d54";ctx.beginPath();ctx.arc(px,py,5.5,0,Math.PI*2);ctx.fill();ctx.restore();if(st.name){ctx.font="600 16px 'Google Sans',sans-serif";const width=ctx.measureText(st.name).width;ctx.fillStyle="#ffffffed";ctx.beginPath();ctx.roundRect(px+12,py-14,width+18,27,7);ctx.fill();ctx.fillStyle="#263247";ctx.fillText(st.name,px+21,py+5);}}
- for(const f of geo.features||[]){if(!f.name)continue;const px=(f.x+.5)*tw,py=(f.y+.5)*th;ctx.font="italic 14px 'Google Sans',sans-serif";ctx.fillStyle="#315e78";ctx.fillText(f.name,px+6,py-5);}
- for(const g of s.neighbors||[]){if(!g.discovered)continue;const px=(g.x+.5)*tw,py=(g.y+.5)*th;ctx.fillStyle=g.atWar?"#d45d54":g.allied?"#3978df":"#8b7a56";ctx.beginPath();ctx.arc(px,py,7,0,Math.PI*2);ctx.fill();if(g.name){ctx.font="500 14px 'Google Sans',sans-serif";ctx.fillStyle="#334155";ctx.fillText(g.name,px+10,py-7);}}
- ctx.fillStyle="#ffffffed";ctx.beginPath();ctx.roundRect(20,canvas.height-53,115,34,8);ctx.fill();ctx.fillStyle="#40516a";ctx.font="12px 'Google Sans',sans-serif";ctx.fillText("0",30,canvas.height-32);ctx.fillRect(47,canvas.height-35,50,3);ctx.fillText("50 km",101,canvas.height-32);
+ 
 }
 function setPaused(value){paused=value;$("pause").innerHTML=paused?'<span class="material-symbols-rounded">play_arrow</span> Riprendi':'<span class="material-symbols-rounded">pause</span> Pausa';$("status").textContent=paused?"SIMULAZIONE IN PAUSA":"SIMULAZIONE ATTIVA";$("status-dot").parentElement.classList.toggle("paused",paused);}
 async function runAdvance(days){if(worker){const id=++step.id;const result=await new Promise((resolve,reject)=>{const handler=e=>{if(e.data.id!==id)return;worker.removeEventListener("message",handler);e.data.error?reject(new Error(e.data.error)):resolve(e.data);};worker.addEventListener("message",handler);worker.postMessage({id,world,days});});world=result.world;}else advance(world,days);}
@@ -92,5 +126,5 @@ document.querySelectorAll("[data-speed]").forEach(button=>button.addEventListene
 $("save-now").addEventListener("click",()=>save().catch(()=>$("save-state").textContent="Errore salvataggio"));
 $("reset-world").addEventListener("click",async()=>{if(busy){$("save-state").textContent="Attendi la fine del ciclo in corso";return;}if(!window.confirm("Vuoi cancellare la civiltà attuale e ricominciare dall’Anno 0? Questa operazione non si può annullare."))return;setPaused(true);try{const db=await openDB();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();world=createWorld();elapsedMs=0;speed=1;setPaused(false);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===1));eventsSeen=-1;render(summary(world));await save();$("save-state").textContent="Nuova simulazione · Anno 0";}catch(error){console.error(error);$("save-state").textContent="Errore durante il riavvio";setPaused(true);}});
 window.addEventListener("pagehide",()=>{if(!world)return;world.timeRemainderMs=elapsedMs;world.speed=speed;world.paused=paused;world.lastWallTime=Date.now();try{const request=indexedDB.open(DB,1);request.onsuccess=()=>{const db=request.result,tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=()=>db.close();};}catch{}});
-async function init(){try{if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);speed=Number(world.speed)||1;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;if(!paused){elapsedMs+=Math.max(0,Date.now()-(world.lastWallTime||Date.now()))*speed;const missed=Math.floor(elapsedMs/60000);elapsedMs%=60000;if(missed)await runAdvance(Math.min(missed,200000));}}else world=createWorld();setPaused(paused);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===speed));render(summary(world));await save();}catch(error){console.error(error);world=createWorld();elapsedMs=0;render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs+=1000*speed;if(elapsedMs>=60000&&!busy){const days=Math.floor(elapsedMs/60000);elapsedMs%=60000;step(days);}}if(world){const state=summary(world);updateClock(state);updateAtmosphere(state);}},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
+async function init(){try{if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);speed=Number(world.speed)||1;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;if(!paused){elapsedMs+=Math.max(0,Date.now()-(world.lastWallTime||Date.now()))*speed;const missed=Math.floor(elapsedMs/60000);elapsedMs%=60000;if(missed)await runAdvance(Math.min(missed,200000));}}else{paused=true;showStartWizard();}setPaused(paused);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===speed));if(world){initWorldMap(world);render(summary(world));await save();}}catch(error){console.error(error);world=createWorld();elapsedMs=0;initWorldMap(world);render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs+=1000*speed;if(elapsedMs>=60000&&!busy){const days=Math.floor(elapsedMs/60000);elapsedMs%=60000;step(days);}}if(world){const state=summary(world);updateClock(state);updateAtmosphere(state);}},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
 init();

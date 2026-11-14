@@ -5,6 +5,7 @@
 <title>Anno Zero — Simulazione autonoma</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="./material.css">
 </head>
 <body>
@@ -19,8 +20,11 @@
 <main class="dashboard">
  <section class="map-column">
   <div class="section-heading map-heading"><div><span class="eyebrow">GEOGRAFIA GENERATA · ESPLORAZIONE LIBERA</span><h1><span class="material-symbols-rounded">map</span> Il continente</h1></div><span class="map-live"><i></i> MONDO IN EVOLUZIONE</span></div>
+  <div class="map-mode-controls" aria-label="Livello della mappa">
+   <button class="selected" data-map-mode="geografia">Geografia</button><button data-map-mode="politica">Politica</button><button data-map-mode="popolazione">Popolazione</button><button data-map-mode="risorse">Risorse</button>
+  </div>
   <div class="map-frame">
-   <canvas id="map" width="1280" height="880" aria-label="Carta geografica del continente con mari, laghi, fiumi, montagne, foreste e insediamenti"></canvas>
+   <div id="map" role="application" aria-label="Globo terrestre interattivo con insediamenti della simulazione"></div>
    <div class="map-chip"><span class="material-symbols-rounded">explore</span><span id="territory-name">Territorio non ancora nominato</span><b id="territory-area">12 km² conosciuti</b></div>
    <div class="map-compass"><span>N</span><span class="material-symbols-rounded">navigation</span></div>
   </div>
@@ -81,5 +85,14 @@
  </aside>
 </main>
 <footer><span>ANNO ZERO <b>·</b> ESPERIMENTO DI STORIA EMERGENTE</span><span id="last-save">STATO LOCALE</span></footer>
+<section id="start-wizard" class="start-wizard" hidden>
+ <div class="start-panel">
+  <span class="eyebrow">ANNO ZERO · NUOVA SIMULAZIONE</span>
+  <h1>Scegli dove nascerà la prima civiltà</h1>
+  <p>Esplora il globo terrestre, ruotalo e ingrandisci la zona che preferisci. Seleziona un punto sulla terraferma per fondare la comunità.</p>
+  <div id="start-map" aria-label="Selettore interattivo del luogo iniziale"></div>
+  <div class="start-footer"><span id="start-coordinates">Seleziona un punto sulla mappa</span><button id="begin-world" disabled>Inizia dall’Anno 0</button></div>
+ </div>
+</section>
 <script type="module" src="./app.js"></script>
 </body></html>
