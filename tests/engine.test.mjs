@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorld, advance, summary, validateWorld } from "../engine.js";
+import { createWorld, advance, summary, validateWorld, evolveCivilizationName } from "../engine.js";
 
 test("world starts at year zero with its founding population", () => {
   const world = createWorld();
@@ -216,4 +216,19 @@ test("a growing network of settlements can form a named political union",()=>{
  assert.ok(world.nationName);
  assert.ok(world.nationType);
  assert.ok(world.events.some(event=>event.title==="Nasce una nuova entità politica"));
+});
+
+test("civilization can adopt a new name and preserve its former name in history",()=>{
+ const world=createWorld();
+ world.year=150;
+ world.civilizationName="Aren";
+ world.civilizationNameHistory=[{name:"Aren",fromYear:2,toYear:null}];
+ world.lastCivilizationNameYear=2;
+ assert.equal(evolveCivilizationName(world),true);
+ assert.notEqual(world.civilizationName,"Aren");
+ assert.equal(world.civilizationNameHistory[0].name,"Aren");
+ assert.equal(world.civilizationNameHistory[0].toYear,150);
+ assert.equal(world.civilizationNameHistory.at(-1).name,world.civilizationName);
+ assert.equal(world.civilizationNameHistory.at(-1).toYear,null);
+ assert.ok(world.events.some(event=>event.title==="La comunità cambia nome"));
 });
