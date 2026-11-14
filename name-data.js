@@ -5,6 +5,9 @@ const SOURCES = [
   ["fr","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/languages/french.txt"],
   ["nl","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/languages/dutch.txt"],
   ["sv","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/languages/swedish.txt"],
+  ["pt","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/languages/portuguese.txt"],
+  ["pl","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/languages/polish.txt"],
+  ["da","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/languages/danish.txt"],
   ["names","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/names/names.txt"],
   ["it-common","https://raw.githubusercontent.com/napolux/paroleitaliane/main/paroleitaliane/1000_parole_italiane_comuni.txt"],
   ["it-names","https://raw.githubusercontent.com/napolux/paroleitaliane/main/paroleitaliane/9000_nomi_propri.txt"]
