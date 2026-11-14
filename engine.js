@@ -8,11 +8,15 @@ function generateGeography(seed){
  const width=128,height=88,heights=new Array(width*height),terrain=new Array(width*height),at=(x,y)=>y*width+x;
  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
   const nx=(x-width*.5)/(width*.49),ny=(y-height*.5)/(height*.49);
-  const broad=1-(nx*nx*.83+ny*ny*.91);
-  const detail=hashNoise(Math.floor(x/8),Math.floor(y/8),seed)*.19+hashNoise(Math.floor(x/3),Math.floor(y/3),seed+11)*.065+hashNoise(x,y,seed+29)*.018;
-  const peninsula=Math.max(0,1-Math.pow((x-23)/22,2)-Math.pow((y-48)/28,2))*.17;
-  const easternCape=Math.max(0,1-Math.pow((x-105)/18,2)-Math.pow((y-38)/24,2))*.13;
-  heights[at(x,y)]=broad+detail+peninsula+easternCape;
+  const main=1-Math.pow((x-64)/43,2)-Math.pow((y-44)/31,2);
+  const northWest=.78-Math.pow((x-22)/12,2)-Math.pow((y-17)/9,2);
+  const westernIsles=.66-Math.pow((x-9)/7,2)-Math.pow((y-43)/12,2);
+  const northEast=.72-Math.pow((x-108)/13,2)-Math.pow((y-18)/9,2);
+  const southEast=.76-Math.pow((x-111)/14,2)-Math.pow((y-68)/11,2);
+  const southWest=.66-Math.pow((x-23)/11,2)-Math.pow((y-78)/7,2);
+  const detail=hashNoise(Math.floor(x/8),Math.floor(y/8),seed)*.15+hashNoise(Math.floor(x/3),Math.floor(y/3),seed+11)*.055+hashNoise(x,y,seed+29)*.016;
+  const peninsula=Math.max(0,1-Math.pow((x-34)/15,2)-Math.pow((y-61)/18,2))*.12;
+  heights[at(x,y)]=Math.max(main,northWest,westernIsles,northEast,southEast,southWest)+detail+peninsula;
  }
  const lakes=[{x:36,y:28,rx:5,ry:3},{x:89,y:58,rx:4,ry:5},{x:73,y:19,rx:2.5,ry:2}];
  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
@@ -32,7 +36,7 @@ function generateGeography(seed){
  const features=[];
  for(const l of lakes)features.push({id:features.length+1,type:"lago",x:l.x,y:l.y,name:null,discovered:false});
  for(let i=0;i<Math.min(2,rivers.length);i++){const p=rivers[i][Math.floor(rivers[i].length*.58)];features.push({id:features.length+1,type:"fiume",x:p[0],y:p[1],name:null,discovered:false});}
- return {width,height,tileKm:5,terrain,features,explored:[]};
+ return {mapVersion:2,width,height,tileKm:5,terrain,features,explored:[]};
 }
 function inventPlaceName(s){
  const c=s.language?.consonants||["k","m","t","s","r","n","l","v","d","g"],v=s.language?.vowels||["a","e","i","o","u"];
@@ -344,6 +348,18 @@ export function validateWorld(s){
  if(!Number.isFinite(s.day)||!Number.isFinite(s.year)||!Number.isFinite(s.rng))throw new Error("Calendario o generatore casuale non valido");
  if(!s.climate)s.climate={type:"normale",days:0,severity:0};
  if(!s.geography)s.geography=generateGeography(s.rng||9041987);
+ if(s.geography.mapVersion!==2){
+  const previous=s.geography,fresh=generateGeography(s.rng||9041987);
+  for(const feature of fresh.features){
+   const match=(previous.features||[]).filter(old=>old.type===feature.type).sort((a,b)=>Math.hypot(a.x-feature.x,a.y-feature.y)-Math.hypot(b.x-feature.x,b.y-feature.y))[0];
+   if(match&&Math.hypot(match.x-feature.x,match.y-feature.y)<18){feature.name=match.name||null;feature.discovered=Boolean(match.discovered);}
+  }
+  s.geography=fresh;
+  for(const neighbor of s.neighbors||[]){
+   const x=Math.round(neighbor.x),y=Math.round(neighbor.y),terrain=s.geography.terrain;
+   if(terrain[y*s.geography.width+x]===0){let best=null,dist=Infinity;for(let yy=0;yy<s.geography.height;yy++)for(let xx=0;xx<s.geography.width;xx++){const code=terrain[yy*s.geography.width+xx];if(code===0||code===4||code===5||code===6)continue;const d=Math.hypot(xx-x,yy-y);if(d<dist){dist=d;best={x:xx,y:yy};}}if(best){neighbor.x=best.x;neighbor.y=best.y;}}
+  }
+ }
  if(!s.language)s.language={consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:s.technology?.includes("Scrittura")||false};
  if(!Number.isFinite(s.nextNameId))s.nextNameId=1;
  for(const st of s.settlements){if(st.name==="Valle del Primo Fiume"||st.name==="Nuovo Guado")st.name=null;if(!Number.isFinite(st.foundingYear))st.foundingYear=s.year||0;}
