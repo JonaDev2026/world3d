@@ -619,6 +619,8 @@ export function validateWorld(s){
  const mainSite=s.settlements[0];
  for(const st of s.settlements){const site=nearestLandTile(s.geography,st.x,st.y);if(site){st.x=site.x;st.y=site.y;if(st!==mainSite)Object.assign(st,nearbyCoordinates(mainSite,st.x,st.y));}}
  for(const neighbor of s.neighbors||[]){const site=nearestLandTile(s.geography,neighbor.x,neighbor.y);if(site){neighbor.x=site.x;neighbor.y=site.y;Object.assign(neighbor,nearbyCoordinates(mainSite,neighbor.x,neighbor.y));}}
+  // Elimina scoperte geografiche ereditate da coordinate errate o non più locali.
+  for(const feature of s.geography.features||[]){if(feature.discovered&&!s.settlements.some(st=>Math.hypot(st.x-feature.x,st.y-feature.y)<17)){feature.discovered=false;feature.name=null;}}
  if(!s.language)s.language={consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:s.technology?.includes("Scrittura")||false};
  if(!Number.isFinite(s.nextNameId))s.nextNameId=1;
  for(const st of s.settlements){if(st.name==="Valle del Primo Fiume"||st.name==="Nuovo Guado")st.name=null;if(!Number.isFinite(st.foundingYear))st.foundingYear=s.year||0;}
