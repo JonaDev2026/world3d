@@ -70,7 +70,7 @@ function applyMapMode(){
  const set=(id,show)=>{if(worldMap.getLayer(id))worldMap.setLayoutProperty(id,"visibility",show?"visible":"none");};
  const modes={
   geografia:["settlement-points","settlement-labels","neighbor-points"],
-  politica:["territory-fill","territory-outline","territory-labels"],
+  politica:["territory-fill","territory-outline","territory-labels","settlement-labels"],
   popolazione:["population-points","settlement-labels"],
   risorse:["resource-points","settlement-labels"]
  };
@@ -86,8 +86,8 @@ function updateSimulationMap(s){
  if(!settlementSource){
   worldMap.addSource("simulation-settlements",{type:"geojson",data:data.settlements});
   worldMap.addLayer({id:"settlement-points",type:"circle",source:"simulation-settlements",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,4,5,8,10,11],"circle-color":"#d94f55","circle-stroke-color":"#ffffff","circle-stroke-width":2}});
-  worldMap.addLayer({id:"population-points",type:"circle",source:"simulation-settlements",layout:{visibility:"none"},paint:{"circle-radius":["interpolate",["linear"],["get","population"],0,5,25,8,100,12,1000,19,10000,27],"circle-color":"#3978df","circle-opacity":0.48,"circle-stroke-color":"#ffffff","circle-stroke-width":1.5}});
-  worldMap.addLayer({id:"resource-points",type:"circle",source:"simulation-settlements",layout:{visibility:"none"},paint:{"circle-radius":["interpolate",["linear"],["get","stores"],0,5,100,8,1000,15,10000,23],"circle-color":["interpolate",["linear"],["get","stores"],0,"#c85b42",100,"#d9a441",1000,"#39836b"],"circle-opacity":0.78,"circle-stroke-color":"#ffffff","circle-stroke-width":1.5}});
+  worldMap.addLayer({id:"population-points",type:"circle",source:"simulation-settlements",layout:{visibility:"none"},paint:{"circle-radius":["interpolate",["linear"],["coalesce",["to-number",["get","population"]],0],0,5,25,8,100,12,1000,19,10000,27],"circle-color":"#3978df","circle-opacity":0.48,"circle-stroke-color":"#ffffff","circle-stroke-width":1.5}});
+  worldMap.addLayer({id:"resource-points",type:"circle",source:"simulation-settlements",layout:{visibility:"none"},paint:{"circle-radius":["interpolate",["linear"],["coalesce",["to-number",["get","stores"]],0],0,5,100,8,1000,15,10000,23],"circle-color":["interpolate",["linear"],["coalesce",["to-number",["get","stores"]],0],0,"#c85b42",100,"#d9a441",1000,"#39836b"],"circle-opacity":0.78,"circle-stroke-color":"#ffffff","circle-stroke-width":1.5}});
   worldMap.addLayer({id:"settlement-labels",type:"symbol",source:"simulation-settlements",layout:{"text-field":["get","name"],"text-font":["Open Sans Semibold"],"text-size":12,"text-offset":[0,1.25],"text-anchor":"top","text-allow-overlap":false},paint:{"text-color":"#263247","text-halo-color":"#ffffff","text-halo-width":1.5}});
   worldMap.addSource("simulation-neighbors",{type:"geojson",data:data.neighbors});
   worldMap.addLayer({id:"neighbor-points",type:"circle",source:"simulation-neighbors",paint:{"circle-radius":6,"circle-color":["case",["==",["get","atWar"],true],"#d94f55",["==",["get","allied"],true],"#3978df","#9a875d"],"circle-stroke-color":"#fff","circle-stroke-width":1.5}});
