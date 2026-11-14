@@ -9,6 +9,8 @@ function translate(sourceValue){
  if(dict[source])return dict[source];
  let match=source.match(/^(\\d+) (Gennaio|Febbraio|Marzo|Aprile|Maggio|Giugno|Luglio|Agosto|Settembre|Ottobre|Novembre|Dicembre)$/);
  if(match)return match[1]+" "+(dict[match[2]]||match[2]);
+ match=source.match(/^Anno (\\d+)$/);
+ if(match)return ({en:"Year",fr:"Année",es:"Año"}[currentLanguage]||"Year")+" "+match[1];
  match=source.match(/^Giorno (\\d+) del calendario simulato$/);
  if(match)return {en:`Day ${match[1]} of the simulated calendar`,fr:`Jour ${match[1]} du calendrier simulé`,es:`Día ${match[1]} del calendario simulado`}[currentLanguage]||source;
  match=source.match(/^(\\d+) (Gennaio|Febbraio|Marzo|Aprile|Maggio|Giugno|Luglio|Agosto|Settembre|Ottobre|Novembre|Dicembre)$/);
@@ -31,6 +33,7 @@ function translate(sourceValue){
  if(match)return match[1]+" km² "+({en:"known",fr:"connus",es:"conocidos"}[currentLanguage]||"known");
  match=source.match(/^ANNO (\\d+) · G(\\d+)$/);
  if(match)return ({en:"YEAR",fr:"ANNÉE",es:"AÑO"}[currentLanguage]||"YEAR")+" "+match[1]+" · D"+match[2];
+ if(source.includes(" · "))return source.split(" · ").map(part=>translate(part)).join(" · ");
  return source;
 }
 function translateNode(node){
