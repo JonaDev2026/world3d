@@ -40,12 +40,12 @@ function mapFeatures(s){
  };
  const palette=["#526fbd","#8b67b4","#3f8e83","#bd8751","#5985a9","#9a6d78","#6e9658"];
  const settlements=(s.settlementDetails||[]).map(st=>{
-  const rawCoordinates=project(st.x,st.y,st.latitude,st.longitude),coordinates=worldMap?.snapToLand(rawCoordinates)||rawCoordinates;if(!coordinates)return null;if(worldMap){st.longitude=coordinates[0];st.latitude=coordinates[1];}const population=st.population||0,stores=Number(st.stores)||0;
+  const coordinates=project(st.x,st.y,st.latitude,st.longitude);if(!coordinates)return null;const population=st.population||0,stores=Number(st.stores)||0;
   const radius=Math.min(2500,Math.max(60,Math.sqrt(Math.max(1,Number(st.knownArea)||12)*25/Math.PI)));
   return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:st.id,name:st.name||"",population,kind:st.kind||"accampamento",stores,knownArea:Number(st.knownArea)||0,polity:s.nationName?(s.nationName+" · "+(s.nationType||s.polity)):s.polity||"Comunità autonoma",label:(st.id===(s.settlementDetails||[])[0]?.id&&s.civilizationName?(s.civilizationName+(st.name?" · "+st.name:"")):(s.nationName||st.name||"")),color:s.nationName?palette[0]:palette[(Math.max(1,st.id)-1)%palette.length],radius}};
  }).filter(Boolean);
  const neighbors=(s.neighbors||[]).filter(n=>n.discovered).map(n=>{
-  const rawCoordinates=project(n.x,n.y,n.latitude,n.longitude),coordinates=worldMap?.snapToLand(rawCoordinates)||rawCoordinates;if(!coordinates)return null;if(worldMap){n.longitude=coordinates[0];n.latitude=coordinates[1];}const population=n.population||0;
+  const coordinates=project(n.x,n.y,n.latitude,n.longitude);if(!coordinates)return null;const population=n.population||0;
   return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:n.id,name:n.name||"",population,knownArea:Number(n.knownArea)||4,atWar:!!n.atWar,allied:!!n.allied,polity:n.nationName||n.name||"Comunità indipendente",label:n.name||"",color:n.atWar?"#c84f58":n.allied?"#4385c5":"#9b875d",radius:Math.min(2500,Math.max(60,Math.sqrt(Math.max(1,Number(n.knownArea)||4)*25/Math.PI)))}};
  }).filter(Boolean);
  const territories=[
@@ -56,7 +56,7 @@ function mapFeatures(s){
   settlements:{type:"FeatureCollection",features:settlements},
   territories:{type:"FeatureCollection",features:territories},
   neighbors:{type:"FeatureCollection",features:neighbors},
-  features:{type:"FeatureCollection",features:(s.geographicFeatures||[]).filter(f=>f.discovered&&f.name).map(f=>({type:"Feature",geometry:{type:"Point",coordinates:project(f.x,f.y)},properties:{name:f.name,featureType:f.type}}))},
+  features:{type:"FeatureCollection",features:(s.geographicFeatures||[]).filter(f=>f.discovered&&f.name&&(s.settlementDetails||[]).some(st=>Math.hypot(Number(st.x)-Number(f.x),Number(st.y)-Number(f.y))<17)).map(f=>({type:"Feature",geometry:{type:"Point",coordinates:project(f.x,f.y)},properties:{name:f.name,featureType:f.type}}))},
   routes:{type:"FeatureCollection",features:(s.routes||[]).filter(r=>r.name).map(r=>{const from=(s.settlementDetails||[]).find(st=>st.id===r.from),to=(s.settlementDetails||[]).find(st=>st.id===r.to);return from&&to?{type:"Feature",geometry:{type:"LineString",coordinates:[project(from.x,from.y,from.latitude,from.longitude),project(to.x,to.y,to.latitude,to.longitude)]},properties:{name:r.name}}:null;}).filter(Boolean)},
   explored:{type:"FeatureCollection",features:settlements.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,areaType:"area conosciuta"}}))}
  };
