@@ -67,6 +67,21 @@ function inventPlaceName(s){
  }
  return "Luogo"+String(s.nextNameId++);
 }
+export function refreshWorldNames(s){
+ if(!s||s.nameDataVersion===1||!Array.isArray(s.nameWords)||!s.nameWords.length)return false;
+ const settlements=s.settlements||[],neighbors=(s.neighbors||[]).filter(item=>item.discovered),features=(s.geography?.features||[]).filter(item=>item.discovered),routes=(s.routes||[]);
+ for(const item of [...settlements,...neighbors,...features,...routes])item.name=null;
+ s.civilizationName=null;s.nationName=null;
+ for(const item of settlements)item.name=inventPlaceName(s);
+ for(const item of neighbors)item.name=inventPlaceName(s);
+ for(const item of features)item.name=inventPlaceName(s);
+ for(const item of routes)item.name=inventPlaceName(s);
+ if(s.nationType||s.settlements.length>1)s.nationName=inventPlaceName(s);
+ if(s.civilizationNameHistory?.length)s.civilizationNameHistory=[];
+ if(s.civilizationName||s.year>=2)s.civilizationName=inventPlaceName(s);
+ s.nameDataVersion=1;
+ return true;
+}
 function neighborLanguage(id){
  const sets=[
   {consonants:["p","b","m","f","v","t","d","n","l","r"],vowels:["a","e","i","o"],codas:["n","l","r"]},
