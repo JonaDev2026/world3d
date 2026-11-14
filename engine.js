@@ -46,7 +46,7 @@ function inventPlaceName(s){
  const c=s.language?.consonants||["k","m","t","s","r","n","l","v","d","g"],v=s.language?.vowels||["a","e","i","o","u"];
  let word="";for(let i=0,n=2+Math.floor(random(s)*2);i<n;i++){word+=pick(s,c)+pick(s,v);if(random(s)<.22)word+=pick(s,["n","r","l","s"]);}
  const candidate=word.charAt(0).toUpperCase()+word.slice(1);
- const used=[...s.settlements.map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name)].filter(Boolean);
+ const used=[...s.settlements.map(x=>x.name),...(s.neighbors||[]).map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name)].filter(Boolean);
  return used.includes(candidate)?candidate+String(s.nextNameId++):candidate;
 }
 function findColonizationSite(s,origin){
