@@ -4,7 +4,18 @@ function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|
 const pick=(s,a)=>a[Math.floor(random(s)*a.length)];
 const alive=p=>p.alive;
 const hasTech=(s,name)=>s.technology.includes(name);
-function areCloseKin(a,b,byId,archive={}){const pa=a.parents||[],pb=b.parents||[];if(pa.some(id=>pb.includes(id))||pa.includes(b.id)||pb.includes(a.id))return true;const parents=id=>byId.get(id)?.parents||archive[id]||[];const grandparents=ids=>new Set(ids.flatMap(parents));const ga=grandparents(pa),gb=grandparents(pb);for(const id of ga)if(gb.has(id))return true;return false;}
+function areCloseKin(a,b,byId,archive={}){
+ const pa=a.parents||[],pb=b.parents||[];
+ if(pa.some(id=>pb.includes(id))||pa.includes(b.id)||pb.includes(a.id))return true;
+ const parents=id=>byId.get(id)?.parents||archive[id]||[];
+ const grandparents=ids=>new Set(ids.flatMap(parents));
+ const ga=grandparents(pa),gb=grandparents(pb);
+ for(const id of ga)if(gb.has(id))return true;
+ // Also prevent unions between an aunt/uncle and a niece/nephew.
+ for(const id of pa)for(const ancestor of parents(id))if(pb.some(parent=>parents(parent).includes(ancestor)))return true;
+ for(const id of pb)for(const ancestor of parents(id))if(pa.some(parent=>parents(parent).includes(ancestor)))return true;
+ return false;
+}
 function nearbyCoordinates(origin,x,y){const lat=Math.max(-84,Math.min(84,(Number(origin.latitude)||0)-(y-origin.y)*.18));const lon=((Number(origin.longitude||0)+(x-origin.x)*.18/Math.max(.18,Math.cos(lat*Math.PI/180))+540)%360)-180;return {latitude:lat,longitude:lon};}
 function haversine(a,b){const r=Math.PI/180,d1=(b.latitude-a.latitude)*r,d2=(b.longitude-a.longitude)*r,q=Math.sin(d1/2)**2+Math.cos(a.latitude*r)*Math.cos(b.latitude*r)*Math.sin(d2/2)**2;return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));}
 function hashNoise(x,y,seed){const n=Math.sin(x*127.1+y*311.7+seed*74.7)*43758.5453;return (n-Math.floor(n))*2-1;}
@@ -273,9 +284,13 @@ function daily(s){
   if(tech.includes("Scuola"))output*=1.025;
   if(tech.includes("Calendario"))output*=1.025;
   if(tech.includes("Vetro"))output*=1.015;
-  if(land===2)output*=1.08;
-  if(land===1||land===6)output*=1.10;
-  if(land===4||land===7)output*=.78;
+  const geography=s.geography||{width:128,height:88,terrain:[]};
+  const sx=Math.round(st.x),sy=Math.round(st.y),nearWater=(()=>{let best=99;for(let yy=-3;yy<=3;yy++)for(let xx=-3;xx<=3;xx++){const code=terrain?.[(sy+yy)*geography.width+sx+xx];if(code===5||code===6)best=Math.min(best,Math.hypot(xx,yy));}return best;})();
+  const fertility=land===2?1.24:land===1?1.12:land===6?1.18:land===3?1.02:land===7?.72:land===4?.58:1;
+  const waterAccess=nearWater<=1?1.18:nearWater<=3?1.09:nearWater<=5?1.03:.88;
+  const farmShare=role("agricoltore")*.45;
+  output=(output-farmShare)+farmShare*fertility*waterAccess;
+  if(land===4||land===7)output*=.94;
   output*=1.18;
   if(climate.days>0){const forecast=tech.includes("Calendario")?.88:1;if(climate.type==="siccità")output*=1-climate.severity*(tech.includes("Irrigazione")?.18:.72)*forecast;else if(climate.type==="alluvione")output*=1-climate.severity*(tech.includes("Irrigazione")?.32:.48)*forecast;else if(climate.type==="inverno rigido")output*=1-climate.severity*.38*forecast;}
   const need=count*.105,localSurplus=output-need,storageCapacity=Math.max(240,count*45)*(tech.includes("Ceramica")?1.2:1)*(tech.includes("Vetro")?1.08:1);
