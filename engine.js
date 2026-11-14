@@ -4,7 +4,7 @@ function random(state){let x=state.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;state.rng=x|
 const pick=(s,a)=>a[Math.floor(random(s)*a.length)];
 const alive=p=>p.alive;
 const hasTech=(s,name)=>s.technology.includes(name);
-function areCloseKin(a,b,byId){const pa=a.parents||[],pb=b.parents||[];if(pa.some(id=>pb.includes(id))||pa.includes(b.id)||pb.includes(a.id))return true;const grandparents=ids=>new Set(ids.flatMap(id=>byId.get(id)?.parents||[]));const ga=grandparents(pa),gb=grandparents(pb);for(const id of ga)if(gb.has(id))return true;return false;}
+function areCloseKin(a,b,byId,archive={}){const pa=a.parents||[],pb=b.parents||[];if(pa.some(id=>pb.includes(id))||pa.includes(b.id)||pb.includes(a.id))return true;const parents=id=>byId.get(id)?.parents||archive[id]||[];const grandparents=ids=>new Set(ids.flatMap(parents));const ga=grandparents(pa),gb=grandparents(pb);for(const id of ga)if(gb.has(id))return true;return false;}
 function nearbyCoordinates(origin,x,y){const lat=Math.max(-84,Math.min(84,(Number(origin.latitude)||0)-(y-origin.y)*.18));const lon=((Number(origin.longitude||0)+(x-origin.x)*.18/Math.max(.18,Math.cos(lat*Math.PI/180))+540)%360)-180;return {latitude:lat,longitude:lon};}
 function haversine(a,b){const r=Math.PI/180,d1=(b.latitude-a.latitude)*r,d2=(b.longitude-a.longitude)*r,q=Math.sin(d1/2)**2+Math.cos(a.latitude*r)*Math.cos(b.latitude*r)*Math.sin(d2/2)**2;return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));}
 function hashNoise(x,y,seed){const n=Math.sin(x*127.1+y*311.7+seed*74.7)*43758.5453;return (n-Math.floor(n))*2-1;}
@@ -79,6 +79,8 @@ function prunePopulation(s){
  if(dead.length<=8000)return;
  const keep=new Set(dead.slice(-8000).map(p=>p.id));
  const removed=dead.length-keep.size;
+ if(!s.familyArchive)s.familyArchive={};
+ for(const person of dead){if(!keep.has(person.id))s.familyArchive[person.id]=person.parents||[];}
  s.population=s.population.filter(p=>p.alive||keep.has(p.id));
  s.archivedDeaths=(s.archivedDeaths||0)+removed;
 }
@@ -238,7 +240,7 @@ function daily(s){
  const people=living(s),n=people.length,sett=s.settlements[0];
  for(const p of people)if(!p.settlementId)p.settlementId=sett.id;
  let familyIndex=null;
- const related=(a,b)=>{if(!familyIndex)familyIndex=new Map(s.population.map(person=>[person.id,person]));return areCloseKin(a,b,familyIndex);};
+ const related=(a,b)=>{if(!familyIndex)familyIndex=new Map(s.population.map(person=>[person.id,person]));return areCloseKin(a,b,familyIndex,s.familyArchive||{});};
  if(!n)return;
  // Workforce is counted once, then resources are produced and consumed locally.
  const workers=people.filter(p=>p.age>=15&&p.age<65),roleCounts=new Map();
@@ -448,6 +450,7 @@ export function validateWorld(s){
  for(const p of s.population){if(!Number.isFinite(p.pregnancyDays))p.pregnancyDays=0;if(!Number.isFinite(p.infectionDays))p.infectionDays=0;if(!Number.isFinite(p.immunityDays))p.immunityDays=0;}
  for(const st of s.settlements)if(!Number.isFinite(st.stores))st.stores=st.population?Math.max(0,s.food*st.population/Math.max(1,living(s).length)):0;
  if(!Number.isFinite(s.archivedDeaths))s.archivedDeaths=0;
+ if(!s.familyArchive||typeof s.familyArchive!=="object")s.familyArchive={};
  if(!s.nationName)s.nationName=null;
  if(!s.nationType)s.nationType=null;
  for(const g of s.neighbors){if(g.allied===undefined)g.allied=false;if(!Number.isFinite(g.truceUntil))g.truceUntil=0;}
