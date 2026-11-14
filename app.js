@@ -50,11 +50,14 @@ function mapFeatures(s){
   const radius=Math.min(2500,Math.max(8,Math.sqrt(population)*2.5));
   return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:st.id,name:st.name||"Insediamento senza nome",population,kind:st.kind||"accampamento",stores,polity:s.polity||"Comunità autonoma",color:palette[(Math.max(1,st.id)-1)%palette.length],radius}};
  });
- const territories=settlements.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,territory:"territorio"}}));
  const neighbors=(s.neighbors||[]).filter(n=>n.discovered).map(n=>{
   const coordinates=project(n.x,n.y,n.latitude,n.longitude),population=n.population||0;
-  return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:n.id,name:n.name||"Comunità sconosciuta",population,atWar:!!n.atWar,allied:!!n.allied}};
+  return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:n.id,name:n.name||"Comunità sconosciuta",population,atWar:!!n.atWar,allied:!!n.allied,polity:n.polity||"Comunità indipendente",color:n.atWar?"#c84f58":n.allied?"#4385c5":"#9b875d",radius:Math.min(2500,Math.max(8,Math.sqrt(population)*2.5))}};
  });
+ const territories=[
+  ...settlements.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,territory:"territorio"}})),
+  ...neighbors.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,territory:"territorio indipendente"}}))
+ ];
  return {
   settlements:{type:"FeatureCollection",features:settlements},
   territories:{type:"FeatureCollection",features:territories},
