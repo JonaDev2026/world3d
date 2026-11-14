@@ -51,7 +51,7 @@ function generateGeography(seed){
  const features=[];
  for(const l of lakes)features.push({id:features.length+1,type:"lago",x:l.x,y:l.y,name:null,discovered:false});
  for(let i=0;i<Math.min(2,rivers.length);i++){const p=rivers[i][Math.floor(rivers[i].length*.58)];features.push({id:features.length+1,type:"fiume",x:p[0],y:p[1],name:null,discovered:false});}
- const nearest=(x,y,water)=>{let best=null,distance=Infinity;for(let yy=1;yy<height-1;yy++)for(let xx=1;xx<width-1;xx++){if((terrain[at(xx,yy)]===0)!==water)continue;const d=Math.hypot(xx-x,yy-y);if(d<distance){distance=d;best={x:xx,y:yy};}}return best;};
+ const nearest=(x,y,water)=>{let best=null,distance=Infinity;for(let yy=1;yy<height-1;yy++)for(let xx=1;xx<width-1;xx++){const code=terrain[at(xx,yy)],isWater=water?code===0:code!==0&&code!==5&&code!==6;if(!isWater)continue;const d=Math.hypot(xx-x,yy-y);if(d<distance){distance=d;best={x:xx,y:yy};}}return best;};
  for(const [x,y] of [[64,44],[22,17],[9,43],[108,18],[111,68],[23,78]]){const p=nearest(x,y,false);if(p&&!features.some(f=>f.type==="continente"&&Math.hypot(f.x-p.x,f.y-p.y)<12))features.push({id:features.length+1,type:"continente",x:p.x,y:p.y,name:null,discovered:false});}
  for(const [x,y] of [[47,13],[91,42],[65,75]]){const p=nearest(x,y,true);if(p&&!features.some(f=>f.type==="mare"&&Math.hypot(f.x-p.x,f.y-p.y)<10))features.push({id:features.length+1,type:"mare",x:p.x,y:p.y,name:null,discovered:false});}
  return {mapVersion:3,width,height,tileKm:5,terrain,features,explored:[]};
@@ -229,7 +229,7 @@ function updateLeadership(s){
 }
 function updateNamedRoutes(s){
  if(!Array.isArray(s.routes))s.routes=[];
- const enabled=s.technology.includes("Ruota")||s.technology.includes("Strade")||s.technology.includes("Scambi tra insediamenti");
+ const enabled=s.technology.includes("Ruota")||s.technology.includes("Strade")||s.economy==="Scambi tra insediamenti";
  if(!enabled||s.settlements.length<2)return;
  for(let i=0;i<s.settlements.length;i++)for(let j=i+1;j<s.settlements.length;j++){
   const a=s.settlements[i],b=s.settlements[j];if(Math.hypot(a.x-b.x,a.y-b.y)>48)continue;
@@ -541,7 +541,7 @@ export function validateWorld(s){
  if(!Number.isFinite(s.day)||!Number.isFinite(s.year)||!Number.isFinite(s.rng))throw new Error("Calendario o generatore casuale non valido");
  if(!s.climate)s.climate={type:"normale",days:0,severity:0};
  if(!s.geography)s.geography=generateGeography(s.rng||9041987);
- if(s.geography.mapVersion!==2){
+ if(s.geography.mapVersion!==3){
   const previous=s.geography,fresh=generateGeography(s.rng||9041987);
   for(const feature of fresh.features){
    const match=(previous.features||[]).filter(old=>old.type===feature.type).sort((a,b)=>Math.hypot(a.x-feature.x,a.y-feature.y)-Math.hypot(b.x-feature.x,b.y-feature.y))[0];
