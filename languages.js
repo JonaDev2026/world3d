@@ -31,11 +31,11 @@ function translate(sourceValue){
  if(match)return match[1]+" "+({en:"events recorded",fr:"événements enregistrés",es:"eventos registrados"}[currentLanguage]||"events recorded");
  match=source.match(/^(.+) km² conosciuti$/);
  if(match)return match[1]+" km² "+({en:"known",fr:"connus",es:"conocidos"}[currentLanguage]||"known");
- match=source.match(/^(\\d+) eventi$/);
+ match=source.match(/^(\d+) eventi$/);
  if(match)return match[1]+" "+({en:"events",fr:"événements",es:"eventos"}[currentLanguage]||"events");
- match=source.match(/^(\\d+) comunità$/);
+ match=source.match(/^(\d+) comunità$/);
  if(match)return match[1]+" "+({en:"communities",fr:"communautés",es:"comunidades"}[currentLanguage]||"communities");
- match=source.match(/^([a-zà-ù]+)(\\s+\\d+)$/i);
+ match=source.match(/^([a-zà-ù]+)(\\s+\d+)$/i);
  if(match&&dict[match[1]])return dict[match[1]]+match[2];
  match=source.match(/^ANNO (\d+) · G(\d+)$/);
  if(match)return ({en:"YEAR",fr:"ANNÉE",es:"AÑO"}[currentLanguage]||"YEAR")+" "+match[1]+" · D"+match[2];
