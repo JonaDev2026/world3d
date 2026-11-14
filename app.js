@@ -6,10 +6,10 @@ let world,paused=false,speed=1,worker=null,workerReady=false,latestSummary=null,
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
 const MAP_STYLE="https://tiles.openfreemap.org/styles/liberty";
 function createMap(container,center=[0,20],zoom=1.5){
- const map=new maplibregl.Map({container,style:MAP_STYLE,center,zoom,projection:{type:"globe"},maxPitch:85,dragRotate:true,touchPitch:true,scrollZoom:true,doubleClickZoom:true,attributionControl:true,antialias:true});
+ const map=new maplibregl.Map({container,style:MAP_STYLE,center,zoom,projection:{type:"globe"},maxPitch:70,dragRotate:true,touchPitch:true,scrollZoom:true,doubleClickZoom:true,attributionControl:true});
  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
  map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:"metric"}),"bottom-left");
- map.on("style.load",()=>{try{map.setProjection({type:"globe"});}catch{}});
+ map.once("load",()=>map.resize());
  return map;
 }
 function showStartWizard(){
@@ -67,14 +67,15 @@ function mapFeatures(s){
 }
 function applyMapMode(){
  if(!worldMap)return;
- const visible=id=>worldMap.getLayer(id)?worldMap.setLayoutProperty(id,"visibility","visible"):null;
- const hidden=id=>worldMap.getLayer(id)?worldMap.setLayoutProperty(id,"visibility","none"):null;
- if(mapMode==="politica"){visible("territory-fill");visible("territory-outline");visible("territory-labels");visible("settlement-points");visible("settlement-labels");}
- else{hidden("territory-fill");hidden("territory-outline");hidden("territory-labels");visible("settlement-points");visible("settlement-labels");}
- if(mapMode==="popolazione"&&worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-radius",["interpolate",["linear"],["get","population"],0,4,100,7,1000,12,10000,19]);
- else if(worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-radius",["interpolate",["linear"],["zoom"],1,4,5,8,10,11]);
- if(mapMode==="risorse"&&worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-color",["interpolate",["linear"],["get","stores"],0,"#d9a441",100,"#9b9b50",1000,"#397f68"]);
- else if(worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-color",mapMode==="popolazione"?"#239b82":"#d94f55");
+ const set=(id,show)=>{if(worldMap.getLayer(id))worldMap.setLayoutProperty(id,"visibility",show?"visible":"none");};
+ const modes={
+  geografia:["settlement-points","settlement-labels","neighbor-points"],
+  politica:["territory-fill","territory-outline","territory-labels"],
+  popolazione:["population-points","settlement-labels"],
+  risorse:["resource-points","settlement-labels"]
+ };
+ const active=new Set(modes[mapMode]||modes.geografia);
+ for(const id of ["settlement-points","settlement-labels","neighbor-points","territory-fill","territory-outline","territory-labels","population-points","resource-points"])set(id,active.has(id));
 }
 function updateSimulationMap(s){
  if(!worldMap||!worldMap.isStyleLoaded())return;
@@ -85,6 +86,8 @@ function updateSimulationMap(s){
  if(!settlementSource){
   worldMap.addSource("simulation-settlements",{type:"geojson",data:data.settlements});
   worldMap.addLayer({id:"settlement-points",type:"circle",source:"simulation-settlements",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,4,5,8,10,11],"circle-color":"#d94f55","circle-stroke-color":"#ffffff","circle-stroke-width":2}});
+  worldMap.addLayer({id:"population-points",type:"circle",source:"simulation-settlements",layout:{visibility:"none"},paint:{"circle-radius":["interpolate",["linear"],["get","population"],0,5,25,8,100,12,1000,19,10000,27],"circle-color":"#3978df","circle-opacity":0.48,"circle-stroke-color":"#ffffff","circle-stroke-width":1.5}});
+  worldMap.addLayer({id:"resource-points",type:"circle",source:"simulation-settlements",layout:{visibility:"none"},paint:{"circle-radius":["interpolate",["linear"],["get","stores"],0,5,100,8,1000,15,10000,23],"circle-color":["interpolate",["linear"],["get","stores"],0,"#c85b42",100,"#d9a441",1000,"#39836b"],"circle-opacity":0.78,"circle-stroke-color":"#ffffff","circle-stroke-width":1.5}});
   worldMap.addLayer({id:"settlement-labels",type:"symbol",source:"simulation-settlements",layout:{"text-field":["get","name"],"text-font":["Open Sans Semibold"],"text-size":12,"text-offset":[0,1.25],"text-anchor":"top","text-allow-overlap":false},paint:{"text-color":"#263247","text-halo-color":"#ffffff","text-halo-width":1.5}});
   worldMap.addSource("simulation-neighbors",{type:"geojson",data:data.neighbors});
   worldMap.addLayer({id:"neighbor-points",type:"circle",source:"simulation-neighbors",paint:{"circle-radius":6,"circle-color":["case",["==",["get","atWar"],true],"#d94f55",["==",["get","allied"],true],"#3978df","#9a875d"],"circle-stroke-color":"#fff","circle-stroke-width":1.5}});
@@ -92,13 +95,13 @@ function updateSimulationMap(s){
   worldMap.addLayer({id:"territory-fill",type:"fill",source:"simulation-territories",layout:{visibility:"none"},paint:{"fill-color":["get","color"],"fill-opacity":0.22}});
   worldMap.addLayer({id:"territory-outline",type:"line",source:"simulation-territories",layout:{visibility:"none"},paint:{"line-color":["get","color"],"line-width":2.2,"line-opacity":0.95}});
   worldMap.addLayer({id:"territory-labels",type:"symbol",source:"simulation-territories",layout:{visibility:"none","text-field":["get","polity"],"text-font":["Open Sans Semibold"],"text-size":13,"text-allow-overlap":false},paint:{"text-color":"#29344a","text-halo-color":"#ffffff","text-halo-width":2}});
-  worldMap.on("click",["settlement-points","neighbor-points","territory-fill"],event=>{
+  worldMap.on("click",["settlement-points","population-points","resource-points","neighbor-points","territory-fill"],event=>{
    const f=event.features?.[0];if(!f)return;
    const p=f.properties||{},kind=p.territory?"Territorio politico":(p.kind||"Comunità indipendente");
    const popup="<strong>"+esc(p.name)+"</strong><br>"+kind+"<br>"+fmt(Number(p.population)||0)+" abitanti"+(p.polity?"<br>Forma politica: "+esc(p.polity):"")+(p.stores!==undefined?"<br>Riserve locali: "+fmt(Number(p.stores)||0):"")+(p.atWar?"<br>In guerra":"")+(p.allied?"<br>Alleata":"");
    new maplibregl.Popup({closeButton:true,offset:12,maxWidth:"280px"}).setLngLat(event.lngLat).setHTML(popup).addTo(worldMap);
   });
-  for(const layer of ["settlement-points","neighbor-points","territory-fill"]){worldMap.on("mouseenter",layer,()=>worldMap.getCanvas().style.cursor="pointer");worldMap.on("mouseleave",layer,()=>worldMap.getCanvas().style.cursor="");}
+  for(const layer of ["settlement-points","population-points","resource-points","neighbor-points","territory-fill"]){worldMap.on("mouseenter",layer,()=>worldMap.getCanvas().style.cursor="pointer");worldMap.on("mouseleave",layer,()=>worldMap.getCanvas().style.cursor="");}
   applyMapMode();
  }
  const home=s.settlements?.[0];
