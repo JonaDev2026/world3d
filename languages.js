@@ -45,15 +45,25 @@ function translate(sourceValue){
 function translateNode(node){
  if(node.nodeType===Node.TEXT_NODE){
   if(!node.parentElement||node.parentElement.closest(".material-symbols-rounded"))return;
-  if(!originalText.has(node))originalText.set(node,node.data);
-  const source=originalText.get(node),trimmed=source.trim(),result=translate(trimmed);
-  if(result!==trimmed)node.data=source.replace(trimmed,result);
+  let saved=originalText.get(node);
+  if(!saved)saved={source:node.data,translated:node.data};
+  else if(node.data!==saved.translated)saved.source=node.data;
+  const trimmed=saved.source.trim(),result=translate(trimmed);
+  const output=result===trimmed?saved.source:saved.source.replace(trimmed,result);
+  saved.translated=output;
+  originalText.set(node,saved);
+  if(node.data!==output)node.data=output;
  }else if(node.nodeType===Node.ELEMENT_NODE){
   for(const attr of ["title","aria-label","placeholder"]){
    if(!node.hasAttribute(attr))continue;
    let saved=originalAttributes.get(node);if(!saved){saved={};originalAttributes.set(node,saved);}
-   if(saved[attr]===undefined)saved[attr]=node.getAttribute(attr);
-   const result=translate(saved[attr]);if(node.getAttribute(attr)!==result)node.setAttribute(attr,result);
+   const current=node.getAttribute(attr);
+   let entry=saved[attr];
+   if(!entry)entry=saved[attr]={source:current,translated:current};
+   else if(current!==entry.translated)entry.source=current;
+   const result=translate(entry.source);
+   entry.translated=result;
+   if(current!==result)node.setAttribute(attr,result);
   }
   for(const child of node.childNodes)translateNode(child);
  }
