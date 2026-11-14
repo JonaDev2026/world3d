@@ -7,7 +7,7 @@ let world,paused=false,speed=1,worker=null,workerReady=false,latestSummary=null,
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
 let nameData={words:[],names:[]};
 initLanguages();
-const MAP_STYLE={version:8,sources:{osm:{type:"raster",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],tileSize:256,attribution:"© OpenStreetMap contributors"}},layers:[{id:"osm-base",type:"raster",source:"osm",minzoom:0,maxzoom:19}]};
+const MAP_STYLE={version:8,glyphs:"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",sources:{osm:{type:"raster",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],tileSize:256,attribution:"© OpenStreetMap contributors"}},layers:[{id:"osm-base",type:"raster",source:"osm",minzoom:0,maxzoom:19}]};
 function loadMapScript(src){
  return new Promise((resolve,reject)=>{
   const script=document.createElement("script");script.src=src;script.async=true;
