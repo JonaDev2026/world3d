@@ -69,6 +69,7 @@ function inventPlaceName(s){
 }
 export function refreshWorldNames(s){
  if(!s||s.nameDataVersion===1||!Array.isArray(s.nameWords)||!s.nameWords.length)return false;
+ const hadCivilizationName=Boolean(s.civilizationName),hadNationName=Boolean(s.nationName);
  const settlements=s.settlements||[],neighbors=(s.neighbors||[]).filter(item=>item.discovered),features=(s.geography?.features||[]).filter(item=>item.discovered),routes=(s.routes||[]);
  for(const item of [...settlements,...neighbors,...features,...routes])item.name=null;
  s.civilizationName=null;s.nationName=null;
@@ -76,9 +77,11 @@ export function refreshWorldNames(s){
  for(const item of neighbors)item.name=inventPlaceName(s);
  for(const item of features)item.name=inventPlaceName(s);
  for(const item of routes)item.name=inventPlaceName(s);
- if(s.nationType||s.settlements.length>1)s.nationName=inventPlaceName(s);
- if(s.civilizationNameHistory?.length)s.civilizationNameHistory=[];
- if(s.civilizationName||s.year>=2)s.civilizationName=inventPlaceName(s);
+ if(hadNationName||s.nationType||settlements.length>1)s.nationName=inventPlaceName(s);
+ if(hadCivilizationName||s.year>=2){
+  s.civilizationName=inventPlaceName(s);
+  s.civilizationNameHistory=[{name:s.civilizationName,fromYear:s.year,toYear:null}];
+ }
  s.nameDataVersion=1;
  return true;
 }
