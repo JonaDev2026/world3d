@@ -340,6 +340,7 @@ function daily(s){
  s.cohesion=clamp(s.cohesion+(foodRatio<.25?-.12:.008)-(s.stats.crimes>n*.3?.02:0),5,100);
  s.order=clamp(s.order+(s.institutions.length?.006:-.002),0,100);
  // Aging, health and mortality. Candidate partners are indexed by settlement once per day.
+ const medicalProtection=tech.includes("Medicina organizzata")?.72:1;
  const malesBySettlement=new Map();
  for(const q of people)if(q.sex==="M"&&q.age>=18&&q.age<58){if(!malesBySettlement.has(q.settlementId))malesBySettlement.set(q.settlementId,[]);malesBySettlement.get(q.settlementId).push(q);}
  for(const p of people){
@@ -348,13 +349,13 @@ function daily(s){
   if(p.age>55)p.health-=.012+(p.age-55)*.001;
   if(p.age<5)p.health-=p.age<1?.018:.006;
   if(p.age>70)p.health-=.012+(p.age-70)*.002;
-  if(p.health<=0||p.age>78&&random(s)<.00045+(p.age-78)*.0003){killPerson(s,p);s.stats.deaths++;continue;}
+  if(p.health<=0||p.age>78&&random(s)<(.00045+(p.age-78)*.0003)*medicalProtection){killPerson(s,p);s.stats.deaths++;continue;}
   if(p.age>=15&&p.age<62&&p.role==="bambino")p.role=pick(s,["raccoglitore","cacciatore","artigiano"]);
   if(!Number.isFinite(p.pregnancyDays))p.pregnancyDays=0;
   if(p.pregnancyDays>0){
    p.pregnancyDays--;
    if(p.pregnancyDays<=0){
-    const birthRisk=.0007+(p.age>32?Math.max(0,p.age-32)*.00012:0)+(p.health<45?.0015:0);
+    const birthRisk=(.0007+(p.age>32?Math.max(0,p.age-32)*.00012:0)+(p.health<45?.0015:0))*(tech.includes("Medicina organizzata")?.75:1);
     if(random(s)<birthRisk){p.health=clamp(p.health-18,0,100);if(random(s)<.12){p.pregnancyDays=0;}}
     else{addPerson(s,[p.id,p.partner]);p.health=clamp(p.health-3,0,100);}
    }
@@ -362,7 +363,7 @@ function daily(s){
    const currentPartnerAlive=p.partner&&people.some(r=>r.id===p.partner&&r.alive),candidates=(malesBySettlement.get(p.settlementId)||[]).filter(q=>q.alive&&q.id!==p.id&&(!currentPartnerAlive||p.partner===q.id)&&!related(p,q));
    if(candidates.length){const mate=p.partner?candidates.find(q=>q.id===p.partner)||pick(s,candidates):pick(s,candidates);p.partner=mate.id;mate.partner=p.id;p.pregnancyDays=280;}
   }
-  if(p.age<5&&random(s)<(.00008+(5-p.age)*.000055)+(localFood<.25?.0007:0)+(p.health<35?.0008:0)){killPerson(s,p);s.stats.deaths++;}
+  if(p.age<5&&random(s)<((.00008+(5-p.age)*.000055)+(localFood<.25?.0007:0)+(p.health<35?.0008:0))*medicalProtection){killPerson(s,p);s.stats.deaths++;}
   p.age+=1/365;
  }
  // Other societies have their own demographic and resource cycles.
