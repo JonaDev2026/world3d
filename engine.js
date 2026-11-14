@@ -187,9 +187,11 @@ function naturalHazardsDaily(s){
   s.health=clamp(s.health-impact*5,0,100);s.cohesion=clamp(s.cohesion-impact*3,0,100);
  }
  const labels={"terremoto":"Un terremoto scuote la regione","eruzione vulcanica":"Un vulcano entra in eruzione","tifone":"Un tifone attraversa l’oceano","alluvione":"Un’alluvione colpisce il territorio","incendio boschivo":"Un incendio si propaga nella vegetazione","tsunami":"Uno tsunami attraversa la costa","ondata di calore":"Un’ondata di calore investe la regione","bufera di neve":"Una bufera di neve colpisce le terre settentrionali"};
- const detail="Evento registrato a "+Math.round(location.latitude*10)/10+"°, "+Math.round(location.longitude*10)/10+"°. "+(affected.length?affected.length+" insediamento/i nelle vicinanze subiscono conseguenze.":"Nessun insediamento conosciuto si trova nel raggio d’impatto.");
- const history=addEvent(s,labels[type],detail,"natural");history.latitude=location.latitude;history.longitude=location.longitude;history.hazardType=type;history.severity=severity;
- s.stats.naturalDisasters=(s.stats.naturalDisasters||0)+1;
+ if(affected.length){
+  const detail="La calamità ha colpito "+affected.length+" insediamento/i della civiltà. Epicentro: "+Math.round(location.latitude*10)/10+"°, "+Math.round(location.longitude*10)/10+"°.";
+  const history=addEvent(s,labels[type],detail,"natural");history.latitude=location.latitude;history.longitude=location.longitude;history.hazardType=type;history.severity=severity;
+  s.stats.naturalDisasters=(s.stats.naturalDisasters||0)+1;
+ }
 }
 function living(s){return s.population.filter(alive)}
 function prunePopulation(s){
