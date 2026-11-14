@@ -56,6 +56,25 @@ function generateGeography(seed){
  for(const [x,y] of [[47,13],[91,42],[65,75]]){const p=nearest(x,y,true);if(p&&!features.some(f=>f.type==="mare"&&Math.hypot(f.x-p.x,f.y-p.y)<10))features.push({id:features.length+1,type:"mare",x:p.x,y:p.y,name:null,discovered:false});}
  return {mapVersion:3,width,height,tileKm:5,terrain,features,explored:[]};
 }
+function isLandTile(g,x,y){
+ if(!g?.terrain||!Number.isFinite(x)||!Number.isFinite(y))return false;
+ const ix=Math.round(x),iy=Math.round(y);
+ if(ix<0||iy<0||ix>=g.width||iy>=g.height)return false;
+ const code=g.terrain[iy*g.width+ix];
+ return code===1||code===2||code===3||code===4||code===7;
+}
+function nearestLandTile(g,x,y){
+ if(!g?.terrain)return null;
+ const cx=Math.max(0,Math.min(g.width-1,Math.round(x))),cy=Math.max(0,Math.min(g.height-1,Math.round(y)));
+ if(isLandTile(g,cx,cy))return {x:cx,y:cy};
+ let best=null,bestDistance=Infinity;
+ for(let yy=0;yy<g.height;yy++)for(let xx=0;xx<g.width;xx++){
+  if(!isLandTile(g,xx,yy))continue;
+  const distance=(xx-cx)**2+(yy-cy)**2;
+  if(distance<bestDistance){bestDistance=distance;best={x:xx,y:yy};}
+ }
+ return best;
+}
 function inventFamilyName(s,used=new Set()){
  const words=Array.isArray(s.familyNames)&&s.familyNames.length?s.familyNames:(Array.isArray(s.nameWords)?s.nameWords:[]);
  for(let attempt=0;attempt<80&&words.length;attempt++){
@@ -111,7 +130,7 @@ function findColonizationSite(s,origin){
  const g=s.geography;if(!g)return null;const {width,height,terrain}=g,candidates=[];
  for(let y=5;y<height-5;y+=2)for(let x=5;x<width-5;x+=2){
   const d=Math.hypot(x-origin.x,y-origin.y);if(d<15||d>43)continue;
-  const t=terrain[y*width+x];if(t===0||t===4||t===5||t===6)continue;
+  const t=terrain[y*width+x];if(!isLandTile(g,x,y)||t===4)continue;
   let water=0,flat=0;for(let yy=-3;yy<=3;yy++)for(let xx=-3;xx<=3;xx++){const q=terrain[(y+yy)*width+x+xx];if(q===5||q===6)water++;if(q===1||q===2||q===7)flat++;}
   candidates.push({x,y,score:water*2.2+flat*.45+(t===2?3:0)+random(s)*4-d*.035});
  }
@@ -122,7 +141,7 @@ export function createWorld(start={}){
  const geography=generateGeography(geoSeed);
  if([1,2,3,4,7].includes(start.terrainCode))geography.terrain[43*geography.width+62]=start.terrainCode;
  const s={version:VERSION,day:1,year:0,nameWords:Array.isArray(start.nameWords)?start.nameWords:[],personalNames:Array.isArray(start.personalNames)?start.personalNames:[],familyNames:Array.isArray(start.familyNames)?start.familyNames:[],rng:((geoSeed^Date.now()^Math.floor(Math.random()*4294967296))>>>0)||1,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,routes:[],civilizationName:null,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
- for(const neighbor of s.neighbors)Object.assign(neighbor,nearbyCoordinates(s.settlements[0],neighbor.x,neighbor.y));
+ for(const neighbor of s.neighbors){const site=nearestLandTile(geography,neighbor.x,neighbor.y);if(site){neighbor.x=site.x;neighbor.y=site.y;}Object.assign(neighbor,nearbyCoordinates(s.settlements[0],neighbor.x,neighbor.y));}
  const names=Array.isArray(s.personalNames)&&s.personalNames.length?s.personalNames:["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const usedGiven=new Set(),usedFamilies=new Set();
  for(let i=0;i<24;i++){let given=null;for(let attempt=0;attempt<60;attempt++){const candidate=pick(s,names);if(!usedGiven.has(String(candidate).toLocaleLowerCase())){given=candidate;break;}}given=given||pick(s,names);usedGiven.add(String(given).toLocaleLowerCase());s.population.push({id:i+1,name:given,family:inventFamilyName(s,usedFamilies),age:Math.floor(8+random(s)*43),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",settlementId:1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
@@ -456,7 +475,7 @@ function daily(s){
   const growth=g.food>g.population*9?.00012:g.food<g.population*2?-.00032:-.00004;
   g.population=Math.max(3,Math.round(g.population+g.population*growth+(random(s)<.0006?1:0)));
   g.food=clamp(g.food+g.population*productivity-need,0,Math.max(240,g.population*45));
-  if(g.food>g.population*18&&random(s)<.000025){const direction=pick(s,[[1,0],[-1,0],[0,1],[0,-1]]),nx=clamp(g.x+direction[0]*3,2,s.geography.width-3),ny=clamp(g.y+direction[1]*3,2,s.geography.height-3),code=s.geography.terrain[Math.round(ny)*s.geography.width+Math.round(nx)];if(code!==0&&code!==4&&code!==5&&code!==6){g.x=nx;g.y=ny;Object.assign(g,nearbyCoordinates(s.settlements[0],g.x,g.y));g.knownArea=(g.knownArea||4)+1;}}
+  if(g.food>g.population*18&&random(s)<.000025){const direction=pick(s,[[1,0],[-1,0],[0,1],[0,-1]]),nx=clamp(g.x+direction[0]*3,2,s.geography.width-3),ny=clamp(g.y+direction[1]*3,2,s.geography.height-3),code=s.geography.terrain[Math.round(ny)*s.geography.width+Math.round(nx)];if(isLandTile(s.geography,nx,ny)&&code!==4){g.x=nx;g.y=ny;Object.assign(g,nearbyCoordinates(s.settlements[0],g.x,g.y));g.knownArea=(g.knownArea||4)+1;}}
   g.technology+=g.population*.00008;
   const routeDistance=Number.isFinite(g.latitude)&&Number.isFinite(g.longitude)&&Number.isFinite(frontier.latitude)&&Number.isFinite(frontier.longitude)?haversine(g,frontier):Math.hypot(g.x-frontier.x,g.y-frontier.y)*20;
   const proximity=Math.max(.05,1-routeDistance/5000),territorialPressure=Math.max(0,1-routeDistance/900);
@@ -596,6 +615,10 @@ export function validateWorld(s){
    if(terrain[y*s.geography.width+x]===0){let best=null,dist=Infinity;for(let yy=0;yy<s.geography.height;yy++)for(let xx=0;xx<s.geography.width;xx++){const code=terrain[yy*s.geography.width+xx];if(code===0||code===4||code===5||code===6)continue;const d=Math.hypot(xx-x,yy-y);if(d<dist){dist=d;best={x:xx,y:yy};}}if(best){neighbor.x=best.x;neighbor.y=best.y;}}
   }
  }
+ // Ripara anche i salvataggi esistenti: nessun insediamento o popolo resta in acqua.
+ const mainSite=s.settlements[0];
+ for(const st of s.settlements){const site=nearestLandTile(s.geography,st.x,st.y);if(site){st.x=site.x;st.y=site.y;if(st!==mainSite)Object.assign(st,nearbyCoordinates(mainSite,st.x,st.y));}}
+ for(const neighbor of s.neighbors||[]){const site=nearestLandTile(s.geography,neighbor.x,neighbor.y);if(site){neighbor.x=site.x;neighbor.y=site.y;Object.assign(neighbor,nearbyCoordinates(mainSite,neighbor.x,neighbor.y));}}
  if(!s.language)s.language={consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:s.technology?.includes("Scrittura")||false};
  if(!Number.isFinite(s.nextNameId))s.nextNameId=1;
  for(const st of s.settlements){if(st.name==="Valle del Primo Fiume"||st.name==="Nuovo Guado")st.name=null;if(!Number.isFinite(st.foundingYear))st.foundingYear=s.year||0;}
