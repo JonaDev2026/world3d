@@ -56,6 +56,14 @@ function generateGeography(seed){
  for(const [x,y] of [[47,13],[91,42],[65,75]]){const p=nearest(x,y,true);if(p&&!features.some(f=>f.type==="mare"&&Math.hypot(f.x-p.x,f.y-p.y)<10))features.push({id:features.length+1,type:"mare",x:p.x,y:p.y,name:null,discovered:false});}
  return {mapVersion:3,width,height,tileKm:5,terrain,features,explored:[]};
 }
+function inventFamilyName(s,used=new Set()){
+ const words=Array.isArray(s.nameWords)?s.nameWords:[];
+ for(let attempt=0;attempt<80&&words.length;attempt++){
+  const word=pick(s,words),candidate=word.charAt(0).toLocaleUpperCase()+word.slice(1);
+  if(candidate.length>=4&&!used.has(candidate.toLocaleLowerCase())){used.add(candidate.toLocaleLowerCase());return candidate;}
+ }
+ const fallback="Famiglia"+String(s.nextNameId++);used.add(fallback.toLocaleLowerCase());return fallback;
+}
 function inventPlaceName(s){
  const used=new Set([...s.settlements.map(x=>x.name),...(s.neighbors||[]).map(x=>x.name),...(s.geography?.features||[]).map(x=>x.name),s.civilizationName].filter(Boolean).map(x=>String(x).toLocaleLowerCase()));
  const words=Array.isArray(s.nameWords)?s.nameWords:[];
@@ -68,7 +76,7 @@ function inventPlaceName(s){
  return "Luogo"+String(s.nextNameId++);
 }
 export function refreshWorldNames(s){
- if(!s||s.nameDataVersion===1||!Array.isArray(s.nameWords)||!s.nameWords.length)return false;
+ if(!s||s.nameDataVersion>=2||!Array.isArray(s.nameWords)||!s.nameWords.length)return false;
  const hadCivilizationName=Boolean(s.civilizationName),hadNationName=Boolean(s.nationName);
  const settlements=s.settlements||[],neighbors=(s.neighbors||[]).filter(item=>item.discovered),features=(s.geography?.features||[]).filter(item=>item.discovered),routes=(s.routes||[]);
  for(const item of [...settlements,...neighbors,...features,...routes])item.name=null;
@@ -82,7 +90,12 @@ export function refreshWorldNames(s){
   s.civilizationName=inventPlaceName(s);
   s.civilizationNameHistory=[{name:s.civilizationName,fromYear:s.year,toYear:null}];
  }
- s.nameDataVersion=1;
+ const people=s.population||[],given=Array.isArray(s.personalNames)?s.personalNames:[],usedGiven=new Set(),familyMap=new Map(),usedFamilies=new Set();
+ for(const person of people){
+  if(given.length){let candidate=null;for(let attempt=0;attempt<60;attempt++){const value=pick(s,given);if(!usedGiven.has(String(value).toLocaleLowerCase())){candidate=value;break;}}person.name=candidate||pick(s,given);usedGiven.add(String(person.name).toLocaleLowerCase());}
+  const oldFamily=String(person.family||"");if(!familyMap.has(oldFamily))familyMap.set(oldFamily,inventFamilyName(s,usedFamilies));person.family=familyMap.get(oldFamily);
+ }
+ s.nameDataVersion=2;
  return true;
 }
 function neighborLanguage(id){
@@ -108,11 +121,11 @@ export function createWorld(start={}){
  const geoSeed=Number.isFinite(start.latitude)&&Number.isFinite(start.longitude)?((Math.round((start.latitude+90)*100003)^Math.round((start.longitude+180)*10007)^9041987)>>>0):9041987;
  const geography=generateGeography(geoSeed);
  if([1,2,3,4,7].includes(start.terrainCode))geography.terrain[43*geography.width+62]=start.terrainCode;
- const s={version:VERSION,day:1,year:0,rng:9041987,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,routes:[],civilizationName:null,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
+ const s={version:VERSION,day:1,year:0,nameWords:Array.isArray(start.nameWords)?start.nameWords:[],personalNames:Array.isArray(start.personalNames)?start.personalNames:[],rng:((geoSeed^Date.now()^Math.floor(Math.random()*4294967296))>>>0)||1,lastWallTime:Date.now(),speed:1,paused:false,population:[],settlements:[{id:1,name:null,latitude:Number.isFinite(start.latitude)?start.latitude:0,longitude:Number.isFinite(start.longitude)?start.longitude:0,x:62,y:43,kind:"accampamento",homes:6,fields:0,stores:240,water:1000,knownArea:12,population:24,foundingYear:0}],nextPersonId:25,nextSettlementId:2,nextNameId:1,food:240,knowledge:0,health:100,cohesion:75,order:20,technology:["Fuoco","Utensili di pietra"],institutions:[],specializations:[],religion:"Tradizioni orali",polity:"Comunità senza governo",nationName:null,nationType:null,laws:"Consuetudini condivise",economy:"Sussistenza collettiva",language:{consonants:["k","m","t","s","r","n","l","v","d","g"],vowels:["a","e","i","o","u"],written:false},geography,routes:[],civilizationName:null,events:[],stats:{births:0,deaths:0,crimes:0,discoveries:0,migrations:0,wars:0,epidemics:0},deadCount:0,neighbors:[{id:1,name:null,population:19,food:125,hostility:12,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:25,y:28},{id:2,name:null,population:14,food:95,hostility:8,discovered:false,allied:false,truceUntil:0,atWar:false,warDays:0,technology:0,x:104,y:60}],disease:{active:false,strain:0,days:0},climate:{type:"normale",days:0,severity:0},nextEventId:1,history:[],familyArchive:{}};
  for(const neighbor of s.neighbors)Object.assign(neighbor,nearbyCoordinates(s.settlements[0],neighbor.x,neighbor.y));
  const names=Array.isArray(s.personalNames)&&s.personalNames.length?s.personalNames:["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
- const surnames=["della Riva","delle Selci","del Salice","della Valle","del Guado","della Quercia"];
- for(let i=0;i<24;i++){s.population.push({id:i+1,name:names[i],family:pick(s,surnames),age:Math.floor(8+random(s)*43),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",settlementId:1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
+ const usedGiven=new Set(),usedFamilies=new Set();
+ for(let i=0;i<24;i++){let given=null;for(let attempt=0;attempt<60;attempt++){const candidate=pick(s,names);if(!usedGiven.has(String(candidate).toLocaleLowerCase())){given=candidate;break;}}given=given||pick(s,names);usedGiven.add(String(given).toLocaleLowerCase());s.population.push({id:i+1,name:given,family:inventFamilyName(s,usedFamilies),age:Math.floor(8+random(s)*43),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",settlementId:1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
  addEvent(s,"La comunità si stabilisce","Ventiquattro persone scelgono un luogo vicino all’acqua. Il territorio non ha ancora un nome condiviso.","society");
  return s;
 }
