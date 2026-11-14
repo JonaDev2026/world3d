@@ -62,6 +62,7 @@ export function setLanguage(language){
  currentLanguage=Object.hasOwn(dictionaries,language)?language:"en";
  try{localStorage.setItem("world3d-language",currentLanguage);}catch{}
  document.documentElement.lang=currentLanguage;
+ translateNode(document.head);
  translateNode(document.body);
  const selector=document.getElementById("language-select");if(selector&&selector.value!==currentLanguage)selector.value=currentLanguage;
 }
