@@ -3,9 +3,9 @@ import maplibregl from "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"
 const $=id=>document.getElementById(id),DB="anno-zero-world",STORE="state";
 let world,paused=false,speed=1,worker=null,busy=false,lastSaved=0,eventsSeen=-1,elapsedMs=0,worldMap=null,startMap=null,startMarker=null,chosenStart=null,mapMode="geografia";
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
-const MAP_STYLE="https://demotiles.maplibre.org/style.json";
+const MAP_STYLE="https://tiles.openfreemap.org/styles/liberty";
 function createMap(container,center=[0,20],zoom=1.5){
- const map=new maplibregl.Map({container,style:MAP_STYLE,center,zoom,projection:{type:"globe"},attributionControl:true,antialias:true});
+ const map=new maplibregl.Map({container,style:MAP_STYLE,center,zoom,projection:{type:"globe"},maxPitch:85,dragRotate:true,touchPitch:true,scrollZoom:true,doubleClickZoom:true,attributionControl:true,antialias:true});
  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
  map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:"metric"}),"bottom-left");
  map.on("style.load",()=>{try{map.setProjection({type:"globe"});}catch{}});
@@ -15,10 +15,13 @@ function showStartWizard(){
  const panel=$("start-wizard");panel.hidden=false;
  startMap=createMap("start-map",[12,18],1.35);
  startMap.on("click",event=>{
+  const waterLayers=startMap.getStyle().layers.filter(layer=>/water|ocean|lake|river/i.test(layer.id)).map(layer=>layer.id);
+  const water=waterLayers.length&&startMap.queryRenderedFeatures(event.point,{layers:waterLayers}).length>0;
+  if(water){chosenStart=null;$("begin-world").disabled=true;$("start-coordinates").textContent="Punto in acqua: scegli una zona di terraferma";if(startMarker){startMarker.remove();startMarker=null;}return;}
   chosenStart={longitude:Number(event.lngLat.lng.toFixed(5)),latitude:Number(event.lngLat.lat.toFixed(5))};
   if(startMarker)startMarker.remove();
   startMarker=new maplibregl.Marker({color:"#315efb"}).setLngLat([chosenStart.longitude,chosenStart.latitude]).addTo(startMap);
-  $("start-coordinates").textContent=chosenStart.latitude.toFixed(3)+"°, "+chosenStart.longitude.toFixed(3)+"°";
+  $("start-coordinates").textContent="Terraferma · "+chosenStart.latitude.toFixed(3)+"°, "+chosenStart.longitude.toFixed(3)+"°";
   $("begin-world").disabled=false;
  });
  $("begin-world").addEventListener("click",async()=>{
@@ -36,27 +39,62 @@ function mapFeatures(s){
   const lon=((originLon+(Number(x||0)-Number(home?.x||0))*.18/Math.max(.18,Math.cos(lat*Math.PI/180))+540)%360)-180;
   return [lon,lat];
  };
- const settlements=(s.settlementDetails||[]).map(st=>({type:"Feature",geometry:{type:"Point",coordinates:project(st.x,st.y,st.latitude,st.longitude)},properties:{id:st.id,name:st.name||"Insediamento senza nome",population:st.population||0,kind:st.kind||"accampamento"}}));
- const neighbors=(s.neighbors||[]).filter(n=>n.discovered).map(n=>({type:"Feature",geometry:{type:"Point",coordinates:project(n.x,n.y,n.latitude,n.longitude)},properties:{id:n.id,name:n.name||"Comunità sconosciuta",population:n.population||0,atWar:!!n.atWar,allied:!!n.allied}}));
- return {settlements:{type:"FeatureCollection",features:settlements},neighbors:{type:"FeatureCollection",features:neighbors}};
+ const circle=(center,radiusKm)=>{
+  const coords=[],lat0=center[1]*Math.PI/180,lon0=center[0]*Math.PI/180,angular=radiusKm/6371;
+  for(let i=0;i<=48;i++){const bearing=2*Math.PI*i/48,lat=Math.asin(Math.sin(lat0)*Math.cos(angular)+Math.cos(lat0)*Math.sin(angular)*Math.cos(bearing)),lon=lon0+Math.atan2(Math.sin(bearing)*Math.sin(angular)*Math.cos(lat0),Math.cos(angular)-Math.sin(lat0)*Math.sin(lat));coords.push([((lon*180/Math.PI+540)%360)-180,lat*180/Math.PI]);}
+  return [coords];
+ };
+ const palette=["#526fbd","#8b67b4","#3f8e83","#bd8751","#5985a9","#9a6d78","#6e9658"];
+ const settlements=(s.settlementDetails||[]).map(st=>{
+  const coordinates=project(st.x,st.y,st.latitude,st.longitude),population=st.population||0,stores=Number(st.stores)||0;
+  const radius=Math.min(2500,Math.max(8,Math.sqrt(population)*2.5));
+  return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:st.id,name:st.name||"Insediamento senza nome",population,kind:st.kind||"accampamento",stores,polity:s.polity||"Comunità autonoma",color:palette[(Math.max(1,st.id)-1)%palette.length],radius}};
+ });
+ const territories=settlements.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,territory:"territorio"}}));
+ const neighbors=(s.neighbors||[]).filter(n=>n.discovered).map(n=>{
+  const coordinates=project(n.x,n.y,n.latitude,n.longitude),population=n.population||0;
+  return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:n.id,name:n.name||"Comunità sconosciuta",population,atWar:!!n.atWar,allied:!!n.allied}};
+ });
+ return {
+  settlements:{type:"FeatureCollection",features:settlements},
+  territories:{type:"FeatureCollection",features:territories},
+  neighbors:{type:"FeatureCollection",features:neighbors}
+ };
+}
+function applyMapMode(){
+ if(!worldMap)return;
+ const visible=id=>worldMap.getLayer(id)?worldMap.setLayoutProperty(id,"visibility","visible"):null;
+ const hidden=id=>worldMap.getLayer(id)?worldMap.setLayoutProperty(id,"visibility","none"):null;
+ if(mapMode==="politica"){visible("territory-fill");visible("territory-outline");visible("settlement-points");visible("settlement-labels");}
+ else{hidden("territory-fill");hidden("territory-outline");visible("settlement-points");visible("settlement-labels");}
+ if(mapMode==="popolazione"&&worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-radius",["interpolate",["linear"],["get","population"],0,4,100,7,1000,12,10000,19]);
+ else if(worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-radius",["interpolate",["linear"],["zoom"],1,4,5,8,10,11]);
+ if(mapMode==="risorse"&&worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-color",["interpolate",["linear"],["get","stores"],0,"#d9a441",100,"#9b9b50",1000,"#397f68"]);
+ else if(worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-color",mapMode==="popolazione"?"#239b82":"#d94f55");
 }
 function updateSimulationMap(s){
  if(!worldMap||!worldMap.isStyleLoaded())return;
- const data=mapFeatures(s),a=worldMap.getSource("simulation-settlements"),b=worldMap.getSource("simulation-neighbors");
- if(a)a.setData(data.settlements);if(b)b.setData(data.neighbors);
- if(!a){
+ const data=mapFeatures(s),settlementSource=worldMap.getSource("simulation-settlements"),neighborSource=worldMap.getSource("simulation-neighbors"),territorySource=worldMap.getSource("simulation-territories");
+ if(settlementSource)settlementSource.setData(data.settlements);
+ if(neighborSource)neighborSource.setData(data.neighbors);
+ if(territorySource)territorySource.setData(data.territories);
+ if(!settlementSource){
   worldMap.addSource("simulation-settlements",{type:"geojson",data:data.settlements});
   worldMap.addLayer({id:"settlement-points",type:"circle",source:"simulation-settlements",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,4,5,8,10,11],"circle-color":"#d94f55","circle-stroke-color":"#ffffff","circle-stroke-width":2}});
   worldMap.addLayer({id:"settlement-labels",type:"symbol",source:"simulation-settlements",layout:{"text-field":["get","name"],"text-font":["Open Sans Semibold"],"text-size":12,"text-offset":[0,1.25],"text-anchor":"top","text-allow-overlap":false},paint:{"text-color":"#263247","text-halo-color":"#ffffff","text-halo-width":1.5}});
   worldMap.addSource("simulation-neighbors",{type:"geojson",data:data.neighbors});
   worldMap.addLayer({id:"neighbor-points",type:"circle",source:"simulation-neighbors",paint:{"circle-radius":6,"circle-color":["case",["==",["get","atWar"],true],"#d94f55",["==",["get","allied"],true],"#3978df","#9a875d"],"circle-stroke-color":"#fff","circle-stroke-width":1.5}});
-  worldMap.on("click",["settlement-points","neighbor-points"],event=>{
+  worldMap.addSource("simulation-territories",{type:"geojson",data:data.territories});
+  worldMap.addLayer({id:"territory-fill",type:"fill",source:"simulation-territories",layout:{visibility:"none"},paint:{"fill-color":["get","color"],"fill-opacity":0.22}});
+  worldMap.addLayer({id:"territory-outline",type:"line",source:"simulation-territories",layout:{visibility:"none"},paint:{"line-color":["get","color"],"line-width":2.2,"line-opacity":0.95}});
+  worldMap.on("click",["settlement-points","neighbor-points","territory-fill"],event=>{
    const f=event.features?.[0];if(!f)return;
-   const p=f.properties||{},popup="<strong>"+esc(p.name)+"</strong><br>"+fmt(Number(p.population)||0)+" abitanti"+(p.kind?"<br>"+esc(p.kind):"");
-   new maplibregl.Popup({closeButton:true,offset:12}).setLngLat(event.lngLat).setHTML(popup).addTo(worldMap);
+   const p=f.properties||{},kind=p.territory?"Territorio politico":(p.kind||"Comunità indipendente");
+   const popup="<strong>"+esc(p.name)+"</strong><br>"+kind+"<br>"+fmt(Number(p.population)||0)+" abitanti"+(p.polity?"<br>Forma politica: "+esc(p.polity):"")+(p.stores!==undefined?"<br>Riserve locali: "+fmt(Number(p.stores)||0):"")+(p.atWar?"<br>In guerra":"")+(p.allied?"<br>Alleata":"");
+   new maplibregl.Popup({closeButton:true,offset:12,maxWidth:"280px"}).setLngLat(event.lngLat).setHTML(popup).addTo(worldMap);
   });
-  worldMap.on("mouseenter","settlement-points",()=>worldMap.getCanvas().style.cursor="pointer");
-  worldMap.on("mouseleave","settlement-points",()=>worldMap.getCanvas().style.cursor="");
+  for(const layer of ["settlement-points","neighbor-points","territory-fill"]){worldMap.on("mouseenter",layer,()=>worldMap.getCanvas().style.cursor="pointer");worldMap.on("mouseleave",layer,()=>worldMap.getCanvas().style.cursor="");}
+  applyMapMode();
  }
  const home=s.settlements?.[0];
  if(home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)&&worldMap.__centered!==true){worldMap.flyTo({center:[home.longitude,home.latitude],zoom:3.1,duration:900});worldMap.__centered=true;}
@@ -69,8 +107,7 @@ function initWorldMap(s){
  document.querySelectorAll("[data-map-mode]").forEach(button=>button.addEventListener("click",()=>{
   mapMode=button.dataset.mapMode;
   document.querySelectorAll("[data-map-mode]").forEach(b=>b.classList.toggle("selected",b===button));
-  const color=mapMode==="politica"?"#7b61c9":mapMode==="risorse"?"#d69a25":mapMode==="popolazione"?"#239b82":"#d94f55";
-  if(worldMap.getLayer("settlement-points"))worldMap.setPaintProperty("settlement-points","circle-color",color);
+  applyMapMode();
  }));
 }
 function openDB(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});}
@@ -124,7 +161,7 @@ async function step(days){if(busy||paused)return;busy=true;try{await runAdvance(
 $("pause").addEventListener("click",()=>setPaused(!paused));
 document.querySelectorAll("[data-speed]").forEach(button=>button.addEventListener("click",()=>{speed=Number(button.dataset.speed);document.querySelectorAll("[data-speed]").forEach(item=>item.classList.toggle("selected",item===button));}));
 $("save-now").addEventListener("click",()=>save().catch(()=>$("save-state").textContent="Errore salvataggio"));
-$("reset-world").addEventListener("click",async()=>{if(busy){$("save-state").textContent="Attendi la fine del ciclo in corso";return;}if(!window.confirm("Vuoi cancellare la civiltà attuale e ricominciare dall’Anno 0? Questa operazione non si può annullare."))return;setPaused(true);try{const db=await openDB();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();world=createWorld();elapsedMs=0;speed=1;setPaused(false);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===1));eventsSeen=-1;render(summary(world));await save();$("save-state").textContent="Nuova simulazione · Anno 0";}catch(error){console.error(error);$("save-state").textContent="Errore durante il riavvio";setPaused(true);}});
+$("reset-world").addEventListener("click",async()=>{if(busy){$("save-state").textContent="Attendi la fine del ciclo in corso";return;}if(!window.confirm("Vuoi cancellare la civiltà attuale e ricominciare dall’Anno 0? Questa operazione non si può annullare."))return;setPaused(true);try{const db=await openDB();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();world=null;worldMap?.remove();worldMap=null;chosenStart=null;startMarker=null;elapsedMs=0;speed=1;setPaused(true);showStartWizard();document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===1));eventsSeen=-1;render(summary(world));await save();$("save-state").textContent="Nuova simulazione · Anno 0";}catch(error){console.error(error);$("save-state").textContent="Errore durante il riavvio";setPaused(true);}});
 window.addEventListener("pagehide",()=>{if(!world)return;world.timeRemainderMs=elapsedMs;world.speed=speed;world.paused=paused;world.lastWallTime=Date.now();try{const request=indexedDB.open(DB,1);request.onsuccess=()=>{const db=request.result,tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=()=>db.close();};}catch{}});
 async function init(){try{if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);speed=Number(world.speed)||1;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;if(!paused){elapsedMs+=Math.max(0,Date.now()-(world.lastWallTime||Date.now()))*speed;const missed=Math.floor(elapsedMs/60000);elapsedMs%=60000;if(missed)await runAdvance(Math.min(missed,200000));}}else{paused=true;showStartWizard();}setPaused(paused);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===speed));if(world){initWorldMap(world);render(summary(world));await save();}}catch(error){console.error(error);world=createWorld();elapsedMs=0;initWorldMap(world);render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs+=1000*speed;if(elapsedMs>=60000&&!busy){const days=Math.floor(elapsedMs/60000);elapsedMs%=60000;step(days);}}if(world){const state=summary(world);updateClock(state);updateAtmosphere(state);}},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
 init();
