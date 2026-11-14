@@ -4,6 +4,7 @@ const maplibregl = window.maplibregl;
 const $=id=>document.getElementById(id),DB="anno-zero-world",STORE="state";
 let world,paused=false,speed=1,worker=null,workerReady=false,latestSummary=null,busy=false,lastSaved=0,eventsSeen=-1,elapsedMs=0,worldMap=null,startMap=null,startMarker=null,chosenStart=null,mapMode="politica";
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
+initLanguages();
 const MAP_STYLE="https://tiles.openfreemap.org/styles/liberty";
 function createMap(container,center=[0,20],zoom=1.5){
  if(!maplibregl?.Map){const node=$(container);if(node)node.textContent="Mappa temporaneamente non disponibile. La simulazione può comunque funzionare.";return null;}
