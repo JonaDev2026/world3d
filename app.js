@@ -8,7 +8,7 @@ function randomPlanetSeed(){const a=new Uint32Array(1);crypto.getRandomValues(a)
 function makePlanet(){return generatePlanet(randomPlanetSeed(),{w:360,h:180});}
 function nearestLand(p,lat,lon){
  let best=-1,bestDot=-2;const a=lat*Math.PI/180,o=lon*Math.PI/180,tx=Math.cos(a)*Math.cos(o),ty=Math.sin(a),tz=-Math.cos(a)*Math.sin(o);
- for(let c=0;c<p.alt.length;c++){if(p.alt[c]<=0||p.terrain[c]===5)continue;const ll=latLonOf(p,c),la=ll.latitude*Math.PI/180,lo=ll.longitude*Math.PI/180,d=tx*Math.cos(la)*Math.cos(lo)+ty*Math.sin(la)+tz*(-Math.cos(la)*Math.sin(lo));if(d>bestDot){bestDot=d;best=c;}}
+ for(let c=0;c<p.alt.length;c++){if(p.alt[c]<=0||p.terrain[c]===5)continue;const ll=latLonOf(p,c);if(Math.abs(ll.latitude)>84)continue;const la=ll.latitude*Math.PI/180,lo=ll.longitude*Math.PI/180,d=tx*Math.cos(la)*Math.cos(lo)+ty*Math.sin(la)+tz*(-Math.cos(la)*Math.sin(lo));if(d>bestDot){bestDot=d;best=c;}}
  return best>=0?latLonOf(p,best):{latitude:0,longitude:0};
 }
 function ensurePlanet(s){
@@ -31,10 +31,11 @@ function showStartWizard(){
   if(!isLand(planet,point.latitude,point.longitude)){
    chosenStart=null;$("begin-world").disabled=true;$("start-coordinates").textContent="Acqua: scegli una zona di terraferma";startGlobe.setMarker(NaN,NaN);return;
   }
-  const code=terrainAt(planet,point.latitude,point.longitude);
-  chosenStart={latitude:point.latitude,longitude:point.longitude,terrainCode:[1,2,3,4,7].includes(code)?code:1};
-  startGlobe.setMarker(point.latitude,point.longitude);
-  $("start-coordinates").textContent="Terraferma · "+point.latitude.toFixed(2)+"°, "+point.longitude.toFixed(2)+"°";
+  const selected=Math.abs(point.latitude)>84?nearestLand(planet,Math.sign(point.latitude)*84,point.longitude):{latitude:point.latitude,longitude:point.longitude};
+  const code=terrainAt(planet,selected.latitude,selected.longitude);
+  chosenStart={latitude:selected.latitude,longitude:selected.longitude,terrainCode:[1,2,3,4,7].includes(code)?code:1};
+  startGlobe.setMarker(selected.latitude,selected.longitude);
+  $("start-coordinates").textContent="Terraferma · "+selected.latitude.toFixed(2)+"°, "+selected.longitude.toFixed(2)+"°";
   $("begin-world").disabled=false;
  }});
  startGlobe.setSun(18,-35);
