@@ -62,7 +62,7 @@ function inventPlaceName(s){
  for(let attempt=0;attempt<100;attempt++){
   if(!words.length)break;
   const first=pick(s,words),second=random(s)<.18?pick(s,words):"";
-  const candidate=(first+second).replace(/^\\p{L}/u,letter=>letter.toLocaleUpperCase());
+  const combined=first+second;const candidate=combined.charAt(0).toLocaleUpperCase()+combined.slice(1);
   if(candidate.length>=4&&!used.has(candidate.toLocaleLowerCase()))return candidate;
  }
  return "Luogo"+String(s.nextNameId++);
