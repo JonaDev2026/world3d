@@ -10,7 +10,10 @@ const SOURCES = [
   ["da","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/languages/danish.txt"],
   ["names","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/names/names.txt"],
   ["it-common","https://raw.githubusercontent.com/napolux/paroleitaliane/main/paroleitaliane/1000_parole_italiane_comuni.txt"],
-  ["it-names","https://raw.githubusercontent.com/napolux/paroleitaliane/main/paroleitaliane/9000_nomi_propri.txt"]
+  ["it-names","https://raw.githubusercontent.com/napolux/paroleitaliane/main/paroleitaliane/9000_nomi_propri.txt"],
+  ["it-surnames","https://raw.githubusercontent.com/napolux/paroleitaliane/main/paroleitaliane/lista_38000_cognomi.txt"],
+  ["family-us","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/names/top_family_names_usa.txt"],
+  ["family-cn","https://raw.githubusercontent.com/kkrypt0nn/wordlists/main/wordlists/names/top_family_names_chinese.txt"]
 ];
 const DB="world3d-name-dictionaries";
 function openCache(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore("files");r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
@@ -30,13 +33,14 @@ function sampleWords(text,limit,seed){
 }
 export async function loadNameData(){
   const results=await Promise.allSettled(SOURCES.map(([key,url])=>cachedText(key,url)));
-  const words=[],names=[];
+  const words=[],names=[],familyNames=[];
   results.forEach((result,index)=>{
     if(result.status!=="fulfilled")return;
     const key=SOURCES[index][0],value=result.value;
     if(key==="names"||key==="it-names"){names.push(...sampleWords(value,2500,index+71));return;}
+    if(key==="it-surnames"||key==="family-us"||key==="family-cn"){familyNames.push(...sampleWords(value,3000,index+201));return;}
     if(key==="it-common"){words.push(...sampleWords(value,900,41));return;}
     words.push(...sampleWords(value,2200,index+101));
   });
-  return {words:[...new Set(words)],names:[...new Set(names)]};
+  return {words:[...new Set(words)],names:[...new Set(names)],familyNames:[...new Set(familyNames)]};
 }
