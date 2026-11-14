@@ -10,7 +10,7 @@ initLanguages();
 async function showStartWizard(){
  const panel=$("start-wizard");panel.hidden=false;
  try{
-  startMap=await createWorldMap("start-map",[12,18],{view:"2d"});
+  startMap=await createWorldMap("start-map",[12,18],{view:"3d",zoom:19000000});
   startMap.onSelect(({longitude,latitude,isLand})=>{
    if(!isLand){chosenStart=null;$("begin-world").disabled=true;$("start-coordinates").textContent="Punto in acqua: scegli una zona di terraferma";return;}
    chosenStart={longitude:Number(longitude.toFixed(5)),latitude:Number(latitude.toFixed(5)),terrainCode:1};
@@ -67,7 +67,7 @@ async function initWorldMap(s){
  if(worldMap)return;
  const home=s?.settlements?.[0],center=home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)?[home.longitude,home.latitude]:[0,20];
  try{
-  worldMap=await createWorldMap("map",center,{view:"2d"});worldMap.update(mapFeatures(s));worldMap.setMode(mapMode);
+  worldMap=await createWorldMap("map",center,{view:"3d",zoom:home?9500000:19000000});worldMap.update(mapFeatures(s));worldMap.setMode(mapMode);
   document.querySelectorAll("[data-map-mode]").forEach(b=>b.addEventListener("click",()=>{mapMode=b.dataset.mapMode;document.querySelectorAll("[data-map-mode]").forEach(x=>x.classList.toggle("selected",x===b));applyMapMode();}));
   document.querySelectorAll("[data-map-view]").forEach(b=>b.addEventListener("click",()=>{worldMap.setView(b.dataset.mapView);document.querySelectorAll("[data-map-view]").forEach(x=>x.classList.toggle("selected",x===b));}));
  }catch(error){console.error("CesiumJS non disponibile:",error);$("map").textContent="Cartina non disponibile: CesiumJS non è riuscito a caricarsi.";}
