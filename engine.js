@@ -526,6 +526,9 @@ export function validateWorld(s){
  for(const st of s.settlements)if(!Number.isFinite(st.stores))st.stores=st.population?Math.max(0,s.food*st.population/Math.max(1,living(s).length)):0;
  if(!Number.isFinite(s.archivedDeaths))s.archivedDeaths=0;
  if(!s.familyArchive||typeof s.familyArchive!=="object")s.familyArchive={};
+ const neededAncestors=new Set(s.population.filter(p=>p.alive).flatMap(p=>p.parents||[])),compactArchive={};
+ for(const id of neededAncestors)if(s.familyArchive[id])compactArchive[id]=s.familyArchive[id];
+ s.familyArchive=compactArchive;
  if(!s.nationName)s.nationName=null;
  if(!s.nationType)s.nationType=null;
  for(const g of s.neighbors){if(g.allied===undefined)g.allied=false;if(!Number.isFinite(g.truceUntil))g.truceUntil=0;}
