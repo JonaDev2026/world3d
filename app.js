@@ -1,4 +1,4 @@
-import {createWorld,advance,summary,validateWorld} from "./engine.js";
+import {createWorld,advance,summary,validateWorld,generateGeography} from "./engine.js";
 import {generatePlanet,isLand,terrainAt,latLonOf} from "./planet.js";
 import {createGlobe} from "./globe.js";
 const $=id=>document.getElementById(id),DB="anno-zero-world",STORE="state";
@@ -15,7 +15,12 @@ function ensurePlanet(s){
  if(s.planet&&s.planet.alt&&s.planet.terrain){planet=s.planet;return;}
  planet=makePlanet();
  const home=s.settlements?.[0];
- if(home){const pos=nearestLand(planet,Number(home.latitude)||0,Number(home.longitude)||0);home.latitude=pos.latitude;home.longitude=pos.longitude;}
+ if(home){const pos=nearestLand(planet,Number(home.latitude)||0,Number(home.longitude)||0);home.latitude=pos.latitude;home.longitude=pos.longitude;
+  const setGrid=(item,isHome=false)=>{if(isHome){item.x=62;item.y=43;return;}const point=nearestLand(planet,Number(item.latitude)||pos.latitude,Number(item.longitude)||pos.longitude);item.latitude=point.latitude;item.longitude=point.longitude;item.x=Math.max(2,Math.min(125,62+(point.longitude-pos.longitude)*Math.cos(point.latitude*Math.PI/180)/.18));item.y=Math.max(2,Math.min(85,43+(pos.latitude-point.latitude)/.18));};
+  for(const st of s.settlements||[])setGrid(st,st===home);
+  for(const n of s.neighbors||[])setGrid(n,false);
+  s.geography=generateGeography(s.rng,planet,home);
+ }
  s.planet=planet;
 }
 function showStartWizard(){
@@ -35,7 +40,7 @@ function showStartWizard(){
  startGlobe.setSun(18,-35);
  $("begin-world").onclick=async()=>{
   if(!chosenStart||world)return;
-  world=createWorld(chosenStart);world.planet=planet;
+  world=createWorld({...chosenStart,planet});world.planet=planet;
   paused=false;elapsedMs=0;speed=1;
   await runAdvance(0);setPaused(false);panel.hidden=true;startGlobe?.dispose();startGlobe=null;
   initWorldMap(world);render(latestSummary||summary(world));await save();
@@ -141,5 +146,5 @@ document.querySelectorAll("[data-speed]").forEach(button=>button.addEventListene
 $("save-now").addEventListener("click",()=>save().catch(()=>$("save-state").textContent="Errore salvataggio"));
 $("reset-world").addEventListener("click",async()=>{if(busy){$("save-state").textContent="Attendi la fine del ciclo in corso";return;}if(!window.confirm("Vuoi cancellare la civiltà attuale e ricominciare dall’Anno 0? Questa operazione non si può annullare."))return;setPaused(true);try{const db=await openDB();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();world=null;workerReady=false;latestSummary=null;worldMap?.dispose();worldMap=null;planet=null;chosenStart=null;elapsedMs=0;speed=1;setPaused(true);showStartWizard();document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===1));eventsSeen=-1;$("save-state").textContent="Scegli il nuovo punto di partenza";}catch(error){console.error(error);$("save-state").textContent="Errore durante il riavvio";setPaused(true);}});
 window.addEventListener("pagehide",()=>{if(!world)return;const meta={timeRemainderMs:elapsedMs,speed,paused,lastWallTime:Date.now()};if(worker&&workerReady){worker.postMessage({id:++step.id,type:"save",meta});return;}Object.assign(world,meta);try{const request=indexedDB.open(DB,1);request.onsuccess=()=>{const db=request.result,tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=()=>db.close();};}catch{}});
-async function init(){try{if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);ensurePlanet(world);speed=Number(world.speed)||1;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;if(!paused){elapsedMs+=Math.max(0,Date.now()-(world.lastWallTime||Date.now()))*speed;const missed=Math.floor(elapsedMs/60000);elapsedMs%=60000;if(missed)await runAdvance(Math.min(missed,3650));}}else{paused=true;showStartWizard();}setPaused(paused);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===speed));if(world){initWorldMap(world);render(latestSummary||summary(world));await save();}}catch(error){console.error(error);planet=makePlanet();world=createWorld(nearestLand(planet,0,0));world.planet=planet;elapsedMs=0;initWorldMap(world);render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs+=1000*speed;if(elapsedMs>=60000&&!busy){const days=Math.floor(elapsedMs/60000);elapsedMs%=60000;step(days);}}if(world){const state=latestSummary||summary(world);updateClock(state);updateAtmosphere(state);}},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
+async function init(){try{if("Worker"in window)worker=new Worker("./sim-worker.js",{type:"module"});world=await load();if(world){validateWorld(world);ensurePlanet(world);speed=Number(world.speed)||1;paused=Boolean(world.paused);elapsedMs=Number(world.timeRemainderMs)||0;if(!paused){elapsedMs+=Math.max(0,Date.now()-(world.lastWallTime||Date.now()))*speed;const missed=Math.floor(elapsedMs/60000);elapsedMs%=60000;if(missed)await runAdvance(Math.min(missed,3650));}}else{paused=true;showStartWizard();}setPaused(paused);document.querySelectorAll("[data-speed]").forEach(button=>button.classList.toggle("selected",Number(button.dataset.speed)===speed));if(world){initWorldMap(world);render(latestSummary||summary(world));await save();}}catch(error){console.error(error);planet=makePlanet();world=createWorld({...nearestLand(planet,0,0),planet});world.planet=planet;elapsedMs=0;initWorldMap(world);render(summary(world));$("save-state").textContent="Nuovo stato: salvataggio precedente non leggibile";}setInterval(()=>{if(!paused){elapsedMs+=1000*speed;if(elapsedMs>=60000&&!busy){const days=Math.floor(elapsedMs/60000);elapsedMs%=60000;step(days);}}if(world){const state=latestSummary||summary(world);updateClock(state);updateAtmosphere(state);}},1000);setInterval(()=>{if(world)save().catch(console.error);},15000);}
 init();
