@@ -60,6 +60,26 @@ function showStartWizard(){
   initWorldMap(world);render(latestSummary||summary(world));await save();
  });
 }
+function nearestVisibleLand(coordinates,cacheKey){
+ if(!worldMap?.isStyleLoaded())return coordinates;
+ const layers=(worldMap.getStyle().layers||[]).filter(layer=>/water|ocean|lake|river/i.test(layer.id)).map(layer=>layer.id);
+ if(!layers.length)return coordinates;
+ const cache=worldMap.__landCache||(worldMap.__landCache=new Map());
+ const key=cacheKey+":"+coordinates.map(value=>Number(value).toFixed(4)).join(",");
+ if(cache.has(key))return cache.get(key);
+ const origin=worldMap.project(coordinates),canvas=worldMap.getCanvas();
+ const isWater=point=>worldMap.queryRenderedFeatures(point,{layers}).length>0;
+ if(!isWater(origin)){cache.set(key,coordinates);return coordinates;}
+ for(const distance of [14,22,32,46,64,86,112,145,185,230,280]){
+  for(let angle=0;angle<Math.PI*2;angle+=Math.PI/8){
+   const point={x:origin.x+Math.cos(angle)*distance,y:origin.y+Math.sin(angle)*distance};
+   if(point.x<2||point.y<2||point.x>canvas.clientWidth-2||point.y>canvas.clientHeight-2)continue;
+   if(!isWater(point)){const land=worldMap.unproject(point).toArray();cache.set(key,land);return land;}
+  }
+ }
+ cache.set(key,null);
+ return null;
+}
 function mapFeatures(s){
  const home=s.settlements?.[0],originLat=Number(home?.latitude)||0,originLon=Number(home?.longitude)||0;
  const project=(x,y,latValue,lonValue)=>{
@@ -75,14 +95,14 @@ function mapFeatures(s){
  };
  const palette=["#526fbd","#8b67b4","#3f8e83","#bd8751","#5985a9","#9a6d78","#6e9658"];
  const settlements=(s.settlementDetails||[]).map(st=>{
-  const coordinates=project(st.x,st.y,st.latitude,st.longitude),population=st.population||0,stores=Number(st.stores)||0;
+  const coordinates=nearestVisibleLand(project(st.x,st.y,st.latitude,st.longitude),"settlement-"+st.id);if(!coordinates)return null;const population=st.population||0,stores=Number(st.stores)||0;
   const radius=Math.min(2500,Math.max(60,Math.sqrt(Math.max(1,Number(st.knownArea)||12)*25/Math.PI)));
   return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:st.id,name:st.name||"",population,kind:st.kind||"accampamento",stores,knownArea:Number(st.knownArea)||0,polity:s.nationName?(s.nationName+" · "+(s.nationType||s.polity)):s.polity||"Comunità autonoma",label:s.nationName||s.civilizationName||st.name||"",color:s.nationName?palette[0]:palette[(Math.max(1,st.id)-1)%palette.length],radius}};
- });
+ }).filter(Boolean);
  const neighbors=(s.neighbors||[]).filter(n=>n.discovered).map(n=>{
-  const coordinates=project(n.x,n.y,n.latitude,n.longitude),population=n.population||0;
+  const coordinates=nearestVisibleLand(project(n.x,n.y,n.latitude,n.longitude),"neighbor-"+n.id);if(!coordinates)return null;const population=n.population||0;
   return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:n.id,name:n.name||"",population,knownArea:Number(n.knownArea)||4,atWar:!!n.atWar,allied:!!n.allied,polity:n.nationName||n.name||"Comunità indipendente",label:n.name||"",color:n.atWar?"#c84f58":n.allied?"#4385c5":"#9b875d",radius:Math.min(2500,Math.max(60,Math.sqrt(Math.max(1,Number(n.knownArea)||4)*25/Math.PI)))}};
- });
+ }).filter(Boolean);
  const territories=[
   ...settlements.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,territory:"territorio"}})),
   ...neighbors.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,territory:"territorio indipendente"}}))
