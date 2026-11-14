@@ -182,5 +182,5 @@ test("inhabitants invent the first settlement name after the founding period",()
 test("version one saves migrate to the generated geography without losing population",()=>{
  const world=createWorld();world.version=1;delete world.geography;delete world.language;
  validateWorld(world);
- assert.equal(world.version,2);assert.equal(world.population.length,24);assert.ok(world.geography.terrain.length>0);
+ assert.equal(world.version,3);assert.equal(world.population.length,24);assert.ok(world.geography.terrain.length>0);
 });

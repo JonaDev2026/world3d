@@ -81,6 +81,15 @@ function closeKin(a,b,people){
  if((a.children||[]).includes(b.id)||(b.children||[]).includes(a.id))return true;
  return ap.some(id=>bp.includes(id));
 }
+function prunePopulation(s){
+ if(s.population.length<=15000)return;
+ const dead=s.population.filter(p=>!p.alive);
+ if(dead.length<=8000)return;
+ const keep=new Set(dead.slice(-8000).map(p=>p.id));
+ const removed=dead.length-keep.size;
+ s.population=s.population.filter(p=>p.alive||keep.has(p.id));
+ s.archivedDeaths=(s.archivedDeaths||0)+removed;
+}
 function killPerson(s,p){
  if(!p||!p.alive)return;
  const ids=new Set([...(p.children||[]),p.partner].filter(Boolean));
@@ -230,6 +239,7 @@ function yearBoundary(s){
  updateDiplomacy(s);
  assignRoles(s);
  updateLeadership(s);
+ prunePopulation(s);
 }
 function daily(s){
  const people=living(s),n=people.length,sett=s.settlements[0];
@@ -263,6 +273,7 @@ function daily(s){
   if(land===2)output*=1.08;
   if(land===1||land===6)output*=1.10;
   if(land===4||land===7)output*=.78;
+  output*=1.18;
   if(climate.days>0){if(climate.type==="siccità")output*=1-climate.severity*(tech.includes("Irrigazione")?.38:.72);else if(climate.type==="alluvione")output*=1-climate.severity*(tech.includes("Irrigazione")?.32:.48);else if(climate.type==="inverno rigido")output*=1-climate.severity*.38;}
   const need=count*.105,localSurplus=output-need;
   st.stores=clamp((Number(st.stores)||0)+localSurplus,0,Math.max(240,count*45));
@@ -297,10 +308,10 @@ function daily(s){
     else{addPerson(s,[p.id,p.partner]);p.health=clamp(p.health-3,0,100);}
    }
   }else if(p.age>=18&&p.age<43&&p.sex==="F"&&random(s)<.00048&&n<5000){
-   const candidates=people.filter(q=>q.sex==="M"&&q.age>=18&&q.age<58&&q.alive&&q.id!==p.id&&q.settlementId===p.settlementId&&(!p.partner||p.partner===q.id)&&!closeKin(p,q,people));
+   const candidates=people.filter(q=>q.sex==="M"&&q.age>=18&&q.age<58&&q.alive&&q.id!==p.id&&q.settlementId===p.settlementId&&(!p.partner||p.partner===q.id||!people.some(r=>r.id===p.partner&&r.alive))&&!closeKin(p,q,people));
    if(candidates.length){const mate=pick(s,candidates);if(random(s)<.42){p.partner=mate.id;mate.partner=p.id;p.pregnancyDays=280;}}
   }
-  if(p.age<1&&random(s)<.00045+(localFood<.25?.0012:0)){killPerson(s,p);s.stats.deaths++;}
+  if(p.age<1&&random(s)<.00012+(localFood<.25?.00045:0)){killPerson(s,p);s.stats.deaths++;}
   p.age+=1/365;
  }
  // Other societies have their own demographic and resource cycles.
@@ -416,7 +427,7 @@ export function advance(world,days){
 }
 export function summary(s){
  const people=living(s),n=people.length,roleCounts=Object.create(null);for(const p of people)if(p.age>=15&&p.age<65)roleCounts[p.role]=(roleCounts[p.role]||0)+1;
- return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,geography:s.geography,language:s.language,leadership:s.leadership||{personId:null,legitimacy:0},leader:people.find(p=>p.id===s.leadership?.personId)||null,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:Object.values(roleCounts).reduce((a,b)=>a+b,0),roles:Object.fromEntries(["agricoltore","raccoglitore","cacciatore","artigiano","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].map(role=>[role,roleCounts[role]||0])),technology:s.technology,events:s.events.slice(-80).reverse(),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.population.length-n};
+ return {year:s.year,day:s.day,population:n,settlements:s.settlements.length,geography:s.geography,language:s.language,leadership:s.leadership||{personId:null,legitimacy:0},leader:people.find(p=>p.id===s.leadership?.personId)||null,social:s.social||{inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:n,agiati:0,"élite":0}},food:Math.round(s.food),knowledge:Math.round(s.knowledge),health:Math.round(s.health),cohesion:Math.round(s.cohesion),order:Math.round(s.order),workers:Object.values(roleCounts).reduce((a,b)=>a+b,0),roles:Object.fromEntries(["agricoltore","raccoglitore","cacciatore","artigiano","costruttore","amministratore","mercante","guardia","guaritore","sacerdote"].map(role=>[role,roleCounts[role]||0])),technology:s.technology,events:s.events.slice(-80).reverse(),eventTotal:s.events.length,neighbors:s.neighbors,relations:s.neighbors.filter(g=>g.discovered).map(g=>g.name+(g.atWar?" · guerra":g.allied?" · alleanza":g.hostility>45?" · tensione":" · contatto")),institutions:s.institutions,polity:s.polity,religion:s.religion,laws:s.laws,economy:s.economy,settlement:s.settlements[0],settlementDetails:s.settlements,climate:s.climate||{type:"normale",days:0,severity:0},stats:s.stats,dead:s.stats.deaths||s.population.length-n};
 }
 export function validateWorld(s){
  if(!s||![1,2,VERSION].includes(s.version)||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
