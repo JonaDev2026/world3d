@@ -102,7 +102,8 @@ function prunePopulation(s){
 function killPerson(s,p){
  if(!p||!p.alive)return;
  const ids=new Set([...(p.children||[]),p.partner].filter(Boolean));
- const heirs=s.population.filter(q=>q.alive&&q.id!==p.id&&ids.has(q.id));
+ const index=s._dailyPersonIndex||(s._dailyPersonIndex=new Map(s.population.map(person=>[person.id,person])));
+ const heirs=[...ids].map(id=>index.get(id)).filter(q=>q?.alive&&q.id!==p.id);
  if(heirs.length&&p.wealth>0){const share=p.wealth/heirs.length;for(const heir of heirs)heir.wealth=(Number(heir.wealth)||0)+share;p.wealth=0;}
  p.alive=false;p.deathYear=s.year;s.deadCount=(s.deadCount||0)+1;
 }
@@ -111,7 +112,7 @@ function addPerson(s,parents=[]){
  const p1=s.population.find(p=>p.id===parents[0]),p2=s.population.find(p=>p.id===parents[1]);
  const surname=p1?.family||p2?.family||"della Valle";
  const person={id:s.nextPersonId++,name:pick(s,first),family:surname,age:0,sex:random(s)<.5?"F":"M",alive:true,health:90+random(s)*10,skill:.2+random(s)*.4,wealth:0,partner:null,parents,children:[],role:"bambino",settlementId:p1?.settlementId||p2?.settlementId||1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}};
- s.population.push(person);for(const id of parents){const p=s.population.find(x=>x.id===id);if(p)p.children.push(person.id);}s.stats.births++;return person;
+ s.population.push(person);s._dailyPersonIndex?.set(person.id,person);for(const id of parents){const p=s.population.find(x=>x.id===id);if(p)p.children.push(person.id);}s.stats.births++;return person;
 }
 function updateSocial(s){
  const people=living(s);if(!people.length)return;
@@ -255,7 +256,7 @@ function daily(s){
  const people=living(s),n=people.length,sett=s.settlements[0];
  for(const p of people)if(!p.settlementId)p.settlementId=sett.id;
  let familyIndex=null;
- const related=(a,b)=>{if(!familyIndex)familyIndex=new Map(s.population.map(person=>[person.id,person]));return areCloseKin(a,b,familyIndex,s.familyArchive||{});};
+ const related=(a,b)=>{if(!familyIndex)familyIndex=s._dailyPersonIndex||(s._dailyPersonIndex=new Map(s.population.map(person=>[person.id,person])));return areCloseKin(a,b,familyIndex,s.familyArchive||{});};
  if(!n)return;
  // Workforce is counted once, then resources are produced and consumed locally.
  const workers=people.filter(p=>p.age>=15&&p.age<65),roleCounts=new Map();
@@ -482,6 +483,7 @@ function daily(s){
  // seasonal turnover and annual records
  if(s.day%90===0&&random(s)<.08){const p=pick(s,people);if(p)p.skill+=.05;}
  if(climate.days>0){climate.days--;if(climate.days===0){s.climate={type:"normale",days:0,severity:0};addEvent(s,"Fine dell emergenza climatica","Le condizioni meteorologiche tornano gradualmente alla normalità. La comunità avvia il recupero delle risorse.","climate");}}
+ delete s._dailyPersonIndex;
  s.day++;if(s.day>365)yearBoundary(s);
  prunePopulation(s);
 }
