@@ -295,6 +295,7 @@ function daily(s){
   if(climate.days>0){const forecast=tech.includes("Calendario")?.88:1;if(climate.type==="siccità")output*=1-climate.severity*(tech.includes("Irrigazione")?.18:.72)*forecast;else if(climate.type==="alluvione")output*=1-climate.severity*(tech.includes("Irrigazione")?.32:.48)*forecast;else if(climate.type==="inverno rigido")output*=1-climate.severity*.38*forecast;}
   const need=count*.105,localSurplus=output-need,storageCapacity=Math.max(240,count*45)*(tech.includes("Ceramica")?1.2:1)*(tech.includes("Vetro")?1.08:1);
   st.stores=clamp((Number(st.stores)||0)+localSurplus,0,storageCapacity);
+  st.knownArea=Math.min(100000,Math.max(4,Number(st.knownArea)||4)+Math.max(0,count*.00008+(st.fields||0)*.00012+(tech.includes("Ruota")?.0004:0)));
   production+=output;consumption+=need;totalFood+=st.stores;
   foodRatios.set(st.id,clamp(st.stores/Math.max(1,count*12),0,1));
  }
@@ -352,15 +353,16 @@ function daily(s){
  }
  // Other societies have their own demographic and resource cycles.
  for(const g of s.neighbors){
+  const frontier=s.settlements.reduce((best,st)=>{const d=Number.isFinite(g.latitude)&&Number.isFinite(g.longitude)&&Number.isFinite(st.latitude)&&Number.isFinite(st.longitude)?haversine(g,st):Math.hypot(g.x-st.x,g.y-st.y)*20;return !best||d<best.distance?{settlement:st,distance:d}:best;},null)?.settlement||sett;
   const gx=Math.round(g.x),gy=Math.round(g.y),terrainCode=s.geography?.terrain?.[gy*s.geography.width+gx]??1;
   const fertility=terrainCode===1||terrainCode===6?1.09:terrainCode===2?1.04:terrainCode===4||terrainCode===7?.82:1;
   const productivity=.112*fertility+Math.min(.035,g.technology*.00002),need=g.population*.105;
   const growth=g.food>g.population*9?.00012:g.food<g.population*2?-.00032:-.00004;
   g.population=Math.max(3,Math.round(g.population+g.population*growth+(random(s)<.0006?1:0)));
   g.food=clamp(g.food+g.population*productivity-need,0,Math.max(240,g.population*45));
-  if(g.food>g.population*18&&random(s)<.000025){const direction=pick(s,[[1,0],[-1,0],[0,1],[0,-1]]),nx=clamp(g.x+direction[0]*3,2,s.geography.width-3),ny=clamp(g.y+direction[1]*3,2,s.geography.height-3),code=s.geography.terrain[Math.round(ny)*s.geography.width+Math.round(nx)];if(code!==0&&code!==4&&code!==5&&code!==6){g.x=nx;g.y=ny;g.knownArea=(g.knownArea||4)+1;}}
+  if(g.food>g.population*18&&random(s)<.000025){const direction=pick(s,[[1,0],[-1,0],[0,1],[0,-1]]),nx=clamp(g.x+direction[0]*3,2,s.geography.width-3),ny=clamp(g.y+direction[1]*3,2,s.geography.height-3),code=s.geography.terrain[Math.round(ny)*s.geography.width+Math.round(nx)];if(code!==0&&code!==4&&code!==5&&code!==6){g.x=nx;g.y=ny;Object.assign(g,nearbyCoordinates(s.settlements[0],g.x,g.y));g.knownArea=(g.knownArea||4)+1;}}
   g.technology+=g.population*.00008;
-  const routeDistance=Number.isFinite(g.latitude)&&Number.isFinite(g.longitude)&&Number.isFinite(sett.latitude)&&Number.isFinite(sett.longitude)?haversine(g,sett):Math.hypot(g.x-sett.x,g.y-sett.y)*20;
+  const routeDistance=Number.isFinite(g.latitude)&&Number.isFinite(g.longitude)&&Number.isFinite(frontier.latitude)&&Number.isFinite(frontier.longitude)?haversine(g,frontier):Math.hypot(g.x-frontier.x,g.y-frontier.y)*20;
   const proximity=Math.max(.05,1-routeDistance/5000),territorialPressure=Math.max(0,1-routeDistance/900);
   if(!g.discovered&&n>28&&random(s)<.00011*proximity){g.discovered=true;if(!g.name)g.name=inventPlaceName(s);s.stats.discoveries++;addEvent(s,"Primo incontro con "+g.name,"Esploratori incontrano una comunità indipendente oltre la valle. Le due società hanno lingue e consuetudini differenti.","diplomacy");}
   if(g.discovered){
@@ -368,32 +370,32 @@ function daily(s){
    const tradeReach=tech.includes("Ruota")?2200:650,routeEfficiency=Math.max(.3,1-routeDistance/Math.max(1,tradeReach*1.5));
    if(!g.atWar&&routeDistance<=tradeReach&&random(s)<(g.allied?.00032:.00012)*proximity){
     let shipment=0;
-    if(g.food>g.population*8&&s.food<n*12){shipment=Math.floor(Math.min(12,Math.floor(g.food-g.population*6))*routeEfficiency);g.food-=shipment;sett.stores=Math.max(0,sett.stores+shipment);s.food=Math.max(0,s.food+shipment);}
-    else if(s.food>n*15&&g.food<g.population*8){shipment=-Math.floor(Math.min(12,Math.floor(s.food-n*8))*routeEfficiency);sett.stores=Math.max(0,sett.stores+shipment);s.food=Math.max(0,s.food+shipment);g.food-=shipment;}
+    if(g.food>g.population*8&&s.food<n*12){shipment=Math.floor(Math.min(12,Math.floor(g.food-g.population*6))*routeEfficiency);g.food-=shipment;frontier.stores=Math.max(0,frontier.stores+shipment);s.food=Math.max(0,s.food+shipment);}
+    else if(s.food>n*15&&g.food<g.population*8){shipment=-Math.floor(Math.min(12,Math.floor(s.food-n*8))*routeEfficiency);frontier.stores=Math.max(0,frontier.stores+shipment);s.food=Math.max(0,s.food+shipment);g.food-=shipment;}
     s.knowledge+=1+g.technology*.025;g.technology+=.025;g.hostility=clamp(g.hostility-(g.allied?2:1),0,100);
     addEvent(s,g.allied?"Scambio tra alleati":"Si apre una rotta commerciale",g.name+" e la comunità scambiano conoscenze e beni"+(shipment?" per "+Math.abs(shipment)+" unità di provviste":"")+". I contatti rendono più familiari usi e tecniche differenti.","diplomacy");
    }
    if(!g.atWar&&!g.allied&&s.year>=(g.truceUntil||0)&&n>70&&g.population>25&&g.hostility>45&&territorialPressure>.12&&random(s)<0.00016*proximity*territorialPressure){g.atWar=true;g.warDays=0;s.stats.wars++;addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war");}
    if(g.atWar){g.warDays++;if(g.warDays%30===0){
     const ownPower=n*0.32+s.order*0.35+s.technology.length*5,enemyPower=g.population*0.42+g.technology*2;
-    if(g.warDays===30&&enemyPower>ownPower*1.2){const raid=Math.round(n*1.5);sett.stores=Math.max(0,sett.stores-raid);s.food=Math.max(0,s.food-raid);s.cohesion=clamp(s.cohesion-3,0,100);addEvent(s,"Incursione nella valle",g.name+" supera le difese di confine e saccheggia parte delle riserve. La popolazione si rifugia nell’insediamento principale.","war");}
+    if(g.warDays===30&&enemyPower>ownPower*1.2){const raid=Math.round(n*1.5);frontier.stores=Math.max(0,frontier.stores-raid);s.food=Math.max(0,s.food-raid);s.cohesion=clamp(s.cohesion-3,0,100);addEvent(s,"Incursione nella valle",g.name+" supera le difese di confine e saccheggia parte delle riserve. La popolazione si rifugia nell’insediamento principale.","war");}
     const ownLoss=Math.max(1,Math.round((random(s)*3+1)*(enemyPower/Math.max(1,ownPower))));
     const enemyLoss=Math.max(1,Math.round((random(s)*3+1)*(ownPower/Math.max(1,enemyPower))));
     for(let k=0;k<ownLoss;k++){const victim=pick(s,living(s));if(victim){killPerson(s,victim);s.stats.deaths++;}}
-    g.population=Math.max(3,g.population-enemyLoss);sett.stores=Math.max(0,sett.stores-ownLoss*2);s.food=Math.max(0,s.food-ownLoss*2);s.cohesion=clamp(s.cohesion-1.2,0,100);
+    g.population=Math.max(3,g.population-enemyLoss);frontier.stores=Math.max(0,frontier.stores-ownLoss*2);s.food=Math.max(0,s.food-ownLoss*2);s.cohesion=clamp(s.cohesion-1.2,0,100);
     addEvent(s,"Scontro armato","Uno scontro con "+g.name+" provoca "+ownLoss+" perdite nella comunità e "+enemyLoss+" tra gli avversari.","war");
     const invasionRoll=random(s);
     if(ownPower>enemyPower*1.2&&invasionRoll<.10){
      const captured=Math.max(1,Math.round(g.population*.08));
      g.population=Math.max(3,g.population-captured);
      const supplies=Math.min(35,Math.round(captured*.7));
-     const received=Math.min(supplies,Math.max(0,Math.max(240,living(s).length*45)-s.food));s.food+=received;sett.stores+=received;
-     sett.knownArea+=2;
+     const received=Math.min(supplies,Math.max(0,Math.max(240,living(s).length*45)-s.food));s.food+=received;frontier.stores+=received;
+     frontier.knownArea+=2;
      addEvent(s,"Avanzata oltre il confine","Le forze della valle penetrano nel territorio di "+g.name+". Vengono occupate aree di pascolo e raccolta e recuperate alcune provviste.","war");
     }else if(enemyPower>ownPower*1.2&&invasionRoll<.16){
      const damage=Math.max(1,Math.round(living(s).length*.012));
      for(let k=0;k<damage;k++){const defenders=living(s);if(!defenders.length)break;const victim=pick(s,defenders);killPerson(s,victim);s.stats.deaths++;}
-     sett.stores=Math.max(0,sett.stores-damage*2);s.food=Math.max(0,s.food-damage*2);
+     frontier.stores=Math.max(0,frontier.stores-damage*2);s.food=Math.max(0,s.food-damage*2);
      s.cohesion=clamp(s.cohesion-2.5,0,100);
      addEvent(s,"Incursione nel territorio","Un'incursione di "+g.name+" supera le difese periferiche. Vengono sottratte provviste e la comunità deve riorganizzare la protezione del territorio.","war");
     }
