@@ -332,21 +332,27 @@ function daily(s){
  }
  // Other societies have their own demographic and resource cycles.
  for(const g of s.neighbors){
-  const growth=g.food>g.population*5?0.00003:-0.00008;
-  g.population=Math.max(3,Math.round(g.population+g.population*growth+(random(s)<0.0006?1:0)));
-  g.food=Math.max(0,g.food+g.population*0.11-g.population*0.105);
-  g.technology+=g.population*0.000025;
-  if(!g.discovered&&n>28&&random(s)<0.00011){g.discovered=true;if(!g.name)g.name=inventPlaceName(s);s.stats.discoveries++;addEvent(s,"Primo incontro con "+g.name,"Esploratori incontrano una comunità indipendente oltre la valle. Le due società hanno lingue e consuetudini differenti.","diplomacy");}
+  const gx=Math.round(g.x),gy=Math.round(g.y),terrainCode=s.geography?.terrain?.[gy*s.geography.width+gx]??1;
+  const fertility=terrainCode===1||terrainCode===6?1.09:terrainCode===2?1.04:terrainCode===4||terrainCode===7?.82:1;
+  const productivity=.105*fertility+Math.min(.035,g.technology*.00002);
+  const growth=g.food>g.population*5?.00003:g.food<g.population*2?-.00016:-.000025;
+  g.population=Math.max(3,Math.round(g.population+g.population*growth+(random(s)<.0006?1:0)));
+  g.food=clamp(g.food+g.population*(productivity-.105),0,Math.max(240,g.population*45));
+  g.technology+=g.population*.00008;
+  const routeDistance=Number.isFinite(g.latitude)&&Number.isFinite(g.longitude)&&Number.isFinite(sett.latitude)&&Number.isFinite(sett.longitude)?haversine(g,sett):Math.hypot(g.x-sett.x,g.y-sett.y)*20;
+  const proximity=Math.max(.15,1-routeDistance/5000);
+  if(!g.discovered&&n>28&&random(s)<.00011*proximity){g.discovered=true;if(!g.name)g.name=inventPlaceName(s);s.stats.discoveries++;addEvent(s,"Primo incontro con "+g.name,"Esploratori incontrano una comunità indipendente oltre la valle. Le due società hanno lingue e consuetudini differenti.","diplomacy");}
   if(g.discovered){
-   if(random(s)<0.00018){g.hostility=clamp(g.hostility+(s.food<n*3?6:3),0,100);addEvent(s,"Tensione al confine","Un incidente tra membri delle due comunità peggiora i rapporti con "+g.name+".","diplomacy");}
-   if(!g.atWar&&random(s)<(g.allied?.00032:.00012)){
+   if(random(s)<.00018*proximity){g.hostility=clamp(g.hostility+(s.food<n*3?6:3),0,100);addEvent(s,"Tensione al confine","Un incidente tra membri delle due comunità peggiora i rapporti con "+g.name+".","diplomacy");}
+   const tradeReach=tech.includes("Ruota")?2200:650,routeEfficiency=Math.max(.3,1-routeDistance/Math.max(1,tradeReach*1.5));
+   if(!g.atWar&&routeDistance<=tradeReach&&random(s)<(g.allied?.00032:.00012)*proximity){
     let shipment=0;
-    if(g.food>g.population*8&&s.food<n*12){shipment=Math.min(12,Math.floor(g.food-g.population*6));g.food-=shipment;sett.stores=Math.max(0,sett.stores+shipment);s.food=Math.max(0,s.food+shipment);}
-    else if(s.food>n*15&&g.food<g.population*8){shipment=-Math.min(12,Math.floor(s.food-n*8));sett.stores=Math.max(0,sett.stores+shipment);s.food=Math.max(0,s.food+shipment);g.food-=shipment;}
+    if(g.food>g.population*8&&s.food<n*12){shipment=Math.floor(Math.min(12,Math.floor(g.food-g.population*6))*routeEfficiency);g.food-=shipment;sett.stores=Math.max(0,sett.stores+shipment);s.food=Math.max(0,s.food+shipment);}
+    else if(s.food>n*15&&g.food<g.population*8){shipment=-Math.floor(Math.min(12,Math.floor(s.food-n*8))*routeEfficiency);sett.stores=Math.max(0,sett.stores+shipment);s.food=Math.max(0,s.food+shipment);g.food-=shipment;}
     s.knowledge+=1+g.technology*.025;g.technology+=.025;g.hostility=clamp(g.hostility-(g.allied?2:1),0,100);
     addEvent(s,g.allied?"Scambio tra alleati":"Si apre una rotta commerciale",g.name+" e la comunità scambiano conoscenze e beni"+(shipment?" per "+Math.abs(shipment)+" unità di provviste":"")+". I contatti rendono più familiari usi e tecniche differenti.","diplomacy");
    }
-   if(!g.atWar&&!g.allied&&s.year>=(g.truceUntil||0)&&n>70&&g.population>25&&g.hostility>45&&random(s)<0.00008){g.atWar=true;g.warDays=0;s.stats.wars++;addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war");}
+   if(!g.atWar&&!g.allied&&s.year>=(g.truceUntil||0)&&n>70&&g.population>25&&g.hostility>45&&random(s)<0.00008*proximity){g.atWar=true;g.warDays=0;s.stats.wars++;addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war");}
    if(g.atWar){g.warDays++;if(g.warDays%30===0){
     const ownPower=n*0.32+s.order*0.35+s.technology.length*5,enemyPower=g.population*0.42+g.technology*2;
     if(g.warDays===30&&enemyPower>ownPower*1.2){const raid=Math.round(n*1.5);sett.stores=Math.max(0,sett.stores-raid);s.food=Math.max(0,s.food-raid);s.cohesion=clamp(s.cohesion-3,0,100);addEvent(s,"Incursione nella valle",g.name+" supera le difese di confine e saccheggia parte delle riserve. La popolazione si rifugia nell’insediamento principale.","war");}
