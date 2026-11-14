@@ -356,7 +356,7 @@ function daily(s){
   if(p.pregnancyDays>0){
    p.pregnancyDays--;
    if(p.pregnancyDays<=0){
-    const birthRisk=(.0007+(p.age>32?Math.max(0,p.age-32)*.00012:0)+(p.health<45?.0015:0))*(tech.includes("Medicina organizzata")?.75:1);
+    const birthRisk=(.018+(p.age>32?Math.max(0,p.age-32)*.003:0)+(p.health<45?.02:0))*(tech.includes("Medicina organizzata")?.7:1);
     if(random(s)<birthRisk){p.health=clamp(p.health-18,0,100);if(random(s)<.12){p.pregnancyDays=0;}}
     else{addPerson(s,[p.id,p.partner]);p.health=clamp(p.health-3,0,100);}
    }
