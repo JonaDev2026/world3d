@@ -39,3 +39,7 @@ footer{max-width:1900px;min-height:48px;margin:0 auto;border-top:1px solid var(-
 .language-select{appearance:none;max-width:118px;padding:8px 28px 8px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
 .language-select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 @media(max-width:760px){.topbar{grid-template-columns:1fr auto}.time-center{grid-column:1/-1;grid-row:2;justify-content:center;padding:10px 0}.runstate{grid-column:2;grid-row:1}.language-select{max-width:105px}}
+
+/* MapLibre needs a concrete container height to render reliably. */
+#map{height:clamp(460px,58vw,760px);min-height:460px;aspect-ratio:auto}
+@media(max-width:760px){#map{height:62vh;min-height:420px}}
