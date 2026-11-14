@@ -341,8 +341,8 @@ function daily(s){
  s.order=clamp(s.order+(s.institutions.length?.006:-.002),0,100);
  // Aging, health and mortality. Candidate partners are indexed by settlement once per day.
  const medicalProtection=tech.includes("Medicina organizzata")?.72:1;
- const malesBySettlement=new Map();
- for(const q of people)if(q.sex==="M"&&q.age>=18&&q.age<58){if(!malesBySettlement.has(q.settlementId))malesBySettlement.set(q.settlementId,[]);malesBySettlement.get(q.settlementId).push(q);}
+ const livingIds=new Set(people.map(p=>p.id)),malesBySettlement=new Map();
+ for(const q of people)if(q.sex==="M"&&q.age>=18&&q.age<70){if(!malesBySettlement.has(q.settlementId))malesBySettlement.set(q.settlementId,[]);malesBySettlement.get(q.settlementId).push(q);}
  for(const p of people){
   const localFood=foodRatios.get(p.settlementId)??foodRatio;
   p.health=clamp(p.health+(localFood<.3?-.12:.012)+(tech.includes("Medicina organizzata")?.022:0)+(healers>0?.002:0),0,100);
@@ -360,7 +360,7 @@ function daily(s){
     else{addPerson(s,[p.id,p.partner]);p.health=clamp(p.health-3,0,100);}
    }
   }else if(p.age>=18&&p.age<43&&p.sex==="F"&&random(s)<.00048&&n<5000){
-   const currentPartnerAlive=p.partner&&people.some(r=>r.id===p.partner&&r.alive),candidates=(malesBySettlement.get(p.settlementId)||[]).filter(q=>q.alive&&q.id!==p.id&&(!currentPartnerAlive||p.partner===q.id)&&!related(p,q));
+   const currentPartnerAlive=p.partner&&livingIds.has(p.partner),candidates=(malesBySettlement.get(p.settlementId)||[]).filter(q=>q.alive&&q.id!==p.id&&(!currentPartnerAlive||p.partner===q.id)&&(!q.partner||q.partner===p.id||!livingIds.has(q.partner))&&!related(p,q));
    if(candidates.length){const mate=p.partner?candidates.find(q=>q.id===p.partner)||pick(s,candidates):pick(s,candidates);p.partner=mate.id;mate.partner=p.id;p.pregnancyDays=280;}
   }
   if(p.age<5&&random(s)<((.00008+(5-p.age)*.000055)+(localFood<.25?.0007:0)+(p.health<35?.0008:0))*medicalProtection){killPerson(s,p);s.stats.deaths++;}
