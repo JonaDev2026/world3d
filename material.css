@@ -43,3 +43,11 @@ footer{max-width:1900px;min-height:48px;margin:0 auto;border-top:1px solid var(-
 /* MapLibre needs a concrete container height to render reliably. */
 #map{height:clamp(460px,58vw,760px);min-height:460px;aspect-ratio:auto}
 @media(max-width:760px){#map{height:62vh;min-height:420px}}
+
+.map-view-controls{display:flex;justify-content:flex-end;gap:7px;margin:0 0 9px}
+.map-view-controls button{padding:7px 13px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.map-view-controls button.selected{background:#eaf0ff;border-color:#9eb4ff;color:#244de0;font-weight:600}
+#map,#start-map{position:relative}
+#map .cesium-viewer,#start-map .cesium-viewer{width:100%;height:100%;overflow:hidden}
+#map .cesium-widget,#start-map .cesium-widget,#map canvas,#start-map canvas{width:100%;height:100%}
+.cesium-viewer-toolbar,.cesium-viewer-animationContainer,.cesium-viewer-timelineContainer,.cesium-viewer-fullscreenContainer{display:none!important}

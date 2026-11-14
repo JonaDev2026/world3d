@@ -5,7 +5,7 @@
 <title>Anno Zero — Simulazione autonoma</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.css'">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.124/Build/Cesium/Widgets/widgets.css">
 <link rel="stylesheet" href="./material.css">
 </head>
 <body>
@@ -19,10 +19,11 @@
 </header>
 <main class="dashboard">
  <section class="map-column">
-  <div class="section-heading map-heading"><div><span class="eyebrow">GEOGRAFIA TERRESTRE · ESPLORAZIONE LIBERA</span><h1><span class="material-symbols-rounded">map</span> Il globo terrestre</h1></div><span class="map-live"><i></i> MONDO IN EVOLUZIONE</span></div>
+  <div class="section-heading map-heading"><div><span class="eyebrow">GEOGRAFIA TERRESTRE · ESPLORAZIONE LIBERA</span><h1><span class="material-symbols-rounded">map</span> Il mondo</h1></div><span class="map-live"><i></i> MONDO IN EVOLUZIONE</span></div>
   <div class="map-mode-controls" aria-label="Livello della mappa">
-   <button data-map-mode="geografia">Geografia</button><button class="selected" data-map-mode="politica">Politica</button><button data-map-mode="popolazione">Popolazione</button><button data-map-mode="risorse">Risorse</button>
+   <button data-map-mode="geografia">Geografia</button><button class="selected" data-map-mode="politica">Territori</button><button data-map-mode="popolazione">Popolazione</button><button data-map-mode="risorse">Risorse</button>
   </div>
+  <div class="map-view-controls" aria-label="Vista cartografica"><button class="selected" data-map-view="3d">Globo 3D</button><button data-map-view="2d">Cartina 2D</button></div>
   <div class="map-frame">
    <div id="map" role="application" aria-label="Globo terrestre interattivo con insediamenti della simulazione"></div>
    <div class="map-chip"><span class="material-symbols-rounded">explore</span><span id="territory-name">Territorio non ancora nominato</span><b id="territory-area">12 km² conosciuti</b></div>
@@ -89,7 +90,7 @@
  <div class="start-panel">
   <span class="eyebrow">ANNO ZERO · NUOVA SIMULAZIONE</span>
   <h1>Scegli dove nascerà la prima civiltà</h1>
-  <p>Esplora il globo terrestre, ruotalo e ingrandisci la zona che preferisci. Seleziona un punto sulla terraferma per fondare la comunità.</p>
+  <p>Esplora la cartina, scegli un punto sulla terraferma e fonda la comunità.</p>
   <div id="start-map" aria-label="Selettore interattivo del luogo iniziale"></div>
   <div class="start-footer"><span id="start-coordinates">Seleziona un punto sulla mappa</span><button id="begin-world" disabled>Inizia dall’Anno 0</button></div>
  </div>

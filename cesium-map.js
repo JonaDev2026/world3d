@@ -1,0 +1,41 @@
+let CRef=null,landPromise=null;
+export async function loadCesium(){
+ if(window.Cesium){CRef=window.Cesium;return true;}
+ window.CESIUM_BASE_URL="https://cdn.jsdelivr.net/npm/cesium@1.124/Build/Cesium/";
+ if(!document.querySelector('link[data-cesium-css]')){const l=document.createElement("link");l.rel="stylesheet";l.href=window.CESIUM_BASE_URL+"Widgets/widgets.css";l.dataset.cesiumCss="1";document.head.appendChild(l);}
+ await new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=window.CESIUM_BASE_URL+"Cesium.js";s.async=true;s.onload=()=>window.Cesium?resolve():reject(new Error("CesiumJS non disponibile"));s.onerror=()=>reject(new Error("Caricamento CesiumJS fallito"));document.head.appendChild(s);});
+ CRef=window.Cesium;return true;
+}
+async function getLand(){if(!landPromise)landPromise=fetch("./data/ne_110m_land.geojson").then(r=>{if(!r.ok)throw new Error("Cartina geografica non disponibile");return r.json();});return landPromise;}
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function inRing(ring,x,y){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const [xi,yi]=ring[i],[xj,yj]=ring[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;}return inside;}
+function isLand(geo,x,y){for(const f of geo.features||[]){const g=f.geometry;if(!g)continue;const polys=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];for(const rings of polys)if(rings.length&&inRing(rings[0],x,y)&&!rings.slice(1).some(r=>inRing(r,x,y)))return true;}return false;}
+function hierarchy(C,rings){return new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(rings[0].flat()),rings.slice(1).map(r=>new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(r.flat()))));}
+function desc(p){const kind=p.featureType?(p.featureType==="lago"?"Luogo d'acqua":p.featureType==="fiume"?"Corso d'acqua":p.featureType==="continente"?"Continente":"Mare"):(p.territory?"Territorio della simulazione":p.kind||"Comunità");return "<strong>"+esc(p.name||p.label||"Luogo")+"</strong><br>"+kind+"<br>"+Number(p.population||0).toLocaleString("it-IT")+" abitanti"+(p.polity?"<br>Forma politica: "+esc(p.polity):"")+(p.stores!==undefined?"<br>Riserve locali: "+Number(p.stores||0).toLocaleString("it-IT"):"")+(p.atWar?"<br>In guerra":"")+(p.allied?"<br>Alleata":"");}
+export async function createWorldMap(id,center=[0,20],options={}){
+ await loadCesium();const C=CRef,land=await getLand(),node=document.getElementById(id);if(!node)throw new Error("Contenitore cartografico mancante: "+id);
+ const viewer=new C.Viewer(node,{baseLayer:false,terrainProvider:new C.EllipsoidTerrainProvider(),sceneMode:options.view==="2d"?C.SceneMode.SCENE2D:C.SceneMode.SCENE3D,animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:false,infoBox:true,selectionIndicator:false,shouldAnimate:false});
+ viewer.scene.backgroundColor=C.Color.fromCssColorString("#a9cddd");viewer.scene.globe.baseColor=C.Color.fromCssColorString("#a9cddd");viewer.scene.globe.enableLighting=false;viewer.scene.globe.showGroundAtmosphere=false;viewer.scene.skyAtmosphere.show=false;
+ const landEntities=[];
+ for(const f of land.features||[]){const g=f.geometry;if(!g)continue;const polys=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];for(const rings of polys)if(rings.length)landEntities.push(viewer.entities.add({name:"Terre emerse",polygon:{hierarchy:hierarchy(C,rings),material:C.Color.fromCssColorString("#e5dfca"),outline:true,outlineColor:C.Color.fromCssColorString("#aaa58f"),outlineWidth:1},properties:{world3dLand:true}}));}
+ const groups=new Map();
+ function clear(name){for(const e of groups.get(name)||[])viewer.entities.remove(e);groups.set(name,[]);}
+ function add(name,features){
+  clear(name);const items=[];
+  for(const f of features||[]){const g=f.geometry,p=f.properties||{};if(!g)continue;let e=null;
+   if(g.type==="Point"){const [lon,lat]=g.coordinates,color=name==="settlements"?"#d94f55":name==="neighbors"?(p.atWar?"#c84f58":p.allied?"#4385c5":"#9b875d"):name==="features"?"#247ba0":"#3978df";e=viewer.entities.add({name:p.name||p.label||"Luogo",position:C.Cartesian3.fromDegrees(lon,lat),point:{pixelSize:name==="settlements"?10:8,color:C.Color.fromCssColorString(color),outlineColor:C.Color.WHITE,outlineWidth:2,disableDepthTestDistance:Number.POSITIVE_INFINITY},label:(p.label||p.name)?{text:p.label||p.name,font:"13px Google Sans, sans-serif",fillColor:C.Color.fromCssColorString("#263247"),outlineColor:C.Color.WHITE,outlineWidth:3,style:C.LabelStyle.FILL_AND_OUTLINE,showBackground:true,backgroundColor:C.Color.WHITE.withAlpha(.72),pixelOffset:new C.Cartesian2(0,-18),disableDepthTestDistance:Number.POSITIVE_INFINITY}:undefined,description:desc(p),properties:{...p}});}
+   else if(g.type==="Polygon"||g.type==="MultiPolygon"){const polys=g.type==="Polygon"?[g.coordinates]:g.coordinates;for(const rings of polys)if(rings.length){const color=p.color||"#526fbd";items.push(viewer.entities.add({name:p.name||p.label||"Territorio",polygon:{hierarchy:hierarchy(C,rings),material:C.Color.fromCssColorString(color).withAlpha(name==="territories"?.23:.15),outline:true,outlineColor:C.Color.fromCssColorString(color).withAlpha(.85),outlineWidth:2},description:desc(p),properties:{...p}}));}continue;}
+   else if(g.type==="LineString"){e=viewer.entities.add({name:p.name||"Percorso",polyline:{positions:C.Cartesian3.fromDegreesArray(g.coordinates.flat()),width:3,material:C.Color.fromCssColorString("#9b7047"),clampToGround:true},description:desc(p),properties:{...p}});}
+   if(e)items.push(e);
+  }
+  groups.set(name,items);
+ }
+ const modes={geografia:["settlements","neighbors","features","routes","explored"],politica:["territories","settlements","neighbors","features","routes"],popolazione:["settlements","neighbors","routes"],risorse:["settlements","neighbors","features","routes"]};
+ let currentMode="politica",marker=null;
+ function setMode(mode){currentMode=mode;const active=new Set(modes[mode]||modes.geografia);for(const [name,items] of groups)for(const e of items)e.show=active.has(name);}
+ function update(d){add("settlements",d.settlements?.features);add("neighbors",d.neighbors?.features);add("territories",d.territories?.features);add("features",d.features?.features);add("routes",d.routes?.features);add("explored",d.explored?.features);setMode(currentMode);}
+ function setMarker(lon,lat){if(marker)viewer.entities.remove(marker);marker=viewer.entities.add({position:C.Cartesian3.fromDegrees(lon,lat),point:{pixelSize:13,color:C.Color.fromCssColorString("#315efb"),outlineColor:C.Color.WHITE,outlineWidth:3,disableDepthTestDistance:Number.POSITIVE_INFINITY}});}
+ const handler=new C.ScreenSpaceEventHandler(viewer.scene.canvas);handler.setInputAction(m=>{const pos=viewer.camera.pickEllipsoid(m.position,viewer.scene.globe.ellipsoid);if(!pos||!options.onSelect)return;const c=C.Cartographic.fromCartesian(pos),lon=C.Math.toDegrees(c.longitude),lat=C.Math.toDegrees(c.latitude);options.onSelect({longitude:lon,latitude:lat,isLand:isLand(land,lon,lat)});},C.ScreenSpaceEventType.LEFT_CLICK);
+ if(options.view==="2d")viewer.camera.setView({destination:C.Rectangle.fromDegrees(-180,-82,180,82)});else viewer.camera.setView({destination:C.Cartesian3.fromDegrees(Number(center[0])||0,Number(center[1])||20,options.zoom||19000000)});
+ return {viewer,update,setMode, setView(v){if(v==="2d")viewer.scene.morphTo2D(.8);else viewer.scene.morphTo3D(.8);},setMarker,destroy(){handler.destroy();viewer.destroy();},resize(){viewer.resize();},onSelect(fn){options.onSelect=fn;}};
+}
