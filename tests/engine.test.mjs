@@ -232,3 +232,20 @@ test("civilization can adopt a new name and preserve its former name in history"
  assert.equal(world.civilizationNameHistory.at(-1).toYear,null);
  assert.ok(world.events.some(event=>event.title==="La comunità cambia nome"));
 });
+
+test("the same seed reproduces the initial world and every subsequent day", () => {
+  const first = createWorld({ seed: 123456789 });
+  const second = createWorld({ seed: 123456789 });
+  assert.equal(first.seed, 123456789);
+  assert.deepEqual(first.population, second.population);
+  assert.deepEqual(first.geography, second.geography);
+  advance(first, 120);
+  advance(second, 120);
+  const comparable = world => {
+    const copy = structuredClone(world);
+    delete copy.lastWallTime;
+    delete copy._dailyPersonIndex;
+    return copy;
+  };
+  assert.deepEqual(comparable(first), comparable(second));
+});
