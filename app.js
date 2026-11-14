@@ -1,4 +1,6 @@
 import {createWorld,advance,summary,validateWorld} from "./engine.js";
+import {initLanguages} from "./languages.js";
+initLanguages();
 const maplibregl = window.maplibregl;
 if (!maplibregl?.Map) throw new Error("MapLibre GL JS non è stato caricato correttamente.");
 const $=id=>document.getElementById(id),DB="anno-zero-world",STORE="state";
