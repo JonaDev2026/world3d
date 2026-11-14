@@ -77,8 +77,8 @@ function nearestVisibleLand(coordinates,cacheKey){
    if(!isWater(point)){const land=worldMap.unproject(point).toArray();cache.set(key,land);return land;}
   }
  }
- cache.set(key,null);
- return null;
+ cache.set(key,coordinates);
+ return coordinates;
 }
 function mapFeatures(s){
  const home=s.settlements?.[0],originLat=Number(home?.latitude)||0,originLon=Number(home?.longitude)||0;
