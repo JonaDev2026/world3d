@@ -9,6 +9,13 @@ function createMap(container,center=[0,20],zoom=1.5){
  const map=new maplibregl.Map({container,style:MAP_STYLE,center,zoom,projection:{type:"globe"},maxPitch:70,dragRotate:true,touchPitch:true,scrollZoom:true,doubleClickZoom:true,attributionControl:true});
  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
  map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:"metric"}),"bottom-left");
+ map.on("style.load",()=>{
+  for(const layer of map.getStyle().layers||[]){
+   if(layer.type==="symbol"||/admin|boundary|road|transport|transit|rail|building|poi|place|housenumber/i.test(layer.id)){
+    try{map.setLayoutProperty(layer.id,"visibility","none");}catch{}
+   }
+  }
+ });
  map.once("load",()=>map.resize());
  return map;
 }
