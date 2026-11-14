@@ -55,12 +55,12 @@ function mapFeatures(s){
  const palette=["#526fbd","#8b67b4","#3f8e83","#bd8751","#5985a9","#9a6d78","#6e9658"];
  const settlements=(s.settlementDetails||[]).map(st=>{
   const coordinates=project(st.x,st.y,st.latitude,st.longitude),population=st.population||0,stores=Number(st.stores)||0;
-  const radius=Math.min(2500,Math.max(8,Math.sqrt(population)*2.5));
-  return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:st.id,name:st.name||"Insediamento senza nome",population,kind:st.kind||"accampamento",stores,polity:s.nationName?(s.nationName+" · "+(s.nationType||s.polity)):s.polity||"Comunità autonoma",color:s.nationName?palette[0]:palette[(Math.max(1,st.id)-1)%palette.length],radius}};
+  const radius=Math.min(2500,Math.max(8,Math.sqrt(Math.max(1,Number(st.knownArea)||12)*25/Math.PI)));
+  return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:st.id,name:st.name||"Insediamento senza nome",population,kind:st.kind||"accampamento",stores,knownArea:Number(st.knownArea)||0,polity:s.nationName?(s.nationName+" · "+(s.nationType||s.polity)):s.polity||"Comunità autonoma",color:s.nationName?palette[0]:palette[(Math.max(1,st.id)-1)%palette.length],radius}};
  });
  const neighbors=(s.neighbors||[]).filter(n=>n.discovered).map(n=>{
   const coordinates=project(n.x,n.y,n.latitude,n.longitude),population=n.population||0;
-  return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:n.id,name:n.name||"Comunità sconosciuta",population,atWar:!!n.atWar,allied:!!n.allied,polity:n.nationName||n.name||"Comunità indipendente",color:n.atWar?"#c84f58":n.allied?"#4385c5":"#9b875d",radius:Math.min(2500,Math.max(8,Math.sqrt(population)*2.5))}};
+  return {type:"Feature",geometry:{type:"Point",coordinates},properties:{id:n.id,name:n.name||"Comunità sconosciuta",population,knownArea:Number(n.knownArea)||4,atWar:!!n.atWar,allied:!!n.allied,polity:n.nationName||n.name||"Comunità indipendente",color:n.atWar?"#c84f58":n.allied?"#4385c5":"#9b875d",radius:Math.min(2500,Math.max(8,Math.sqrt(Math.max(1,Number(n.knownArea)||4)*25/Math.PI)))}};
  });
  const territories=[
   ...settlements.map(feature=>({type:"Feature",geometry:{type:"Polygon",coordinates:circle(feature.geometry.coordinates,feature.properties.radius)},properties:{...feature.properties,territory:"territorio"}})),
