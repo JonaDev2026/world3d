@@ -178,7 +178,7 @@ function naturalHazardsDaily(s){
  const event={id:s.nextNaturalEventId++,type,latitude:location.latitude,longitude:location.longitude,year:s.year,day:s.day,severity,daysRemaining:duration,active:true};
  s.naturalEvents.push(event);if(s.naturalEvents.length>160)s.naturalEvents.splice(0,s.naturalEvents.length-160);
  const radius=type==="terremoto"?350:type==="eruzione vulcanica"?180:type==="tifone"?500:type==="tsunami"?250:type==="alluvione"?160:type==="incendio boschivo"?90:220;
- const affected=s.settlements.filter(st=>haversine(st,location)<=radius);
+  const affected=s.settlements.filter(st=>(st.population||0)>0&&haversine(st,location)<=radius);
  for(const st of affected){const impact=severity*(1-haversine(st,location)/radius);
   if(type==="terremoto"){st.stores=Math.max(0,(st.stores||0)*(1-impact*.28));st.homes=Math.max(0,(st.homes||0)*(1-impact*.2));}
   else if(type==="eruzione vulcanica"||type==="incendio boschivo")st.stores=Math.max(0,(st.stores||0)*(1-impact*.32));
@@ -187,10 +187,12 @@ function naturalHazardsDaily(s){
   s.health=clamp(s.health-impact*5,0,100);s.cohesion=clamp(s.cohesion-impact*3,0,100);
  }
  const labels={"terremoto":"Un terremoto scuote la regione","eruzione vulcanica":"Un vulcano entra in eruzione","tifone":"Un tifone attraversa l’oceano","alluvione":"Un’alluvione colpisce il territorio","incendio boschivo":"Un incendio si propaga nella vegetazione","tsunami":"Uno tsunami attraversa la costa","ondata di calore":"Un’ondata di calore investe la regione","bufera di neve":"Una bufera di neve colpisce le terre settentrionali"};
- if(affected.length){
-  const detail="La calamità ha colpito "+affected.length+" insediamento/i della civiltà. Epicentro: "+Math.round(location.latitude*10)/10+"°, "+Math.round(location.longitude*10)/10+"°.";
-  const history=addEvent(s,labels[type],detail,"natural");history.latitude=location.latitude;history.longitude=location.longitude;history.hazardType=type;history.severity=severity;
-  s.stats.naturalDisasters=(s.stats.naturalDisasters||0)+1;
+  if(affected.length){
+   const peopleAffected=affected.reduce((total,st)=>total+(st.population||0),0);
+   const detail="La calamità ha coinvolto "+peopleAffected+" persone in "+affected.length+" insediamento/i della civiltà.";
+   const history=addEvent(s,labels[type],detail,"natural");history.hazardType=type;history.severity=severity;history.peopleAffected=peopleAffected;history.settlementsAffected=affected.length;
+   s.stats.naturalDisasters=(s.stats.naturalDisasters||0)+1;
+  }
  }
 }
 function living(s){return s.population.filter(alive)}
