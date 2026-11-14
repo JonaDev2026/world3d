@@ -26,7 +26,9 @@ function showStartWizard(){
   const waterLayers=startMap.getStyle().layers.filter(layer=>/water|ocean|lake|river/i.test(layer.id)).map(layer=>layer.id);
   const water=waterLayers.length&&startMap.queryRenderedFeatures(event.point,{layers:waterLayers}).length>0;
   if(water){chosenStart=null;$("begin-world").disabled=true;$("start-coordinates").textContent="Punto in acqua: scegli una zona di terraferma";if(startMarker){startMarker.remove();startMarker=null;}return;}
-  chosenStart={longitude:Number(event.lngLat.lng.toFixed(5)),latitude:Number(event.lngLat.lat.toFixed(5))};
+  const rendered=startMap.queryRenderedFeatures(event.point),landTags=rendered.map(feature=>[feature.layer?.id,...Object.values(feature.properties||{})].join(" ").toLowerCase()).join(" ");
+  const terrainCode=/desert|sand|scrub|arid/.test(landTags)?7:/mountain|alpine|peak/.test(landTags)?4:/hill|ridge/.test(landTags)?3:/forest|wood|tree/.test(landTags)?2:/grass|farmland|meadow|park|crop/.test(landTags)?1:1;
+  chosenStart={longitude:Number(event.lngLat.lng.toFixed(5)),latitude:Number(event.lngLat.lat.toFixed(5)),terrainCode};
   if(startMarker)startMarker.remove();
   startMarker=new maplibregl.Marker({color:"#315efb"}).setLngLat([chosenStart.longitude,chosenStart.latitude]).addTo(startMap);
   $("start-coordinates").textContent="Terraferma · "+chosenStart.latitude.toFixed(3)+"°, "+chosenStart.longitude.toFixed(3)+"°";
