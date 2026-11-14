@@ -69,7 +69,6 @@ async function initWorldMap(s){
  try{
   worldMap=await createWorldMap("map",center,{view:"3d",zoom:home?9500000:19000000});worldMap.update(mapFeatures(s));worldMap.setMode(mapMode);
   document.querySelectorAll("[data-map-mode]").forEach(b=>b.addEventListener("click",()=>{mapMode=b.dataset.mapMode;document.querySelectorAll("[data-map-mode]").forEach(x=>x.classList.toggle("selected",x===b));applyMapMode();}));
-  document.querySelectorAll("[data-map-view]").forEach(b=>b.addEventListener("click",()=>{worldMap.setView(b.dataset.mapView);document.querySelectorAll("[data-map-view]").forEach(x=>x.classList.toggle("selected",x===b));}));
  }catch(error){console.error("CesiumJS non disponibile:",error);$("map").textContent="Cartina non disponibile: CesiumJS non è riuscito a caricarsi.";}
 }
 function openDB(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});}
