@@ -7,7 +7,7 @@ let world,paused=false,speed=1,worker=null,workerReady=false,latestSummary=null,
 const fmt=n=>new Intl.NumberFormat("it-IT").format(n);
 let nameData={words:[],names:[]};
 initLanguages();
-const MAP_STYLE={version:8,glyphs:"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",sources:{osm:{type:"raster",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],tileSize:256,attribution:"© OpenStreetMap contributors"}},layers:[{id:"osm-base",type:"raster",source:"osm",minzoom:0,maxzoom:19}]};
+const MAP_STYLE="https://tiles.openfreemap.org/styles/liberty";
 function loadMapScript(src){
  return new Promise((resolve,reject)=>{
   const script=document.createElement("script");script.src=src;script.async=true;
@@ -39,6 +39,7 @@ function createMap(container,center=[0,20],zoom=1.5){
  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
  map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:"metric"}),"bottom-left");
  map.on("error",event=>console.warn("Errore mappa:",event.error||event));
+ map.on("style.load",()=>{for(const layer of [...(map.getStyle().layers||[])]){if(layer.type==="symbol"||/(boundary|admin|country[-_ ]?(border|line)|state[-_ ]?(border|line))/i.test(layer.id)){if(map.getLayer(layer.id))map.removeLayer(layer.id);}}});
  map.once("load",()=>{map.resize();requestAnimationFrame(()=>map.resize());});
  return map;
 }
