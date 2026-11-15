@@ -52,3 +52,9 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Corretto il ripristino delle texture: la creazione del materiale riceve ora le dimensioni effettive dell'oggetto anche durante il caricamento.
 - Aggiunta esportazione del progetto in un file JSON con piano, oggetti, posizioni, dimensioni, rotazioni e materiali.
 - Aggiunta apertura di un file progetto JSON; l'importazione ripristina anche le dimensioni del piano e aggiorna il salvataggio locale.
+
+## Salvataggio esclusivamente su file
+- Rimossa la persistenza della scena e delle dimensioni del piano in localStorage.
+- L'editor parte da una scena vuota con piano predefinito a ogni nuovo avvio.
+- L'apertura e l'esportazione dei progetti avvengono esclusivamente tramite file JSON.
+- Lingua e preferenze dell'interfaccia restano salvate separatamente nel browser.
