@@ -57,6 +57,7 @@ class Viewport(QOpenGLWidget):
         super().__init__(parent)
         self.setMinimumSize(480,360)
         self.items=[]; self.selected=None; self.width_m=40.; self.depth_m=40.
+        self.transform_mode="translate"; self.drag_origin=None; self.texture_assets={}; self.gl_textures={}
         self.yaw=math.radians(42); self.pitch=math.radians(34); self.distance=58.
         self.target=np.array([0.,0.,0.]); self.grid=True; self.snap=True
         self.tool="select"; self.last_pos=None; self.dragging=False
@@ -134,27 +135,58 @@ class Viewport(QOpenGLWidget):
     def mousePressEvent(self,e):
         self.last_pos=e.position().toPoint()
         if e.button()==Qt.LeftButton and self.tool=="select":
-            self.selected=self.pick(self.last_pos); self.selectedChanged.emit(self.selected); self.update()
+            hit=self.pick(self.last_pos)
+            if hit is not None and hit is self.selected:
+                self.dragging=True
+                self.drag_origin=self.screen_ground(self.last_pos)
+            else:
+                self.selected=hit
+                self.selectedChanged.emit(self.selected)
+            self.update()
         elif e.button()==Qt.LeftButton and self.tool!="select":
             x,z=self.screen_ground(self.last_pos); self.add_item(self.tool,x,z)
     def mouseMoveEvent(self,e):
         p=e.position().toPoint()
-        if self.last_pos is not None and e.buttons() & Qt.RightButton:
+        if self.last_pos is not None and e.buttons() & Qt.LeftButton and self.dragging and self.selected:
+            if self.transform_mode=="rotate":
+                self.selected["rotation"]+= (p.x()-self.last_pos.x())*.5
+            else:
+                x,z=self.screen_ground(p)
+                self.selected["x"]=round(x*10)/10 if self.snap else x
+                self.selected["z"]=round(z*10)/10 if self.snap else z
+            self.selectedChanged.emit(self.selected); self.changed.emit()
+        elif self.last_pos is not None and e.buttons() & Qt.RightButton:
             delta=p-self.last_pos; self.yaw-=delta.x()*.008; self.pitch=max(.04,min(1.52,self.pitch+delta.y()*.008))
         elif self.last_pos is not None and e.buttons() & Qt.MiddleButton:
             delta=p-self.last_pos; self.target[0]-=delta.x()*self.distance/self.width()*.8; self.target[2]+=delta.y()*self.distance/self.height()*.8
         self.last_pos=p; self.update()
-    def mouseReleaseEvent(self,e): self.last_pos=None
+    def mouseReleaseEvent(self,e):
+        if self.dragging:
+            self.dragging=False; self.drag_origin=None; self.changed.emit()
+        self.last_pos=None
     def wheelEvent(self,e): self.distance=max(2,min(100000,self.distance*(.88 if e.angleDelta().y()>0 else 1.14))); self.update()
     def screen_ground(self,p):
-        # Inserimento al centro del piano: coordinate stimate in base alla vista.
-        nx=(p.x()/max(1,self.width())-.5)*2; ny=(p.y()/max(1,self.height())-.5)*2
-        x=self.target[0]+nx*self.distance*.55; z=self.target[2]+ny*self.distance*.55
+        self.makeCurrent()
+        glMatrixMode(GL_MODELVIEW); glLoadIdentity()
+        eye=self.camera(); gluLookAt(*eye,*self.target,0,1,0)
+        model=glGetDoublev(GL_MODELVIEW_MATRIX); proj=glGetDoublev(GL_PROJECTION_MATRIX)
+        vp=glGetIntegerv(GL_VIEWPORT); wx=float(p.x()); wy=float(self.height()-p.y())
+        near=np.array(gluUnProject(wx,wy,0.0,model,proj,vp),dtype=float)
+        far=np.array(gluUnProject(wx,wy,1.0,model,proj,vp),dtype=float)
+        direction=far-near
+        if abs(direction[1])<1e-9: x,z=self.target[0],self.target[2]
+        else:
+            distance=-near[1]/direction[1]; point=near+direction*distance
+            x,z=float(point[0]),float(point[2])
         if self.snap: x=round(x*10)/10; z=round(z*10)/10
         return max(-self.width_m/2,min(self.width_m/2,x)),max(-self.depth_m/2,min(self.depth_m/2,z))
     def add_item(self,kind,x,z):
         o=make_item(kind,x,z); self.items.append(o); self.selected=o; self.selectedChanged.emit(o); self.changed.emit(); self.update()
     def set_plane(self,w,d): self.width_m=max(.1,round(w,1)); self.depth_m=max(.1,round(d,1)); self.update()
+    def set_transform(self,mode): self.transform_mode=mode
+    def toggle_grid(self): self.grid=not self.grid; self.update()
+    def toggle_snap(self): self.snap=not self.snap; self.update()
+    def zoom(self,factor): self.distance=max(2,min(100000,self.distance*factor)); self.update()
     def set_top(self): self.pitch=1.52; self.yaw=0; self.update()
     def reset_view(self): self.yaw=math.radians(42); self.pitch=math.radians(34); self.distance=max(58,self.width_m*1.2,self.depth_m*1.2); self.target=np.zeros(3); self.update()
 
@@ -173,7 +205,12 @@ class MainWindow(QMainWindow):
         clear=QPushButton("Svuota"); clear.clicked.connect(self.clear); top.addWidget(clear)
         layout.addLayout(top)
         split=QSplitter(); self.viewport=Viewport(); self.viewport.selectedChanged.connect(self.selection_changed); self.viewport.changed.connect(self.push_history)
-        split.addWidget(self.build_sidebar()); split.addWidget(self.viewport); split.addWidget(self.build_inspector()); split.setSizes([220,950,270]); layout.addWidget(split)
+        center=QWidget(); center_layout=QVBoxLayout(center); center_layout.setContentsMargins(0,0,0,0); center_layout.setSpacing(0)
+        viewbar=QHBoxLayout(); viewbar.setContentsMargins(8,6,8,6)
+        for label,fn in [("Orbita",self.viewport.reset_view),("Dall'alto",self.viewport.set_top),("Griglia",self.viewport.toggle_grid),("Snap 0,1 m",self.viewport.toggle_snap),("−",lambda:self.viewport.zoom(1.15)),("+",lambda:self.viewport.zoom(.87)),("Centra",self.viewport.reset_view)]:
+            b=QPushButton(label); b.clicked.connect(fn); viewbar.addWidget(b)
+        viewbar.addStretch(); center_layout.addLayout(viewbar); center_layout.addWidget(self.viewport,1)
+        split.addWidget(self.build_sidebar()); split.addWidget(center); split.addWidget(self.build_inspector()); split.setSizes([220,950,270]); layout.addWidget(split)
         self.setCentralWidget(root); self.setStyleSheet(self.styles())
         self.statusBar().showMessage("Piano vuoto · 40 × 40 m")
         self.push_history()
@@ -192,7 +229,7 @@ class MainWindow(QMainWindow):
             b=QPushButton(label); b.clicked.connect(fn); box.addWidget(b)
         self.asset_list=QVBoxLayout(); asset_group=QGroupBox("Oggetti importati"); asset_group.setLayout(self.asset_list); box.addWidget(asset_group)
         transform=QGroupBox("TRASFORMA"); tb=QVBoxLayout(transform)
-        for label,fn in [("Sposta",lambda:self.focus_field("x")),("Ruota",lambda:self.focus_field("rotation")),("Elimina",self.delete_selected),("Duplica",self.duplicate_selected)]:
+        for label,fn in [("Sposta",lambda:self.viewport.set_transform("translate")),("Ruota",lambda:self.viewport.set_transform("rotate")),("Elimina",self.delete_selected),("Duplica",self.duplicate_selected)]:
             b=QPushButton(label); b.clicked.connect(fn); tb.addWidget(b)
         box.addWidget(transform); box.addStretch()
         return panel
@@ -248,7 +285,8 @@ class MainWindow(QMainWindow):
         Path(path).write_text(json.dumps(self.project_data(),ensure_ascii=False,indent=2),encoding="utf-8")
     def save_project(self):
         path=QFileDialog.getSaveFileName(self,"Salva progetto","","World3D (*.json)")[0]
-        if path:self.save_to(path); self.statusBar().showMessage("Progetto salvato",4000)
+        if path:
+            self.save_to(path); self.current_path=path; self.statusBar().showMessage("Progetto salvato",4000)
     def export_project(self): self.save_project()
     def open_project(self):
         path=QFileDialog.getOpenFileName(self,"Apri progetto","","World3D (*.json)")[0]
@@ -256,7 +294,7 @@ class MainWindow(QMainWindow):
         try:
             d=json.loads(Path(path).read_text(encoding="utf-8"))
             if d.get("format")!="world3d-project" or d.get("version")!=1: raise ValueError("Formato progetto non supportato")
-            self.viewport.items=d.get("items",[]); self.models=d.get("models",{}); self.textures=d.get("textures",{})
+            self.viewport.items=d.get("items",[]); self.models=d.get("models",{}); self.textures=d.get("textures",{}); self.current_path=path
             self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"]); self.viewport.selected=None; self.selection_changed(None); self.render_assets(); self.viewport.update(); self.push_history()
         except Exception as e: QMessageBox.critical(self,"World3D",f"Impossibile aprire il progetto:\n{e}")
     def settings(self):
@@ -279,7 +317,10 @@ class MainWindow(QMainWindow):
         for path in paths:
             try:
                 scene=trimesh.load(path,force="scene")
-                meshes=list(scene.geometry.values()) if isinstance(scene,trimesh.Scene) else [scene]
+                if isinstance(scene,trimesh.Scene):
+                    merged=scene.dump(concatenate=True)
+                    meshes=[merged] if merged is not None else []
+                else: meshes=[scene]
                 vertices=[]; faces=[]; offset=0
                 for m in meshes:
                     v=np.asarray(m.vertices,float); f=np.asarray(m.faces,int)
@@ -302,8 +343,9 @@ class MainWindow(QMainWindow):
         while self.asset_list.count():
             w=self.asset_list.takeAt(0).widget()
             if w:w.deleteLater()
-        for aid,name in self.models.items():
-            row=QHBoxLayout(); b=QPushButton(name); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("♲"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
+        for aid,asset in self.models.items():
+            name=asset.get("asset_name",aid) if isinstance(asset,dict) else str(asset)
+            row=QHBoxLayout(); b=QPushButton(name); b.setToolTip("Inserisci una copia nel piano"); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("🗑"); rm.setToolTip("Rimuovi dalla lista"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
     def insert_model(self,aid):
         # I modelli importati sono già disponibili come geometrie nel progetto: duplicazione da catalogo.
         source=self.models.get(aid)
@@ -312,14 +354,14 @@ class MainWindow(QMainWindow):
     def remove_asset(self,aid):
         self.models.pop(aid,None); self.render_assets()
     def push_history(self):
-        state=json.dumps({"items":self.viewport.items,"plane":[self.viewport.width_m,self.viewport.depth_m]},separators=(",",":"))
+        state=json.dumps({"items":self.viewport.items,"plane":[self.viewport.width_m,self.viewport.depth_m],"models":self.models,"textures":self.textures},separators=(",",":"))
         if self.history and self.history[self.history_index]==state:return
         self.history=self.history[:self.history_index+1]; self.history.append(state)
         if len(self.history)>40:self.history.pop(0)
         self.history_index=len(self.history)-1
     def restore_history(self,index):
         if index<0 or index>=len(self.history):return
-        self.history_index=index; d=json.loads(self.history[index]); self.viewport.items=d["items"]; self.viewport.set_plane(*d["plane"]); self.viewport.selected=None; self.selection_changed(None); self.viewport.update()
+        self.history_index=index; d=json.loads(self.history[index]); self.viewport.items=d["items"]; self.models=d.get("models",self.models); self.textures=d.get("textures",self.textures); self.render_assets(); self.viewport.set_plane(*d["plane"]); self.viewport.selected=None; self.selection_changed(None); self.viewport.update()
     def undo(self): self.restore_history(self.history_index-1)
     def redo(self): self.restore_history(self.history_index+1)
 
