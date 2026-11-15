@@ -577,7 +577,7 @@ class MainWindow(QMainWindow):
             ext=Path(name).suffix.lower().lstrip(".")
             mime={"jpg":"jpeg"}.get(ext,ext or "png")
             textures.append({"id":"custom-"+name,"name":name,"data":f"data:image/{mime};base64,{data}"})
-        return {"format":"world3d-project","version":1,"plane":{"straighten":self.viewport.width_m,"depth":self.viewport.depth_m},"items":items,"models":models,"textures":textures}
+        return {"format":"world3d-project","version":1,"plane":{"width":self.viewport.width_m,"depth":self.viewport.depth_m},"items":items,"models":models,"textures":textures}
     def save_to(self,path):
         Path(path).write_text(json.dumps(self.project_data(),ensure_ascii=False,indent=2),encoding="utf-8")
     def save_project(self):
@@ -660,7 +660,7 @@ class MainWindow(QMainWindow):
                 fin=item.get("finish",o.get("finish","Opaco")); o["finish"]=web_finish.get(fin,fin)
                 loaded.append(o)
             self.viewport.items=loaded; self.viewport.selected=None; self.current_path=path
-            self.viewport.set_plane(d["plane"]["straighten"],d["plane"]["depth"])
+            self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"])
             self.selection_changed(None); self.render_assets(); self.viewport.update(); self.history=[]; self.history_index=-1; self.push_history()
         except Exception as e: QMessageBox.critical(self,"World3D",f"Impossibile aprire il progetto:\n{e}")
     def t(self,key): return self.translations.get(key,key)
