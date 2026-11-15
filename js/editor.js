@@ -92,6 +92,7 @@ export class BuildEditor {
     this.pointer = new THREE.Vector2();
     this.items = [];
     this.customTextures = new Map();
+    this.customModels = new Map();
     this.selected = null;
     this.tool = "select";
     this.snap = true;
@@ -201,6 +202,7 @@ export class BuildEditor {
   }
   addCustomTexture(asset) { this.customTextures.set(asset.id,asset); }
   async addModelAsset(asset, position={x:0,z:0}) {
+    this.customModels.set(asset.id,asset);
     const ext=asset.extension.toLowerCase();
     let object;
     if(ext==="glb"||ext==="gltf") {
@@ -281,7 +283,7 @@ export class BuildEditor {
     this.emitSelection(o);this.emitChange();this.pushHistory();
   }
   serializeItem(o){const base={kind:o.userData.modelAsset?"model":o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size},color:o.userData.materialColor,texture:o.userData.texture,finish:o.userData.finish};if(o.userData.modelAsset)base.asset=o.userData.modelAsset;return base;}
-  projectData(){return {format:"world3d-project",version:1,plane:{width:this.planeWidth,depth:this.planeDepth},textures:[...this.customTextures.values()],items:this.items.map(o=>this.serializeItem(o))};}
+  projectData(){return {format:"world3d-project",version:1,plane:{width:this.planeWidth,depth:this.planeDepth},textures:[...this.customTextures.values()],models:[...this.customModels.values()],items:this.items.map(o=>this.serializeItem(o))};}
   async importProject(data){
     if(!data||data.format!=="world3d-project"||data.version!==1||!data.plane||!Array.isArray(data.items))throw new Error("Formato progetto non valido o non supportato.");
     const width=Number(data.plane.width),depth=Number(data.plane.depth);
@@ -291,6 +293,7 @@ export class BuildEditor {
     this.restoring=true;
     this.items.forEach(o=>this.scene.remove(o));this.items=[];
     this.customTextures.clear();(data.textures||[]).forEach(asset=>this.customTextures.set(asset.id,asset));
+    this.customModels.clear();(data.models||[]).forEach(asset=>this.customModels.set(asset.id,asset));
     this.setPlaneSize(width,depth);
     for(const d of data.items){if(d.kind==="model"){const model=await this.addModelAsset(d.asset,{x:Number(d.x),z:Number(d.z)});model.rotation.y=Number(d.rotation)||0;}else this.addItem(d.kind,Number(d.x),Number(d.z),d);}
     this.restoring=false;this.select(null);this.emitChange();
