@@ -64,3 +64,9 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Il salvataggio propone un nome e una posizione tramite il selettore file del browser quando disponibile; negli altri browser scarica direttamente il file JSON.
 - Il comando **Esporta** resta separato e continua a scaricare una copia del progetto.
 - Aggiornate le traduzioni italiano, inglese, francese e spagnolo.
+
+
+## Salvataggio diretto sul file aperto
+- Nei browser che supportano File System Access API, **Apri** conserva il riferimento al file selezionato e **Salva** scrive direttamente sullo stesso file, senza creare copie o richiedere nuovamente il percorso.
+- Se il progetto non ha ancora un file associato, il primo **Salva** chiede dove creare il file e mantiene il riferimento per i salvataggi successivi.
+- Nei browser senza questa API resta il download JSON di ripiego: le restrizioni del browser non consentono a una pagina web di sovrascrivere liberamente un file locale scelto tramite il normale selettore HTML.
