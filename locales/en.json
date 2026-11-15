@@ -73,5 +73,9 @@
   "Griglia 0,1 m": "Grid 0.1 m",
   "Seleziona un elemento": "Select an object",
   "Annulla strumento": "Cancel tool",
-  "Piano": "Plane"
+  "Piano": "Plane",
+  "Apri progetto": "Open project",
+  "Esporta": "Export",
+  "Progetto caricato": "Project loaded",
+  "Impossibile aprire il progetto": "Unable to open project"
 }
