@@ -28,6 +28,20 @@ $("rotateBtn").addEventListener("click",()=>{editor.setTransform("rotate");$("ro
 $("deleteBtn").addEventListener("click",()=>editor.deleteSelected());
 $("duplicateBtn").addEventListener("click",()=>editor.duplicateSelected());
 $("saveBtn").addEventListener("click",()=>{editor.save();$("saveState").textContent=t("Salvato nel browser");});
+$("exportProjectBtn").addEventListener("click",()=>{
+ const blob=new Blob([JSON.stringify(editor.projectData(),null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="world3d-project.json";a.click();URL.revokeObjectURL(url);
+});
+$("openProjectBtn").addEventListener("click",()=>$("projectFileInput").click());
+$("projectFileInput").addEventListener("change",async event=>{
+ const file=event.currentTarget.files?.[0];if(!file)return;
+ try{
+  const data=JSON.parse(await file.text());editor.importProject(data);
+  $("saveState").textContent=t("Progetto caricato");
+ }catch(error){alert(t("Impossibile aprire il progetto")+": "+error.message);}
+ event.currentTarget.value="";
+});
 $("clearBtn").addEventListener("click",()=>{if(confirm(t("Eliminare tutti gli elementi dal piano?")))editor.clear();});
 $("gridBtn").addEventListener("click",e=>{editor.toggleGrid();e.currentTarget.classList.toggle("active");});
 $("snapBtn").addEventListener("click",e=>{editor.toggleSnap();e.currentTarget.classList.toggle("active");e.currentTarget.lastChild.textContent=editor.snap?" "+t("Snap attivo"):" "+t("Snap disattivo");});
