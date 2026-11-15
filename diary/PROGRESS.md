@@ -25,6 +25,10 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Applicazione all'elemento selezionato e memorizzazione di colore, texture e finitura nel salvataggio locale.
 - Materiali inclusi nella cronologia annulla/ripeti.
 
+## Precisione delle misure
+- Posizioni X/Z e dimensioni L/H/P regolabili a incrementi di 0,1 m.
+- Snap della griglia e del gizmo di spostamento impostato a 0,1 m.
+
 ## Da verificare
 - Test nel browser su desktop.
 - Rifinire la costruzione di stanze e pareti per segmenti.
