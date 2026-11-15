@@ -122,7 +122,7 @@ function renderProjectAssets(){
  $("customTextureCatalog").replaceChildren();
  for(const asset of editor.customTextures.values())addTextureButton(asset);
  $("modelCatalog").replaceChildren();
- for(const item of editor.items){if(item.userData.modelAsset){const asset=item.userData.modelAsset;const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;button.addEventListener("click",async()=>{try{await editor.addModelAsset(asset);}catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}});$("modelCatalog").append(button);}}
+ for(const asset of editor.customModels.values()){const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;button.addEventListener("click",async()=>{try{await editor.addModelAsset(asset);}catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}});$("modelCatalog").append(button);}}
 }
 function addModelButton(asset){
  const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;
@@ -137,7 +137,7 @@ async function importFiles(files){
    addTextureButton(asset);
   }else if(["glb","gltf","obj","stl"].includes(ext)){
    const asset={id:"model-"+crypto.randomUUID(),name:file.name,extension:ext,data:await dataUrl(file)};
-   addModelButton(asset);
+   editor.customModels.set(asset.id,asset);addModelButton(asset);
   }
  }
 }
