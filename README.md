@@ -67,3 +67,11 @@ Consulta [il diario di sviluppo](diary/PROGRESS.md) per seguire le funzioni impl
 - [Three.js](https://threejs.org/) per la scena e il rendering 3D
 - [Material Symbols](https://fonts.google.com/icons) per le icone
 - Google Fonts per la tipografia
+
+## Risorse personalizzate
+- Importa texture PNG, JPG e WEBP da file multipli o da una cartella scelta.
+- Applica le texture importate agli oggetti selezionati dal catalogo personale.
+- Importa modelli 3D GLB, GLTF autonomo, OBJ e STL; clicca un modello nel catalogo per inserirlo nella scena.
+- I modelli vengono centrati e ridimensionati proporzionalmente all'inserimento.
+- Le risorse importate vengono incorporate nel file JSON del progetto, senza dover mantenere la cartella originale.
+- I file GLTF con risorse esterne non incorporate vanno convertiti in GLB prima dell'importazione.
