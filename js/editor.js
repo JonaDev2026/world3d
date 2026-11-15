@@ -1,6 +1,9 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
 
 const DEFAULT_WIDTH = 40;
 const DEFAULT_DEPTH = 40;
@@ -88,6 +91,7 @@ export class BuildEditor {
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
     this.items = [];
+    this.customTextures = new Map();
     this.selected = null;
     this.tool = "select";
     this.snap = true;
@@ -168,7 +172,8 @@ export class BuildEditor {
     const finishes = {matte:{roughness:.92,metalness:0},satin:{roughness:.48,metalness:0},glossy:{roughness:.16,metalness:.05},metallic:{roughness:.28,metalness:.82}};
     const opts=finishes[finish]||finishes.matte;
     const type=texture||"none";
-    const source=makeTexture(type);
+    const custom=this.customTextures.get(type);
+    const source=custom?new THREE.TextureLoader().load(custom.data):makeTexture(type);
     const map=source?source.clone():null;
     if(map){
       // The tile canvas contains 4x4 tiles: 2.5 texture repeats per metre
@@ -193,6 +198,45 @@ export class BuildEditor {
       obj.material=this.createMaterial(color,texture,finish,dimensions);
       if(old){const materials=Array.isArray(old)?old:[old];materials.forEach(m=>{if(m.map)m.map.dispose();m.dispose();});}
     });
+  }
+  addCustomTexture(asset) { this.customTextures.set(asset.id,asset); }
+  async addModelAsset(asset, position={x:0,z:0}) {
+    const ext=asset.extension.toLowerCase();
+    let object;
+    if(ext==="glb"||ext==="gltf") {
+      const loader=new GLTFLoader();
+      if(ext==="glb") {
+        const buffer=await (await fetch(asset.data)).arrayBuffer();
+        const gltf=await new Promise((resolve,reject)=>loader.parse(buffer,"",resolve,reject));
+        object=gltf.scene;
+      } else {
+        const raw=atob(asset.data.split(",")[1]);
+        const json=decodeURIComponent(Array.from(raw,c=>"%"+c.charCodeAt(0).toString(16).padStart(2,"0")).join(""));
+        const gltf=await new Promise((resolve,reject)=>loader.parse(json,"",resolve,reject));
+        object=gltf.scene;
+      }
+    } else if(ext==="obj") {
+      const raw=atob(asset.data.split(",")[1]);
+      object=new OBJLoader().parse(decodeURIComponent(Array.from(raw,c=>"%"+c.charCodeAt(0).toString(16).padStart(2,"0")).join("")));
+    } else if(ext==="stl") {
+      const geometry=new STLLoader().parse(await (await fetch(asset.data)).arrayBuffer());
+      object=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color:0xb7bdc5,roughness:.72}));
+    } else throw new Error("Formato modello non supportato.");
+    object.updateMatrixWorld(true);
+    const bounds=new THREE.Box3().setFromObject(object);
+    const size=bounds.getSize(new THREE.Vector3());
+    const center=bounds.getCenter(new THREE.Vector3());
+    object.position.sub(center);
+    const maxDim=Math.max(size.x,size.y,size.z)||1;
+    object.scale.multiplyScalar(2/maxDim);
+    const normalized=new THREE.Box3().setFromObject(object);
+    object.position.y-=normalized.min.y;
+    const group=new THREE.Group();
+    group.position.set(position.x??0,0,position.z??0);
+    group.add(object);
+    group.userData={root:true,kind:"Modello 3D",label:asset.name,size:{x:Math.max(.1,size.x*2/maxDim),y:Math.max(.1,size.y*2/maxDim),z:Math.max(.1,size.z*2/maxDim)},modelAsset:asset,materialColor:"#b7bdc5",texture:"none",finish:"matte"};
+    group.traverse(o=>{if(o.isMesh){o.userData.root=group;o.castShadow=true;o.receiveShadow=true;}});
+    this.scene.add(group);this.items.push(group);this.select(group);this.emitChange();this.pushHistory();return group;
   }
   addItem(kind,x,z,restored={}) {
     const map={
@@ -228,7 +272,7 @@ export class BuildEditor {
   onChange(fn){this.changeCallbacks.push(fn);fn(this.items.length);}
   emitChange(){this.changeCallbacks.forEach(fn=>fn(this.items.length));}
   deleteSelected(){if(!this.selected)return;this.scene.remove(this.selected);this.items=this.items.filter(i=>i!==this.selected);this.select(null);this.emitChange();this.pushHistory();}
-  duplicateSelected(){if(!this.selected)return;const d=this.serializeItem(this.selected);d.x+=1;d.z+=1;this.addItem(d.kind,d.x,d.z,d);}
+  duplicateSelected(){if(!this.selected)return;const d=this.serializeItem(this.selected);d.x+=1;d.z+=1;if(d.kind==="model")this.addModelAsset(d.asset,{x:d.x,z:d.z});else this.addItem(d.kind,d.x,d.z,d);}
   updateSelected(key,value){if(!this.selected)return;const o=this.selected;
     if(key==="x"||key==="z")o.position[key]=this.snapValue(value);
     if(key==="rotation")o.rotation.y=value*Math.PI/180;
@@ -236,24 +280,25 @@ export class BuildEditor {
     if(key==="color"||key==="texture"||key==="finish"){this.applyMaterial(o,{[key]:value});}
     this.emitSelection(o);this.emitChange();this.pushHistory();
   }
-  serializeItem(o){return {kind:o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size},color:o.userData.materialColor,texture:o.userData.texture,finish:o.userData.finish};}
-  projectData(){return {format:"world3d-project",version:1,plane:{width:this.planeWidth,depth:this.planeDepth},items:this.items.map(o=>this.serializeItem(o))};}
-  importProject(data){
+  serializeItem(o){const base={kind:o.userData.modelAsset?"model":o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size},color:o.userData.materialColor,texture:o.userData.texture,finish:o.userData.finish};if(o.userData.modelAsset)base.asset=o.userData.modelAsset;return base;}
+  projectData(){return {format:"world3d-project",version:1,plane:{width:this.planeWidth,depth:this.planeDepth},textures:[...this.customTextures.values()],items:this.items.map(o=>this.serializeItem(o))};}
+  async importProject(data){
     if(!data||data.format!=="world3d-project"||data.version!==1||!data.plane||!Array.isArray(data.items))throw new Error("Formato progetto non valido o non supportato.");
     const width=Number(data.plane.width),depth=Number(data.plane.depth);
     if(!Number.isFinite(width)||!Number.isFinite(depth)||width<0.1||depth<0.1)throw new Error("Dimensioni del piano non valide.");
-    const allowed=new Set(["wall","floor","door","window","cube","tree"]);
-    if(data.items.some(item=>!item||!allowed.has(item.kind)||!Number.isFinite(Number(item.x))||!Number.isFinite(Number(item.z))))throw new Error("Il progetto contiene elementi non validi.");
+    const allowed=new Set(["wall","floor","door","window","cube","tree","model"]);
+    if(data.items.some(item=>!item||!allowed.has(item.kind)||!Number.isFinite(Number(item.x))||!Number.isFinite(Number(item.z))||(item.kind==="model"&&!item.asset)))throw new Error("Il progetto contiene elementi non validi.");
     this.restoring=true;
     this.items.forEach(o=>this.scene.remove(o));this.items=[];
+    this.customTextures.clear();(data.textures||[]).forEach(asset=>this.customTextures.set(asset.id,asset));
     this.setPlaneSize(width,depth);
-    data.items.forEach(d=>this.addItem(d.kind,Number(d.x),Number(d.z),d));
+    for(const d of data.items){if(d.kind==="model"){const model=await this.addModelAsset(d.asset,{x:Number(d.x),z:Number(d.z)});model.rotation.y=Number(d.rotation)||0;}else this.addItem(d.kind,Number(d.x),Number(d.z),d);}
     this.restoring=false;this.select(null);this.emitChange();
     this.history=[];this.historyIndex=-1;this.pushHistory();
   }
   clear(){this.items.forEach(o=>this.scene.remove(o));this.items=[];this.select(null);this.emitChange();this.pushHistory();}
   pushHistory(){if(this.restoring)return;const state=JSON.stringify(this.items.map(o=>this.serializeItem(o)));if(this.history[this.historyIndex]===state)return;this.history=this.history.slice(0,this.historyIndex+1);this.history.push(state);if(this.history.length>40)this.history.shift();this.historyIndex=this.history.length-1;}
-  restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.restoring=true;this.items.forEach(o=>this.scene.remove(o));this.items=[];JSON.parse(this.history[index]).forEach(d=>this.addItem(d.kind,d.x,d.z,d));this.restoring=false;this.select(null);this.emitChange();}
+  async restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.restoring=true;this.items.forEach(o=>this.scene.remove(o));this.items=[];for(const d of JSON.parse(this.history[index])){if(d.kind==="model")await this.addModelAsset(d.asset,{x:d.x,z:d.z});else this.addItem(d.kind,d.x,d.z,d);}this.restoring=false;this.select(null);this.emitChange();}
   undo(){this.restoreHistory(this.historyIndex-1);}
   redo(){this.restoreHistory(this.historyIndex+1);}
   dispose(){cancelAnimationFrame(this.frame);this.resizeObserver.disconnect();this.renderer.dispose();}
