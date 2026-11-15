@@ -5,9 +5,10 @@ PREFIX="${PREFIX:-/usr/local}"
 DEST="$PREFIX/share/world3d"
 BIN="$PREFIX/bin"
 APPS="$PREFIX/share/applications"
-install -d "$DEST/locales" "$BIN" "$APPS"
+install -d "$DEST/locales" "$DEST/assets/fonts" "$BIN" "$APPS"
 install -m 644 "$ROOT/world3d.py" "$DEST/world3d.py"
 install -m 644 "$ROOT"/locales/*.json "$DEST/locales/"
+if [ -d "$ROOT/assets/fonts" ]; then cp -R "$ROOT/assets/fonts/." "$DEST/assets/fonts/"; fi
 cat > "$BIN/world3d" <<EOF
 #!/bin/sh
 exec python3 "$DEST/world3d.py" "\$@"
