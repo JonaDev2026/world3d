@@ -52,7 +52,7 @@ def make_item(kind,x=0,z=0):
     else:
         verts,faces=box_mesh(size)
         verts[:,1]+=size[1]/2
-    return {"id":uuid.uuid4().hex,"kind":kind,"x":x,"z":z,"rotation":0.0,"size":size,"base_size":size[:],
+    return {"id":uuid.uuid4().hex,"kind":kind,"x":x,"y":0.0,"z":z,"rotation":0.0,"size":size,"base_size":size[:],
             "color":COLORS[kind],"texture":"Nessuna","finish":"Opaco","vertices":verts.tolist(),"faces":faces.tolist(),"asset_name":""}
 
 class Viewport(QOpenGLWidget):
@@ -107,7 +107,7 @@ class Viewport(QOpenGLWidget):
     def draw_gizmo(self):
         if not self.selected: return
         glDisable(GL_LIGHTING); glPushMatrix()
-        glTranslatef(self.selected["x"],.08,self.selected["z"])
+        glTranslatef(self.selected["x"],self.selected.get("y",0.0)+.08,self.selected["z"])
         glLineWidth(3.2); glBegin(GL_LINES)
         glColor3f(.90,.20,.22); glVertex3f(0,0,0); glVertex3f(2.0,0,0)
         glColor3f(.20,.75,.38); glVertex3f(0,0,0); glVertex3f(0,2.0,0)
@@ -125,7 +125,7 @@ class Viewport(QOpenGLWidget):
         p.setPen(QColor("#4d8df5")); p.drawText(self.width()-70,67,"Z")
         p.end()
     def draw_item(self,o):
-        glPushMatrix(); glTranslatef(o["x"],0,o["z"]); glRotatef(o.get("rotation",0),0,1,0)
+        glPushMatrix(); glTranslatef(o["x"],o.get("y",0.0),o["z"]); glRotatef(o.get("rotation",0),0,1,0)
         base=np.array(o.get("base_size",o["size"]),float); size=np.array(o["size"],float)
         scale=np.divide(size,base,out=np.ones(3),where=base!=0); glScalef(*scale)
         c=QColor(o.get("color","#b7bdc5")); glColor4f(c.redF(),c.greenF(),c.blueF(),.72 if o.get("texture")=="Vetro" else 1)
@@ -237,7 +237,7 @@ class Viewport(QOpenGLWidget):
             for x in (lo[0],hi[0]):
                 for y in (lo[1],hi[1]):
                     for z in (lo[2],hi[2]):
-                        corners.append((o["x"]+x*c+z*sn,y,o["z"]-x*sn+z*c))
+                        corners.append((o["x"]+x*c+z*sn,y+float(o.get("y",0.0)),o["z"]-x*sn+z*c))
             projected=[self.project(p) for p in corners]
             xs=[p[0] for p in projected]; ys=[self.height()-p[1] for p in projected]
             if min(xs)-7<=px<=max(xs)+7 and min(ys)-7<=py<=max(ys)+7:
@@ -248,9 +248,9 @@ class Viewport(QOpenGLWidget):
         if not self.selected or self.transform_mode!="translate": return None
         self.makeCurrent(); glMatrixMode(GL_MODELVIEW); glLoadIdentity()
         eye=self.camera(); gluLookAt(*eye,*self.target,0,1,0)
-        o=self.selected; p0=self.project((o["x"],.12,o["z"]))
+        o=self.selected; oy=float(o.get("y",0.0)); p0=self.project((o["x"],oy+.12,o["z"]))
         best=None; best_dist=12.0
-        for axis,end in (("x",(o["x"]+2,.12,o["z"])),("z",(o["x"],.12,o["z"]+2))):
+        for axis,end in (("x",(o["x"]+2,oy+.12,o["z"])),("y",(o["x"],oy+2.12,o["z"])),("z",(o["x"],oy+.12,o["z"]+2))):
             p1=self.project(end); ax=p1[0]-p0[0]; ay=-(p1[1]-p0[1]); length=math.hypot(ax,ay)
             if length<1: continue
             vx,vy=ax/length,ay/length; px=pos.x()-p0[0]; py=pos.y()-(self.height()-p0[1])
@@ -263,7 +263,7 @@ class Viewport(QOpenGLWidget):
             handle=self.axis_handle_at(self.last_pos)
             if handle:
                 self.dragging=True; self.drag_axis,self.drag_axis_vector=handle
-                self.drag_origin=(self.selected["x"],self.selected["z"]); self.drag_start_pos=self.last_pos
+                self.drag_origin=(self.selected["x"],self.selected.get("y",0.0),self.selected["z"]); self.drag_start_pos=self.last_pos
             else:
                 hit=self.pick(self.last_pos)
                 if hit is not None and hit is self.selected:
@@ -284,7 +284,7 @@ class Viewport(QOpenGLWidget):
             elif getattr(self,"drag_axis",None) and getattr(self,"drag_axis_vector",None):
                 vx,vy,length=self.drag_axis_vector; start=getattr(self,"drag_start_pos",self.last_pos)
                 delta=((p.x()-start.x())*vx+(p.y()-start.y())*vy)*2.0/max(1.0,length)
-                key=self.drag_axis; base=self.drag_origin[0 if key=="x" else 1]; value=base+delta
+                key=self.drag_axis; base=self.drag_origin[{"x":0,"y":1,"z":2}[key]]; value=base+delta
                 self.selected[key]=round(value*10)/10 if self.snap else value
             else:
                 x,z=self.screen_ground(p)
@@ -565,7 +565,7 @@ class MainWindow(QMainWindow):
             kind=kind_to_web.get(o.get("kind"),"cube")
             size=o.get("size",[1,1,1])
             if isinstance(size,dict): size=[size.get("x",1),size.get("y",1),size.get("z",1)]
-            item={"kind":kind,"x":float(o.get("x",0)),"z":float(o.get("z",0)),"rotation":math.radians(float(o.get("rotation",0)))%(2*math.pi),"size":{"x":size[0],"y":size[1],"z":size[2]},"color":o.get("color","#b7bdc5"),"texture":tex_to_web.get(o.get("texture","Nessuna"),("custom-"+o.get("texture")) if o.get("texture") in self.textures else o.get("texture","none")),"finish":finish_to_web.get(o.get("finish","Opaco"),o.get("finish","matte"))}
+            item={"kind":kind,"x":float(o.get("x",0)),"y":float(o.get("y",0)),"z":float(o.get("z",0)),"rotation":math.radians(float(o.get("rotation",0)))%(2*math.pi),"size":{"x":size[0],"y":size[1],"z":size[2]},"color":o.get("color","#b7bdc5"),"texture":tex_to_web.get(o.get("texture","Nessuna"),("custom-"+o.get("texture")) if o.get("texture") in self.textures else o.get("texture","none")),"finish":finish_to_web.get(o.get("finish","Opaco"),o.get("finish","matte"))}
             if kind=="model": item["assetId"]=o.get("asset_id",o.get("id"))
             items.append(item)
         models=[]
@@ -605,7 +605,7 @@ class MainWindow(QMainWindow):
         vertices*=factor; vertices[:,1]-=vertices[:,1].min()
         base=np.maximum(extent*factor,.1)
         aid=asset.get("id") or uuid.uuid4().hex
-        return {"id":uuid.uuid4().hex,"asset_id":aid,"kind":"model","x":0.,"z":0.,"rotation":0.,"size":base.tolist(),"base_size":base.tolist(),"color":COLORS["model"],"texture":"Nessuna","finish":"Opaco","vertices":vertices.tolist(),"faces":faces.tolist(),"asset_name":asset.get("name",aid),"extension":ext,"asset_data":data}
+        return {"id":uuid.uuid4().hex,"asset_id":aid,"kind":"model","x":0.,"y":0.,"z":0.,"rotation":0.,"size":base.tolist(),"base_size":base.tolist(),"color":COLORS["model"],"texture":"Nessuna","finish":"Opaco","vertices":vertices.tolist(),"faces":faces.tolist(),"asset_name":asset.get("name",aid),"extension":ext,"asset_data":data}
     def open_project(self):
         path=QFileDialog.getOpenFileName(self,"Apri progetto","","World3D (*.json)")[0]
         if not path:return
@@ -649,7 +649,7 @@ class MainWindow(QMainWindow):
                     o=copy.deepcopy(proto); o["id"]=uuid.uuid4().hex; o["asset_id"]=aid
                 else:
                     o=make_item(kind,float(item.get("x",0)),float(item.get("z",0)))
-                o["x"]=float(item.get("x",0)); o["z"]=float(item.get("z",0))
+                o["x"]=float(item.get("x",0)); o["y"]=float(item.get("y",0)); o["z"]=float(item.get("z",0))
                 rot=float(item.get("rotation",0))
                 o["rotation"]=math.degrees(rot) if abs(rot)<=6.4 else rot
                 size=item.get("size",o.get("size",[1,1,1]))
@@ -760,7 +760,7 @@ class MainWindow(QMainWindow):
         self.render_assets(); self.push_history()
     def history_item(self,o):
         return {"id":o.get("id"),"kind":o.get("kind","cube"),"asset_id":o.get("asset_id",o.get("id") if o.get("kind")=="model" else None),
-                "x":o.get("x",0),"z":o.get("z",0),"rotation":o.get("rotation",0),"size":o.get("size",[1,1,1]),
+                "x":o.get("x",0),"y":o.get("y",0),"z":o.get("z",0),"rotation":o.get("rotation",0),"size":o.get("size",[1,1,1]),
                 "color":o.get("color","#b7bdc5"),"texture":o.get("texture","Nessuna"),"finish":o.get("finish","Opaco")}
     def push_history(self):
         state=json.dumps({"items":[self.history_item(o) for o in self.viewport.items],"plane":[self.viewport.width_m,self.viewport.depth_m],"hidden_models":list(self.hidden_models)},separators=(",",":"))
@@ -784,7 +784,7 @@ class MainWindow(QMainWindow):
                 o=copy.deepcopy(source); o["id"]=item.get("id") or uuid.uuid4().hex; o["asset_id"]=aid
             else:
                 o=make_item(kind,float(item.get("x",0)),float(item.get("z",0)))
-            o["x"]=float(item.get("x",0)); o["z"]=float(item.get("z",0)); o["rotation"]=float(item.get("rotation",0))
+            o["x"]=float(item.get("x",0)); o["y"]=float(item.get("y",0)); o["z"]=float(item.get("z",0)); o["rotation"]=float(item.get("rotation",0))
             size=item.get("size",o.get("size",[1,1,1]))
             if isinstance(size,dict): size=[size.get("x",1),size.get("y",1),size.get("z",1)]
             o["size"]=[float(v) for v in size]
