@@ -34,3 +34,9 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Rifinire la costruzione di stanze e pareti per segmenti.
 - Aggiungere catalogo di oggetti e materiali.
 - Verificare compatibilità e caricamento dei font Google Sans nel browser.
+
+## Impostazioni e lingue
+- Finestra Impostazioni con larghezza e profondità del piano configurabili da 1 a 500 m, con precisione di 0,1 m.
+- Ridimensionamento del piano senza eliminare gli oggetti già posizionati.
+- Lingue italiano, inglese, francese e spagnolo in file separati.
+- Rilevamento automatico della lingua del sistema al primo avvio; scelta manuale persistente nelle preferenze del browser.
