@@ -359,6 +359,8 @@ class MainWindow(QMainWindow):
         for icon,label,fn in [("3d_rotation","Orbita",self.viewport.reset_view),("vertical_align_top","Dall'alto",self.viewport.set_top),("grid_4x4","Griglia",self.viewport.toggle_grid),("push_pin","Snap 0,1 m",self.viewport.toggle_snap),("remove","",lambda:self.viewport.zoom(1.15)),("add","",lambda:self.viewport.zoom(.87)),("center_focus_strong","Centra",self.viewport.reset_view)]:
             b=self.icon_button(icon,label); b.clicked.connect(fn); view_layout.addWidget(b)
         view_layout.addStretch(); center_layout.addWidget(viewbar); center_layout.addWidget(self.viewport,1)
+        self.hint_label=QLabel("Seleziona un elemento o scegli uno strumento per iniziare a costruire."); self.hint_label.setObjectName("hint")
+        self.hint_label.setAlignment(Qt.AlignCenter); center_layout.addWidget(self.hint_label)
         split.addWidget(self.build_sidebar()); split.addWidget(center); split.addWidget(self.build_inspector()); split.setSizes([235,970,275]); split.setCollapsible(0,False); split.setCollapsible(2,False)
         layout.addWidget(split,1)
         footer=QFrame(); footer.setObjectName("footer"); foot=QHBoxLayout(footer); foot.setContentsMargins(16,5,16,5)
@@ -396,6 +398,7 @@ class MainWindow(QMainWindow):
         QFrame#viewbar{background:#202329;border-bottom:1px solid #383d46}
         QFrame#viewbar QPushButton{padding:7px 11px;background:transparent;border:0;color:#c7cbd1}
         QFrame#viewbar QPushButton:hover{background:#343a44}
+        QLabel#hint{background:#202329;color:#c7cbd1;border-top:1px solid #383d46;padding:9px;font-size:12px}
         QLabel#sectionTitle{font-size:14px;font-weight:700;color:#f1f3f4;padding:12px 8px 10px;border-bottom:1px solid #383d46}
         QLabel#groupLabel{font-size:11px;font-weight:700;letter-spacing:1px;color:#858b95;padding:10px 8px 5px}
         QPushButton#toolButton{text-align:left;background:transparent;border:0;padding:8px 12px;color:#c7cbd1;min-height:25px}
@@ -505,6 +508,14 @@ class MainWindow(QMainWindow):
     def set_tool(self,k):
         self.viewport.tool=k
         for name,button in getattr(self,"tool_buttons",{}).items(): button.setChecked(name==k)
+        hints={"select":"Seleziona un elemento. Trascina il gizmo XYZ per spostarlo; trascina sul piano vuoto per orbitare.",
+               "wall":"Clicca sul piano per posizionare un muro.",
+               "floor":"Clicca sul piano per aggiungere un pavimento.",
+               "door":"Clicca sul piano per inserire una porta.",
+               "window":"Clicca sul piano per inserire una finestra.",
+               "cube":"Clicca sul piano per posizionare un blocco.",
+               "tree":"Clicca sul piano per piantare un albero."}
+        if hasattr(self,"hint_label"): self.hint_label.setText(hints.get(k,hints["select"]))
     def set_shortcuts(self):
         for key,fn in [("Delete",self.delete_selected),("Ctrl+S",self.save_project),("Ctrl+O",self.open_project),("Ctrl+Z",self.undo),("Ctrl+Y",self.redo),("V",lambda:self.set_tool("select"))]:
             a=QAction(self); a.setShortcut(QKeySequence(key)); a.triggered.connect(fn); self.addAction(a)
