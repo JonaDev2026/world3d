@@ -97,7 +97,7 @@ class Viewport(QOpenGLWidget):
         base=np.array(o.get("base_size",o["size"]),float); size=np.array(o["size"],float)
         scale=np.divide(size,base,out=np.ones(3),where=base!=0); glScalef(*scale)
         c=QColor(o.get("color","#b7bdc5")); glColor4f(c.redF(),c.greenF(),c.blueF(),.72 if o.get("texture")=="Vetro" else 1)
-        if o.get("texture")=="Vetro": glDisable(GL_DEPTH_WRITEMASK); glDepthMask(GL_FALSE)
+        if o.get("texture")=="Vetro": glDepthMask(GL_FALSE)
         verts=np.asarray(o["vertices"],float); faces=np.asarray(o["faces"],int)
         glBegin(GL_TRIANGLES)
         for tri in faces:
@@ -288,7 +288,7 @@ class MainWindow(QMainWindow):
                 extent=v.max(0)-v.min(0); factor=2/max(extent.max(),.001); v*=factor; v[:,1]-=v[:,1].min()
                 base=np.maximum(extent*factor,.1)
                 o={"id":uuid.uuid4().hex,"kind":"model","x":0.,"z":0.,"rotation":0.,"size":base.tolist(),"base_size":base.tolist(),"color":COLORS["model"],"texture":"Nessuna","finish":"Opaco","vertices":v.tolist(),"faces":faces,"asset_name":Path(path).name}
-                self.models[o["id"]]=Path(path).name; self.viewport.items.append(o); self.viewport.selected=o
+                self.models[o["id"]]=copy.deepcopy(o); self.viewport.items.append(o); self.viewport.selected=o
             except Exception as e: QMessageBox.warning(self,"World3D",f"{Path(path).name}: {e}")
         self.selection_changed(self.viewport.selected); self.render_assets(); self.viewport.update(); self.push_history()
     def import_textures(self):
@@ -306,7 +306,7 @@ class MainWindow(QMainWindow):
             row=QHBoxLayout(); b=QPushButton(name); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("♲"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
     def insert_model(self,aid):
         # I modelli importati sono già disponibili come geometrie nel progetto: duplicazione da catalogo.
-        source=next((o for o in self.viewport.items if o["id"]==aid),None)
+        source=self.models.get(aid)
         if source:
             o=copy.deepcopy(source); o["id"]=uuid.uuid4().hex; o["x"]+=1; o["z"]+=1; self.viewport.items.append(o); self.viewport.selected=o; self.selection_changed(o); self.viewport.update(); self.push_history()
     def remove_asset(self,aid):
