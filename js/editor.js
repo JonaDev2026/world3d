@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
 
-const GRID_SIZE = 40;
+const DEFAULT_WIDTH = 40;
+const DEFAULT_DEPTH = 40;
 const SNAP = 0.1;
 const COLORS = { Muro:0xd7d0c5, Pavimento:0xb6a995, Porta:0x9b7653, Finestra:0x91b9ca, Blocco:0x9da8b7, Albero:0x6e9a72 };
 const TEXTURE_CACHE = new Map();
@@ -95,14 +96,35 @@ export class BuildEditor {
     this.pushHistory();
   }
   setupWorld() {
+    this.planeWidth = Number(localStorage.getItem("build-editor-width")) || DEFAULT_WIDTH;
+    this.planeDepth = Number(localStorage.getItem("build-editor-depth")) || DEFAULT_DEPTH;
     const hemi = new THREE.HemisphereLight(0xffffff, 0x7b8490, 2.1); this.scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffffff, 2.3); sun.position.set(15,30,12); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-30; sun.shadow.camera.right=30; sun.shadow.camera.top=30; sun.shadow.camera.bottom=-30; this.scene.add(sun);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(GRID_SIZE,GRID_SIZE), new THREE.MeshStandardMaterial({color:0xe4e6e8, roughness:0.95}));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(this.planeWidth,this.planeDepth), new THREE.MeshStandardMaterial({color:0xe4e6e8, roughness:0.95}));
     ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; ground.name="ground"; this.scene.add(ground); this.ground=ground;
-    this.grid = new THREE.GridHelper(GRID_SIZE, GRID_SIZE*2, 0x8d969f, 0xb0b7be); this.grid.position.y=0.012; this.scene.add(this.grid);
-    const border = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(GRID_SIZE,0.02,GRID_SIZE)), new THREE.LineBasicMaterial({color:0x77818b}));
-    border.position.y=0.012; this.scene.add(border);
+    this.grid = new THREE.GridHelper(Math.max(this.planeWidth,this.planeDepth), Math.max(this.planeWidth,this.planeDepth)*10, 0x8d969f, 0xb0b7be); this.grid.position.y=0.012; this.scene.add(this.grid);
+    const border = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(this.planeWidth,0.02,this.planeDepth)), new THREE.LineBasicMaterial({color:0x77818b}));
+    border.position.y=0.012; this.scene.add(border); this.border=border;
   }
+  setPlaneSize(width, depth) {
+    const w=Math.max(1,Math.round(Number(width)*10)/10);
+    const d=Math.max(1,Math.round(Number(depth)*10)/10);
+    if(!Number.isFinite(w)||!Number.isFinite(d)) return;
+    this.planeWidth=w; this.planeDepth=d;
+    this.ground.geometry.dispose();
+    this.ground.geometry=new THREE.PlaneGeometry(w,d);
+    this.scene.remove(this.grid); this.grid.geometry.dispose(); this.grid.material.dispose();
+    this.grid=new THREE.GridHelper(Math.max(w,d),Math.max(w,d)*10,0x8d969f,0xb0b7be);
+    this.grid.position.y=0.012; this.grid.visible=this.gridVisible; this.scene.add(this.grid);
+    this.scene.remove(this.border); this.border.geometry.dispose(); this.border.material.dispose();
+    this.border=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w,0.02,d)),new THREE.LineBasicMaterial({color:0x77818b}));
+    this.border.position.y=0.012; this.scene.add(this.border);
+    localStorage.setItem("build-editor-width",String(w));
+    localStorage.setItem("build-editor-depth",String(d));
+    this.controls.target.set(0,0,0);
+    this.emitPlaneSize?.(w,d);
+  }
+  onPlaneSize(fn) { this.emitPlaneSize=fn; fn(this.planeWidth,this.planeDepth); }
   resize() { const w=this.container.clientWidth, h=this.container.clientHeight; if(!w||!h)return; this.camera.aspect=w/h; this.camera.updateProjectionMatrix(); this.renderer.setSize(w,h); }
   animate = () => { this.frame=requestAnimationFrame(this.animate); this.controls.update(); this.renderer.render(this.scene,this.camera); };
   setTool(tool) { this.tool=tool; this.transform.detach(); if(tool==="select"&&this.selected)this.transform.attach(this.selected); }
