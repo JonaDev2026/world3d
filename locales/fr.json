@@ -73,5 +73,9 @@
   "Griglia 0,1 m": "Grille 0,1 m",
   "Seleziona un elemento": "Sélectionner un élément",
   "Annulla strumento": "Annuler l’outil",
-  "Piano": "Plan"
+  "Piano": "Plan",
+  "Apri progetto": "Ouvrir un projet",
+  "Esporta": "Exporter",
+  "Progetto caricato": "Projet chargé",
+  "Impossibile aprire il progetto": "Impossible d’ouvrir le projet"
 }
