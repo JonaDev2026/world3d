@@ -473,7 +473,6 @@ class MainWindow(QMainWindow):
                 fin=item.get("finish",o.get("finish","Opaco")); o["finish"]=web_finish.get(fin,fin)
                 loaded.append(o)
             self.viewport.items=loaded; self.viewport.selected=None; self.current_path=path
-            self.hidden_models=set()
             self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"])
             self.selection_changed(None); self.render_assets(); self.viewport.update(); self.history=[]; self.history_index=-1; self.push_history()
         except Exception as e: QMessageBox.critical(self,"World3D",f"Impossibile aprire il progetto:\n{e}")
@@ -564,21 +563,26 @@ class MainWindow(QMainWindow):
             name=asset.get("asset_name",aid) if isinstance(asset,dict) else str(asset)
             row=QHBoxLayout(); b=QPushButton(name); b.setToolTip("Inserisci una copia nel piano"); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("🗑"); rm.setToolTip("Rimuovi dalla lista"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
     def insert_model(self,aid):
-        # I modelli importati sono già disponibili come geometrie nel progetto: duplicazione da catalogo.
         source=self.models.get(aid)
         if source:
-            o=copy.deepcopy(source); o["id"]=uuid.uuid4().hex; o["x"]+=1; o["z"]+=1; self.viewport.items.append(o); self.viewport.selected=o; self.selection_changed(o); self.viewport.update(); self.push_history()
+            o=copy.deepcopy(source); o["id"]=uuid.uuid4().hex; o["asset_id"]=aid
+            o["x"]+=1; o["z"]+=1; self.viewport.items.append(o); self.viewport.selected=o
+            self.selection_changed(o); self.viewport.update(); self.push_history()
     def remove_asset(self,aid):
-        self.models.pop(aid,None); self.render_assets()
+        if any(o.get("asset_id")==aid for o in self.viewport.items):
+            self.hidden_models.add(aid)
+        else:
+            self.models.pop(aid,None); self.hidden_models.discard(aid)
+        self.render_assets(); self.push_history()
     def push_history(self):
-        state=json.dumps({"items":self.viewport.items,"plane":[self.viewport.width_m,self.viewport.depth_m],"models":self.models,"textures":self.textures},separators=(",",":"))
+        state=json.dumps({"items":self.viewport.items,"plane":[self.viewport.width_m,self.viewport.depth_m],"models":self.models,"textures":self.textures,"hidden_models":list(self.hidden_models)},separators=(",",":"))
         if self.history and self.history[self.history_index]==state:return
         self.history=self.history[:self.history_index+1]; self.history.append(state)
         if len(self.history)>40:self.history.pop(0)
         self.history_index=len(self.history)-1
     def restore_history(self,index):
         if index<0 or index>=len(self.history):return
-        self.history_index=index; d=json.loads(self.history[index]); self.viewport.items=d["items"]; self.models=d.get("models",self.models); self.textures=d.get("textures",self.textures); self.viewport.texture_assets=self.textures; self.viewport.clear_texture_cache(); self.render_assets(); self.viewport.set_plane(*d["plane"]); self.viewport.selected=None; self.selection_changed(None); self.viewport.update()
+        self.history_index=index; d=json.loads(self.history[index]); self.viewport.items=d["items"]; self.models=d.get("models",self.models); self.textures=d.get("textures",self.textures); self.hidden_models=set(d.get("hidden_models",[])); self.viewport.texture_assets=self.textures; self.viewport.clear_texture_cache(); self.render_assets(); self.viewport.set_plane(*d["plane"]); self.viewport.selected=None; self.selection_changed(None); self.viewport.update()
     def undo(self): self.restore_history(self.history_index-1)
     def redo(self): self.restore_history(self.history_index+1)
 
