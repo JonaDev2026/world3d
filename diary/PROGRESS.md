@@ -1,87 +1,22 @@
 # Diario di sviluppo
 
 ## Obiettivo
-Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla modalità Costruisci di The Sims 4.
+World3D diventa un editor desktop nativo per Linux, scritto in Python. La versione browser resta temporaneamente nel repository come riferimento durante la migrazione.
 
-## Impostazione iniziale
-- Progetto indipendente, senza ambientazioni o identità narrative predefinite.
-- Interfaccia dedicata con Google Sans come prima scelta tipografica e Material Symbols.
-- HTML, CSS e JavaScript in file distinti.
-- Scena 3D vuota all'avvio: piano 40 × 40 metri, griglia e telecamera orbitale.
+## Porting Python - prima base desktop
+- Aggiunto `world3d.py` con interfaccia PySide6 e viewport OpenGL.
+- Ricreati piano, griglia, strumenti base, selezione, inspector, trasformazioni numeriche, colori e finiture.
+- Aggiunti importazione modelli GLB, GLTF, OBJ e STL tramite trimesh.
+- Aggiunta importazione immagini PNG, JPG e WEBP.
+- Aggiunti salvataggio/apertura JSON, geometrie dei modelli incorporate e cronologia undo/redo.
+- Aggiunta lista espandibile degli oggetti importati con rimozione dal catalogo.
+- Dipendenze installabili dai repository Linux, senza pip.
 
-## Prima versione
-- Strumenti per muri, pavimenti, porte, finestre, blocchi e alberi.
-- Selezione e trasformazione degli elementi.
-- Inspector con posizione, dimensioni e rotazione.
-- Griglia, snap, vista dall'alto, zoom e centratura.
-- Salvataggio locale della scena nel browser.
-- Annulla/ripeti per le operazioni registrate.
-
-## Colori, texture e finiture
-- Palette di 16 colori selezionabili e selettore colore libero.
-- Catalogo materiali con legno, piastrelle, marmo, cemento, mattoni, tessuto, metallo e vetro.
-- Texture procedurali generate nel browser, senza immagini esterne.
-- Finiture opaca, satinata, lucida e metallica.
-- Applicazione all'elemento selezionato e memorizzazione di colore, texture e finitura nel salvataggio locale.
-- Materiali inclusi nella cronologia annulla/ripeti.
-
-## Precisione delle misure
-- Posizioni X/Z e dimensioni L/H/P regolabili a incrementi di 0,1 m.
-- Snap della griglia e del gizmo di spostamento impostato a 0,1 m.
-
-## Da verificare
-- Test nel browser su desktop.
-- Rifinire la costruzione di stanze e pareti per segmenti.
-- Aggiungere catalogo di oggetti e materiali.
-- Verificare compatibilità e caricamento dei font Google Sans nel browser.
-
-## Impostazioni e lingue
-- Finestra Impostazioni con larghezza e profondità del piano configurabili senza limite massimo, con minimo 0,1 m e precisione di 0,1 m.
-- Ridimensionamento del piano senza eliminare gli oggetti già posizionati.
-- Lingue italiano, inglese, francese e spagnolo in file separati.
-- Rilevamento automatico della lingua del sistema al primo avvio; scelta manuale persistente nelle preferenze del browser.
-
-## Scala reale delle texture e piani estesi
-- Le texture sono dimensionate in metri: piastrelle da 10 cm (10 ripetizioni per metro), mattoni con modulo da circa 50 cm e altre superfici con modulo base da 1 m.
-- Le ripetizioni sono calcolate sulle dimensioni fisiche dell'oggetto, non sull'intera superficie come immagine unica.
-- Rimosso il limite massimo di 500 m per larghezza e profondità del piano.
-- La griglia visualizzata diventa progressivamente meno fitta sui piani molto grandi per contenere il carico grafico; lo snap di posizionamento resta a 0,1 m.
-- Distanza massima della camera e piano di clipping ampliate per consentire la navigazione su superfici di scala chilometrica.
-
-## Correzione texture e file progetto
-- Corretto il ripristino delle texture: la creazione del materiale riceve ora le dimensioni effettive dell'oggetto anche durante il caricamento.
-- Aggiunta esportazione del progetto in un file JSON con piano, oggetti, posizioni, dimensioni, rotazioni e materiali.
-- Aggiunta apertura di un file progetto JSON; l'importazione ripristina anche le dimensioni del piano e aggiorna il salvataggio locale.
-
-## Salvataggio esclusivamente su file
-- Rimossa la persistenza della scena e delle dimensioni del piano in localStorage.
-- L'editor parte da una scena vuota con piano predefinito a ogni nuovo avvio.
-- L'apertura e l'esportazione dei progetti avvengono esclusivamente tramite file JSON.
-- Lingua e preferenze dell'interfaccia restano salvate separatamente nel browser.
-
-## Salvataggio del progetto corrente
-- Aggiunto il pulsante dedicato **Salva progetto**.
-- Il salvataggio propone un nome e una posizione tramite il selettore file del browser quando disponibile; negli altri browser scarica direttamente il file JSON.
-- Il comando **Esporta** resta separato e continua a scaricare una copia del progetto.
-- Aggiornate le traduzioni italiano, inglese, francese e spagnolo.
-
-
-## Salvataggio diretto sul file aperto
-- Nei browser che supportano File System Access API, **Apri** conserva il riferimento al file selezionato e **Salva** scrive direttamente sullo stesso file, senza creare copie o richiedere nuovamente il percorso.
-- Se il progetto non ha ancora un file associato, il primo **Salva** chiede dove creare il file e mantiene il riferimento per i salvataggi successivi.
-- Nei browser senza questa API resta il download JSON di ripiego: le restrizioni del browser non consentono a una pagina web di sovrascrivere liberamente un file locale scelto tramite il normale selettore HTML.
-
-## Importazione di risorse personali
-- Aggiunti i comandi per importare texture PNG, JPG e WEBP da file multipli oppure da una cartella scelta dall'utente.
-- Aggiunta l'importazione di modelli 3D GLB, GLTF autonomi, OBJ e STL; i modelli vengono inseriti nella scena, centrati e ridimensionati proporzionalmente.
-- Le texture personali entrano nel catalogo e possono essere applicate all'oggetto selezionato.
-- Texture e modelli importati vengono incorporati nel JSON del progetto, senza dipendere dalla cartella originale.
-- I file GLTF con risorse esterne non incorporate non sono supportati: usare GLB oppure GLTF autonomi.
-- L'importazione da cartella cerca ricorsivamente nelle sottocartelle i formati supportati.
-
-
-## Catalogo espandibile dei modelli importati
-- Aggiunta nella sidebar una sezione espandibile con il conteggio dei modelli 3D importati.
-- Ogni modello ha un comando per inserirlo nella scena e un'icona cestino per rimuoverlo dal catalogo.
-- Se il modello è già presente nella scena, la risorsa resta incorporata nel progetto per non compromettere il salvataggio degli elementi esistenti.
-- Aggiornate le traduzioni italiano, inglese, francese e spagnolo.
+## Da completare e verificare
+- Verificare l'avvio e il rendering su Debian/Ubuntu X11 e Wayland.
+- Completare la navigazione e il posizionamento 3D tramite ray casting reale.
+- Portare la mappatura delle texture procedurali in scala metrica e l'applicazione delle texture personali.
+- Completare le traduzioni IT/EN/FR/ES.
+- Migliorare i gizmo interattivi per spostamento e rotazione.
+- Verificare import/export di progetti con modelli e texture.
+- Solo dopo la verifica funzionale rimuovere i file della versione browser.
