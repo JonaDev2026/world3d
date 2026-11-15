@@ -110,7 +110,7 @@ export class BuildEditor {
     const sun = new THREE.DirectionalLight(0xffffff, 2.3); sun.position.set(15,30,12); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-30; sun.shadow.camera.right=30; sun.shadow.camera.top=30; sun.shadow.camera.bottom=-30; this.scene.add(sun);
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(this.planeWidth,this.planeDepth), new THREE.MeshStandardMaterial({color:0xe4e6e8, roughness:0.95}));
     ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; ground.name="ground"; this.scene.add(ground); this.ground=ground;
-    this.grid = new THREE.GridHelper(Math.max(this.planeWidth,this.planeDepth), Math.max(this.planeWidth,this.planeDepth)*10, 0x8d969f, 0xb0b7be); this.grid.position.y=0.012; this.scene.add(this.grid);
+    this.grid = makeGrid(this.planeWidth,this.planeDepth); this.grid.position.y=0.012; this.scene.add(this.grid);
     const border = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(this.planeWidth,0.02,this.planeDepth)), new THREE.LineBasicMaterial({color:0x77818b}));
     border.position.y=0.012; this.scene.add(border); this.border=border;
   }
