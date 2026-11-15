@@ -70,3 +70,11 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Nei browser che supportano File System Access API, **Apri** conserva il riferimento al file selezionato e **Salva** scrive direttamente sullo stesso file, senza creare copie o richiedere nuovamente il percorso.
 - Se il progetto non ha ancora un file associato, il primo **Salva** chiede dove creare il file e mantiene il riferimento per i salvataggi successivi.
 - Nei browser senza questa API resta il download JSON di ripiego: le restrizioni del browser non consentono a una pagina web di sovrascrivere liberamente un file locale scelto tramite il normale selettore HTML.
+
+## Importazione di risorse personali
+- Aggiunti i comandi per importare texture PNG, JPG e WEBP da file multipli oppure da una cartella scelta dall'utente.
+- Aggiunta l'importazione di modelli 3D GLB, GLTF autonomi, OBJ e STL; i modelli vengono inseriti nella scena, centrati e ridimensionati proporzionalmente.
+- Le texture personali entrano nel catalogo e possono essere applicate all'oggetto selezionato.
+- Texture e modelli importati vengono incorporati nel JSON del progetto, senza dipendere dalla cartella originale.
+- I file GLTF con risorse esterne non incorporate non sono supportati: usare GLB oppure GLTF autonomi.
+- L'importazione da cartella cerca ricorsivamente nelle sottocartelle i formati supportati.
