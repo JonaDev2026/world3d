@@ -351,7 +351,7 @@ class MainWindow(QMainWindow):
         top_button("file_download","Esporta",self.export_project); top_button("settings","Impostazioni",self.settings)
         self.undo_btn=QPushButton("undo"); self.undo_btn.setFont(self.icon_font); self.undo_btn.setToolTip("Annulla"); self.undo_btn.clicked.connect(self.undo); top.addWidget(self.undo_btn)
         self.redo_btn=QPushButton("redo"); self.redo_btn.setFont(self.icon_font); self.redo_btn.setToolTip("Ripeti"); self.redo_btn.clicked.connect(self.redo); top.addWidget(self.redo_btn)
-        top_button("delete_sweep  Svuota",self.clear); layout.addWidget(topbar)
+        top_button("delete_sweep","Svuota",self.clear); layout.addWidget(topbar)
         split=QSplitter(); split.setObjectName("workspace")
         self.viewport=Viewport(); self.viewport.selectedChanged.connect(self.selection_changed); self.viewport.changed.connect(self.push_history)
         center=QWidget(); center.setObjectName("viewportPanel"); center_layout=QVBoxLayout(center); center_layout.setContentsMargins(0,0,0,0); center_layout.setSpacing(0)
