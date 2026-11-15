@@ -217,7 +217,7 @@ export class BuildEditor {
       crown.position.y=2.05;crown.scale.set(1,1.35,1);crown.castShadow=true;group.add(crown);
       group.userData.size={x:1.2,y:3,z:1.2};
     }else{
-      const mesh=new THREE.Mesh(new THREE.BoxGeometry(size.x,size.y,size.z),this.createMaterial(restored.color||"#"+cfg.color.toString(16).padStart(6,"0"),restored.texture||"none",restored.finish||"matte"));
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(size.x,size.y,size.z),this.createMaterial(restored.color||"#"+cfg.color.toString(16).padStart(6,"0"),restored.texture||"none",restored.finish||"matte",size));
       mesh.position.y=size.y/2;mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.root=group;group.add(mesh);
     }
     group.traverse(o=>{if(o.isMesh)o.userData.root=group;});
@@ -240,7 +240,22 @@ export class BuildEditor {
     this.emitSelection(o);this.emitChange();this.pushHistory();
   }
   serializeItem(o){return {kind:o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size},color:o.userData.materialColor,texture:o.userData.texture,finish:o.userData.finish};}
+  projectData(){return {format:"world3d-project",version:1,plane:{width:this.planeWidth,depth:this.planeDepth},items:this.items.map(o=>this.serializeItem(o))};}
   save(){localStorage.setItem("build-editor-scene",JSON.stringify(this.items.map(o=>this.serializeItem(o))));}
+  importProject(data){
+    if(!data||data.format!=="world3d-project"||data.version!==1||!data.plane||!Array.isArray(data.items))throw new Error("Formato progetto non valido o non supportato.");
+    const width=Number(data.plane.width),depth=Number(data.plane.depth);
+    if(!Number.isFinite(width)||!Number.isFinite(depth)||width<0.1||depth<0.1)throw new Error("Dimensioni del piano non valide.");
+    const allowed=new Set(["wall","floor","door","window","cube","tree"]);
+    if(data.items.some(item=>!item||!allowed.has(item.kind)||!Number.isFinite(Number(item.x))||!Number.isFinite(Number(item.z))))throw new Error("Il progetto contiene elementi non validi.");
+    this.restoring=true;
+    this.items.forEach(o=>this.scene.remove(o));this.items=[];
+    this.setPlaneSize(width,depth);
+    data.items.forEach(d=>this.addItem(d.kind,Number(d.x),Number(d.z),d));
+    this.restoring=false;this.select(null);this.emitChange();
+    this.history=[];this.historyIndex=-1;this.pushHistory();
+    this.save();
+  }
   load(){try{const data=JSON.parse(localStorage.getItem("build-editor-scene")||"[]");data.forEach(d=>this.addItem(d.kind,d.x,d.z,d));this.select(null);}catch(e){console.warn("Salvataggio non leggibile",e);}}
   clear(){this.items.forEach(o=>this.scene.remove(o));this.items=[];this.select(null);this.emitChange();this.pushHistory();}
   pushHistory(){if(this.restoring)return;const state=JSON.stringify(this.items.map(o=>this.serializeItem(o)));if(this.history[this.historyIndex]===state)return;this.history=this.history.slice(0,this.historyIndex+1);this.history.push(state);if(this.history.length>40)this.history.shift();this.historyIndex=this.history.length-1;}
