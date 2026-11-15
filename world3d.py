@@ -367,7 +367,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(root); self.setStyleSheet(self.styles())
         self.set_tool("select"); self.selection_changed(None)
         self.apply_language(self.language_preference)
-        self.statusBar().showMessage("Piano vuoto · 40 × 40 m")
+        self.statusBar().showMessage("Piano vuoto · 40 × 40 m"); self.statusBar().hide()
         self.push_history()
         self.set_shortcuts()
     def icon_button(self,icon,label,checkable=False):
@@ -441,7 +441,9 @@ class MainWindow(QMainWindow):
                 if mode=="translate": b.setChecked(True)
             else: b.clicked.connect(fn)
             tb.addWidget(b)
-        box.addWidget(transform); box.addStretch()
+        box.addWidget(transform)
+        self.plane_status=QLabel("Piano vuoto · 40 × 40 m"); self.plane_status.setStyleSheet("color:#9aa0a6;font-size:12px;padding:12px 7px;border-top:1px solid #383d46")
+        box.addWidget(self.plane_status); box.addStretch()
         return panel
     def build_inspector(self):
         panel=QFrame(); panel.setObjectName("panel"); panel.setMinimumWidth(250); panel.setMaximumWidth(340)
@@ -768,6 +770,9 @@ class MainWindow(QMainWindow):
         self.history_index=len(self.history)-1
         if hasattr(self,"save_state"): self.save_state.setText("Modifiche non salvate")
         if hasattr(self,"object_count"): self.object_count.setText(f"{len(self.viewport.items)} elementi")
+        if hasattr(self,"plane_status"):
+            state="Piano vuoto" if not self.viewport.items else "Piano"
+            self.plane_status.setText(f"{state} · {self.viewport.width_m:.1f} × {self.viewport.depth_m:.1f} m")
     def restore_history(self,index):
         if index<0 or index>=len(self.history):return
         self.history_index=index; d=json.loads(self.history[index]); restored=[]
