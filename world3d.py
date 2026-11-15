@@ -433,9 +433,14 @@ class MainWindow(QMainWindow):
         asset_panel=QWidget(); self.asset_list=QVBoxLayout(asset_panel); self.asset_list.setContentsMargins(5,2,5,5); self.asset_list.setSpacing(4); box.addWidget(asset_panel)
         self.asset_toggle.toggled.connect(lambda shown:(asset_panel.setVisible(shown),self.asset_toggle._icon_label.setText("expand_more" if shown else "chevron_right")))
         section("Trasforma")
-        transform=QGroupBox(); tb=QVBoxLayout(transform); tb.setContentsMargins(7,9,7,7)
-        for label,fn,icon in [("Sposta",lambda:self.viewport.set_transform("translate"),"open_with"),("Ruota",lambda:self.viewport.set_transform("rotate"),"rotate_right"),("Duplica",self.duplicate_selected,"content_copy"),("Elimina",self.delete_selected,"delete")]:
-            b=self.icon_button(icon,label); b.setObjectName("toolButton"); b.clicked.connect(fn); tb.addWidget(b)
+        transform=QGroupBox(); tb=QVBoxLayout(transform); tb.setContentsMargins(7,9,7,7); self.transform_buttons={}
+        for label,mode,fn,icon in [("Sposta","translate",None,"open_with"),("Ruota","rotate",None,"rotate_right"),("Duplica",None,self.duplicate_selected,"content_copy"),("Elimina",None,self.delete_selected,"delete")]:
+            b=self.icon_button(icon,label,mode is not None); b.setObjectName("toolButton")
+            if mode:
+                self.transform_buttons[mode]=b; b.clicked.connect(lambda checked,m=mode:self.set_transform_mode(m))
+                if mode=="translate": b.setChecked(True)
+            else: b.clicked.connect(fn)
+            tb.addWidget(b)
         box.addWidget(transform); box.addStretch()
         return panel
     def build_inspector(self):
@@ -491,6 +496,9 @@ class MainWindow(QMainWindow):
         scroll=QScrollArea(); scroll.setWidgetResizable(True); scroll.setWidget(self.inspector_content); outer.addWidget(scroll,1)
         self.inspector_content.setVisible(False)
         return panel
+    def set_transform_mode(self,mode):
+        self.viewport.set_transform(mode)
+        for key,button in self.transform_buttons.items(): button.setChecked(key==mode)
     def set_tool(self,k):
         self.viewport.tool=k
         for name,button in getattr(self,"tool_buttons",{}).items(): button.setChecked(name==k)
