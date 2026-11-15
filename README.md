@@ -8,7 +8,7 @@ Editor 3D desktop nativo per Linux, sviluppato in Python, PySide6 e OpenGL. Mant
 - Qt 6 seleziona automaticamente il backend grafico della sessione.
 - Su una sessione Wayland, per forzare il backend nativo: `QT_QPA_PLATFORM=wayland world3d`.
 - Richiede un driver Mesa/OpenGL desktop compatibile.
-- Il font Material Icons Round è incluso nell'app. Google Sans viene selezionato se installato nel sistema; in caso contrario Qt usa Noto Sans come fallback.
+- I font Google Sans (Regular e Medium) e Material Icons Round sono inclusi nell'app e caricati localmente, senza dipendenze di rete.
 
 ## Installazione dipendenze
 
