@@ -78,3 +78,10 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Texture e modelli importati vengono incorporati nel JSON del progetto, senza dipendere dalla cartella originale.
 - I file GLTF con risorse esterne non incorporate non sono supportati: usare GLB oppure GLTF autonomi.
 - L'importazione da cartella cerca ricorsivamente nelle sottocartelle i formati supportati.
+
+
+## Catalogo espandibile dei modelli importati
+- Aggiunta nella sidebar una sezione espandibile con il conteggio dei modelli 3D importati.
+- Ogni modello ha un comando per inserirlo nella scena e un'icona cestino per rimuoverlo dal catalogo.
+- Se il modello è già presente nella scena, la risorsa resta incorporata nel progetto per non compromettere il salvataggio degli elementi esistenti.
+- Aggiornate le traduzioni italiano, inglese, francese e spagnolo.
