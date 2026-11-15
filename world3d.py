@@ -36,10 +36,12 @@ def make_item(kind,x=0,z=0):
     if kind=="tree":
         # Geometria semplice combinata: tronco + chioma triangolata.
         meshes=[]
-        for radius,height,cy in [(.16,1.3,.65),(.78,1.55,2.1)]:
-            m=trimesh.creation.cylinder(radius=radius,height=height,sections=12) if trimesh else None
-            if m is None: continue
-            m.apply_translation([0,cy,0]); meshes.append(m)
+        for index,(radius,height,cy) in enumerate([(.16,1.3,.65),(.78,1.55,2.1)]):
+            if not trimesh: continue
+            m=(trimesh.creation.cylinder(radius=radius,height=height,sections=12) if index==0
+               else trimesh.creation.cone(radius=radius,height=height,sections=12))
+            rotate=trimesh.transformations.rotation_matrix(math.pi/2,[1,0,0])
+            m.apply_transform(rotate); m.apply_translation([0,cy,0]); meshes.append(m)
         if meshes:
             v=np.vstack([m.vertices for m in meshes]); f=[]; off=0
             for m in meshes: f.extend((m.faces+off).tolist()); off+=len(m.vertices)
@@ -99,6 +101,10 @@ class Viewport(QOpenGLWidget):
         base=np.array(o.get("base_size",o["size"]),float); size=np.array(o["size"],float)
         scale=np.divide(size,base,out=np.ones(3),where=base!=0); glScalef(*scale)
         c=QColor(o.get("color","#b7bdc5")); glColor4f(c.redF(),c.greenF(),c.blueF(),.72 if o.get("texture")=="Vetro" else 1)
+        finish=o.get("finish","Opaco")
+        shine={"Opaco":8.0,"Satinato":35.0,"Lucido":85.0,"Metallico":110.0}.get(finish,8.0)
+        spec=0.75 if finish in ("Lucido","Metallico") else .28 if finish=="Satinato" else .08
+        glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,[spec,spec,spec,1]); glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shine)
         if o.get("texture")=="Vetro": glDepthMask(GL_FALSE)
         verts=np.asarray(o["vertices"],float); faces=np.asarray(o["faces"],int)
         tex_name=o.get("texture","Nessuna")
@@ -115,6 +121,8 @@ class Viewport(QOpenGLWidget):
                 if abs(n[1])>=abs(n[0]) and abs(n[1])>=abs(n[2]): uv=(v[0],v[2])
                 elif abs(n[0])>=abs(n[2]): uv=(v[2],v[1])
                 else: uv=(v[0],v[1])
+                if tex_name=="Piastrelle": uv=(uv[0]*2.5,uv[1]*2.5)
+                elif tex_name=="Mattoni": uv=(uv[0],uv[1]*.5)
                 if tex_id: glTexCoord2f(uv[0],uv[1])
                 glVertex3f(*v)
         glEnd()
@@ -302,6 +310,13 @@ class MainWindow(QMainWindow):
             spin=QDoubleSpinBox(); spin.setRange(-100000,100000); spin.setDecimals(1); spin.setSingleStep(.1 if key!="rotation" else 15); spin.valueChanged.connect(lambda v,k=key:self.update_selected(k,v)); self.fields[key]=spin; self.inspector.addRow(label,spin)
         box.addLayout(self.inspector)
         self.color_btn=QPushButton("Colore"); self.color_btn.clicked.connect(self.choose_color); box.addWidget(self.color_btn)
+        palette=QGridLayout()
+        for i,color in enumerate(PALETTE):
+            swatch=QPushButton(); swatch.setFixedSize(24,24); swatch.setToolTip(color)
+            swatch.setStyleSheet(f"background:{color};border:1px solid #69717c;border-radius:4px")
+            swatch.clicked.connect(lambda checked=False,c=color:self.set_color(c))
+            palette.addWidget(swatch,i//8,i%8)
+        box.addLayout(palette)
         self.texture_combo=QComboBox()
         for name in TEXTURES: self.texture_combo.addItem(name,name)
         self.texture_combo.currentIndexChanged.connect(lambda i:self.update_material("texture",self.texture_combo.itemData(i)) if i>=0 else None)
@@ -332,10 +347,13 @@ class MainWindow(QMainWindow):
         self.viewport.update(); self.push_history()
     def update_material(self,k,v):
         if self.viewport.selected: self.viewport.selected[k]=v; self.viewport.update(); self.push_history()
+    def set_color(self,color):
+        if not self.viewport.selected:return
+        self.viewport.selected["color"]=color; self.selection_changed(self.viewport.selected); self.viewport.update(); self.push_history()
     def choose_color(self):
         if not self.viewport.selected:return
         c=QColorDialog.getColor(QColor(self.viewport.selected["color"]),self)
-        if c.isValid(): self.viewport.selected["color"]=c.name(); self.selection_changed(self.viewport.selected); self.viewport.update(); self.push_history()
+        if c.isValid(): self.set_color(c.name())
     def focus_field(self,k): self.fields[k].setFocus()
     def delete_selected(self):
         o=self.viewport.selected
@@ -351,10 +369,12 @@ class MainWindow(QMainWindow):
     def save_to(self,path):
         Path(path).write_text(json.dumps(self.project_data(),ensure_ascii=False,indent=2),encoding="utf-8")
     def save_project(self):
-        path=QFileDialog.getSaveFileName(self,"Salva progetto","","World3D (*.json)")[0]
+        path=self.current_path or QFileDialog.getSaveFileName(self,"Salva progetto","","World3D (*.json)")[0]
         if path:
-            self.save_to(path); self.current_path=path; self.statusBar().showMessage("Progetto salvato",4000)
-    def export_project(self): self.save_project()
+            self.save_to(path); self.current_path=path; self.statusBar().showMessage(self.t("Progetto salvato"),4000)
+    def export_project(self):
+        path=QFileDialog.getSaveFileName(self,"Esporta progetto","","World3D (*.json)")[0]
+        if path: self.save_to(path); self.statusBar().showMessage(self.t("Progetto esportato"),4000)
     def open_project(self):
         path=QFileDialog.getOpenFileName(self,"Apri progetto","","World3D (*.json)")[0]
         if not path:return
@@ -362,6 +382,8 @@ class MainWindow(QMainWindow):
             d=json.loads(Path(path).read_text(encoding="utf-8"))
             if d.get("format")!="world3d-project" or d.get("version")!=1: raise ValueError("Formato progetto non supportato")
             self.viewport.items=d.get("items",[]); self.models=d.get("models",{}); self.textures=d.get("textures",{}); self.viewport.texture_assets=self.textures; self.current_path=path
+            for name in self.textures:
+                if self.texture_combo.findData(name)<0: self.texture_combo.addItem(name,name)
             self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"]); self.viewport.selected=None; self.selection_changed(None); self.render_assets(); self.viewport.update(); self.push_history()
         except Exception as e: QMessageBox.critical(self,"World3D",f"Impossibile aprire il progetto:\n{e}")
     def t(self,key): return self.translations.get(key,key)
@@ -396,7 +418,7 @@ class MainWindow(QMainWindow):
         width=QDoubleSpinBox(); width.setRange(.1,1000000); width.setDecimals(1); width.setSingleStep(.1); width.setValue(self.viewport.width_m)
         depth=QDoubleSpinBox(); depth.setRange(.1,1000000); depth.setDecimals(1); depth.setSingleStep(.1); depth.setValue(self.viewport.depth_m)
         language=QComboBox()
-        for code,label in [("auto","Automatico (sistema)"),("it","Italiano"),("en","English"),("fr","Français"),("es","Español")]: language.addItem(label,code)
+        for code,label in [("auto","Automatico (sistema)"),("it","Italiano"),("en","English"),("fr","Français"),("es","Español")]: language.addItem(self.t(label),code)
         language.setCurrentIndex(max(0,language.findData(self.language_preference)))
         form.addRow(self.t("Larghezza (X)"),width); form.addRow(self.t("Profondità (Z)"),depth); form.addRow(self.t("Lingua"),language)
         buttons=QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
