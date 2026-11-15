@@ -309,22 +309,28 @@ class MainWindow(QMainWindow):
         self.hidden_models=set()
         self.lang="it"; self.translations={}; self.history=[]; self.history_index=-1; self.textures={}; self.models={}; self.current_path=None
         root=QWidget(); layout=QVBoxLayout(root); layout.setContentsMargins(0,0,0,0); layout.setSpacing(0)
-        top=QHBoxLayout(); top.setContentsMargins(12,8,12,8)
-        title=QLabel("◈  World3D"); title.setStyleSheet("font-size:18px;font-weight:700;color:#e8eaed")
-        top.addWidget(title); top.addStretch()
-        for label,fn in [("Salva",self.save_project),("Apri",self.open_project),("Esporta",self.export_project),("Impostazioni",self.settings)]:
-            b=QPushButton(label); b.clicked.connect(fn); top.addWidget(b)
-        self.undo_btn=QPushButton("↶"); self.undo_btn.clicked.connect(self.undo); top.addWidget(self.undo_btn)
-        self.redo_btn=QPushButton("↷"); self.redo_btn.clicked.connect(self.redo); top.addWidget(self.redo_btn)
-        clear=QPushButton("Svuota"); clear.clicked.connect(self.clear); top.addWidget(clear)
-        layout.addLayout(top)
-        split=QSplitter(); self.viewport=Viewport(); self.viewport.selectedChanged.connect(self.selection_changed); self.viewport.changed.connect(self.push_history)
-        center=QWidget(); center_layout=QVBoxLayout(center); center_layout.setContentsMargins(0,0,0,0); center_layout.setSpacing(0)
-        viewbar=QHBoxLayout(); viewbar.setContentsMargins(8,6,8,6)
-        for label,fn in [("Orbita",self.viewport.reset_view),("Dall'alto",self.viewport.set_top),("Griglia",self.viewport.toggle_grid),("Snap 0,1 m",self.viewport.toggle_snap),("−",lambda:self.viewport.zoom(1.15)),("+",lambda:self.viewport.zoom(.87)),("Centra",self.viewport.reset_view)]:
-            b=QPushButton(label); b.clicked.connect(fn); viewbar.addWidget(b)
-        viewbar.addStretch(); center_layout.addLayout(viewbar); center_layout.addWidget(self.viewport,1)
-        split.addWidget(self.build_sidebar()); split.addWidget(center); split.addWidget(self.build_inspector()); split.setSizes([220,950,270]); layout.addWidget(split)
+        topbar=QFrame(); topbar.setObjectName("topbar"); top=QHBoxLayout(topbar); top.setContentsMargins(18,10,18,10); top.setSpacing(8)
+        brand=QLabel("◈  Editor 3D"); brand.setObjectName("brand"); brand.setFont(QFont("Google Sans",16,QFont.DemiBold)); top.addWidget(brand); top.addStretch()
+        self.save_state=QLabel("Progetto in modifica"); self.save_state.setObjectName("saveState"); top.addWidget(self.save_state)
+        def top_button(label,fn,primary=False):
+            b=QPushButton(label); b.setProperty("primary",primary); b.clicked.connect(fn); top.addWidget(b); return b
+        top_button("save  Salva",self.save_project,True); top_button("folder_open  Apri",self.open_project)
+        top_button("file_download  Esporta",self.export_project); top_button("settings  Impostazioni",self.settings)
+        self.undo_btn=QPushButton("undo"); self.undo_btn.setFont(self.icon_font); self.undo_btn.setToolTip("Annulla"); self.undo_btn.clicked.connect(self.undo); top.addWidget(self.undo_btn)
+        self.redo_btn=QPushButton("redo"); self.redo_btn.setFont(self.icon_font); self.redo_btn.setToolTip("Ripeti"); self.redo_btn.clicked.connect(self.redo); top.addWidget(self.redo_btn)
+        top_button("delete_sweep  Svuota",self.clear); layout.addWidget(topbar)
+        split=QSplitter(); split.setObjectName("workspace")
+        self.viewport=Viewport(); self.viewport.selectedChanged.connect(self.selection_changed); self.viewport.changed.connect(self.push_history)
+        center=QWidget(); center.setObjectName("viewportPanel"); center_layout=QVBoxLayout(center); center_layout.setContentsMargins(0,0,0,0); center_layout.setSpacing(0)
+        viewbar=QFrame(); viewbar.setObjectName("viewbar"); view_layout=QHBoxLayout(viewbar); view_layout.setContentsMargins(12,7,12,7); view_layout.setSpacing(5)
+        for label,fn in [("3d_rotation  Orbita",self.viewport.reset_view),("top_panel_open  Dall'alto",self.viewport.set_top),("grid_4x4  Griglia",self.viewport.toggle_grid),("magnet  Snap 0,1 m",self.viewport.toggle_snap),("remove",lambda:self.viewport.zoom(1.15)),("add",lambda:self.viewport.zoom(.87)),("center_focus_strong  Centra",self.viewport.reset_view)]:
+            b=QPushButton(label); b.clicked.connect(fn); view_layout.addWidget(b)
+        view_layout.addStretch(); center_layout.addWidget(viewbar); center_layout.addWidget(self.viewport,1)
+        split.addWidget(self.build_sidebar()); split.addWidget(center); split.addWidget(self.build_inspector()); split.setSizes([235,970,275]); split.setCollapsible(0,False); split.setCollapsible(2,False)
+        layout.addWidget(split,1)
+        footer=QFrame(); footer.setObjectName("footer"); foot=QHBoxLayout(footer); foot.setContentsMargins(16,5,16,5)
+        self.object_count=QLabel("0 elementi"); foot.addWidget(self.object_count); foot.addSpacing(14); foot.addWidget(QLabel("Griglia 0,1 m")); foot.addStretch()
+        foot.addWidget(QLabel("V  Seleziona    Del  Elimina    Ctrl+Z  Annulla")); layout.addWidget(footer)
         self.setCentralWidget(root); self.setStyleSheet(self.styles())
         self.set_tool("select"); self.selection_changed(None)
         self.apply_language(self.language_preference)
@@ -332,50 +338,93 @@ class MainWindow(QMainWindow):
         self.push_history()
         self.set_shortcuts()
     def styles(self):
-        return """QMainWindow,QWidget{background:#202329;color:#e8eaed;font-family:'Noto Sans',sans-serif;font-size:12px} QPushButton,QComboBox,QLineEdit,QDoubleSpinBox{background:#2b3038;border:1px solid #454b55;border-radius:6px;padding:7px;color:#e8eaed} QPushButton:hover{background:#39414d} QFrame#panel{background:#252a32} QLabel#heading{font-size:14px;font-weight:700;padding:8px 2px} QGroupBox{border:1px solid #414751;border-radius:7px;margin-top:10px;padding:8px;font-weight:600} QGroupBox::title{subcontrol-origin:margin;left:8px;padding:0 4px} QDoubleSpinBox{padding:4px} QScrollArea{border:0}"""
+        return """QMainWindow,QWidget{background:#17191d;color:#e8eaed;font-family:'Google Sans','Noto Sans',sans-serif;font-size:13px}
+        QFrame#topbar,QFrame#footer{background:#202329;border:0}
+        QLabel#brand{font-size:18px;font-weight:600;color:#f1f3f4;padding:2px 8px}
+        QLabel#saveState{color:#9aa0a6;font-size:12px;padding:0 10px}
+        QFrame#panel{background:#202329}
+        QPushButton,QComboBox,QLineEdit,QDoubleSpinBox{background:#292d34;border:1px solid #414751;border-radius:8px;padding:8px 10px;color:#e8eaed;min-height:18px}
+        QPushButton:hover,QComboBox:hover{background:#343a44;border-color:#58616e}
+        QPushButton:checked{background:#34465e;color:#c2d7fa;border-color:#536b8c}
+        QPushButton[primary="true"]{background:#a8c7fa;color:#102b50;border-color:#a8c7fa;font-weight:600}
+        QPushButton[primary="true"]:hover{background:#c1d7fb}
+        QPushButton:disabled,QDoubleSpinBox:disabled,QComboBox:disabled{color:#707782;background:#22262c}
+        QFrame#viewbar{background:#202329;border-bottom:1px solid #383d46}
+        QFrame#viewbar QPushButton{padding:7px 11px;background:transparent;border:0;color:#c7cbd1}
+        QFrame#viewbar QPushButton:hover{background:#343a44}
+        QLabel#sectionTitle{font-size:14px;font-weight:700;color:#f1f3f4;padding:12px 8px 10px;border-bottom:1px solid #383d46}
+        QLabel#groupLabel{font-size:11px;font-weight:700;letter-spacing:1px;color:#858b95;padding:10px 8px 5px}
+        QPushButton#toolButton{text-align:left;background:transparent;border:0;padding:8px 12px;color:#c7cbd1;min-height:25px}
+        QPushButton#toolButton:hover{background:#343a44}
+        QPushButton#toolButton:checked{background:#34465e;color:#c2d7fa}
+        QGroupBox{border:1px solid #414751;border-radius:9px;margin-top:12px;padding:10px;font-weight:600}
+        QGroupBox::title{subcontrol-origin:margin;left:10px;padding:0 5px;color:#aeb4bd}
+        QDoubleSpinBox{padding:5px 7px;min-height:20px}
+        QScrollArea{border:0;background:transparent}
+        QFrame#footer QLabel{font-size:12px;color:#aeb4bd}
+        QToolButton{background:transparent;border:0;padding:8px;color:#c7cbd1}
+        QToolButton:hover{background:#343a44;border-radius:7px}"""
     def build_sidebar(self):
-        panel=QFrame(); panel.setObjectName("panel"); panel.setMinimumWidth(190); box=QVBoxLayout(panel)
-        box.addWidget(QLabel("COSTRUZIONE"))
+        panel=QFrame(); panel.setObjectName("panel"); panel.setMinimumWidth(220); panel.setMaximumWidth(300)
+        box=QVBoxLayout(panel); box.setContentsMargins(12,12,12,10); box.setSpacing(3)
+        heading=QLabel("Costruzione"); heading.setObjectName("sectionTitle"); box.addWidget(heading)
         self.tool_buttons={}
-        for title,tools in [("STRUMENTI",[("Seleziona","select"),("Muro","wall"),("Pavimento","floor"),("Porta","door"),("Finestra","window")]),("OGGETTI",[("Blocco","cube"),("Albero","tree")])]:
-            box.addWidget(QLabel(title))
-            for label,kind in tools:
-                b=QPushButton(label); b.setCheckable(True); b.clicked.connect(lambda checked,k=kind:self.set_tool(k)); self.tool_buttons[kind]=b; box.addWidget(b)
-        box.addWidget(QLabel("RISORSE"))
-        for label,fn in [("Importa cartella",self.import_folder),("Importa texture",self.import_textures),("Importa modello 3D",self.import_models)]: 
-            b=QPushButton(label); b.clicked.connect(fn); box.addWidget(b)
-        self.asset_toggle=QToolButton(); self.asset_toggle.setText("Oggetti importati"); self.asset_toggle.setCheckable(True); self.asset_toggle.setChecked(True); self.asset_toggle.setArrowType(Qt.DownArrow); self.asset_toggle.setToolButtonStyle(Qt.ToolButtonTextBesideIcon); box.addWidget(self.asset_toggle)
-        asset_panel=QWidget(); self.asset_list=QVBoxLayout(asset_panel); self.asset_list.setContentsMargins(4,2,4,4); box.addWidget(asset_panel)
-        self.asset_toggle.toggled.connect(lambda shown:(asset_panel.setVisible(shown),self.asset_toggle.setArrowType(Qt.DownArrow if shown else Qt.RightArrow)))
-        transform=QGroupBox("TRASFORMA"); tb=QVBoxLayout(transform)
-        for label,fn in [("Sposta",lambda:self.viewport.set_transform("translate")),("Ruota",lambda:self.viewport.set_transform("rotate")),("Elimina",self.delete_selected),("Duplica",self.duplicate_selected)]:
-            b=QPushButton(label); b.clicked.connect(fn); tb.addWidget(b)
+        def section(name):
+            label=QLabel(name.upper()); label.setObjectName("groupLabel"); box.addWidget(label)
+        def tool(label,kind,icon):
+            b=QPushButton(); b.setObjectName("toolButton"); b.setCheckable(True)
+            row=QHBoxLayout(b); row.setContentsMargins(9,0,9,0); row.setSpacing(12)
+            ico=QLabel(icon); ico.setFont(self.icon_font); ico.setMinimumWidth(22); ico.setStyleSheet("color:#aab0ba")
+            txt=QLabel(label); txt.setStyleSheet("background:transparent;border:0")
+            row.addWidget(ico); row.addWidget(txt); row.addStretch()
+            b.clicked.connect(lambda checked,k=kind:self.set_tool(k)); self.tool_buttons[kind]=b; box.addWidget(b)
+        section("Strumenti")
+        for label,kind,icon in [("Seleziona","select","near_me"),("Muro","wall","width"),("Pavimento","floor","grid_on"),("Porta","door","door_front"),("Finestra","window","window")]: tool(label,kind,icon)
+        section("Oggetti")
+        for label,kind,icon in [("Blocco","cube","view_in_ar"),("Albero","tree","park")]: tool(label,kind,icon)
+        section("Risorse")
+        for label,fn,icon in [("Importa cartella",self.import_folder,"folder_open"),("Importa texture",self.import_textures,"texture"),("Importa modello 3D",self.import_models,"deployed_code")]:
+            b=QPushButton(icon+"   "+label); b.setObjectName("toolButton"); b.clicked.connect(fn); box.addWidget(b)
+        self.asset_toggle=QToolButton(); self.asset_toggle.setText("expand_more   Oggetti importati"); self.asset_toggle.setCheckable(True); self.asset_toggle.setChecked(True); box.addWidget(self.asset_toggle)
+        asset_panel=QWidget(); self.asset_list=QVBoxLayout(asset_panel); self.asset_list.setContentsMargins(5,2,5,5); self.asset_list.setSpacing(4); box.addWidget(asset_panel)
+        self.asset_toggle.toggled.connect(lambda shown:(asset_panel.setVisible(shown),self.asset_toggle.setText(("expand_more" if shown else "chevron_right")+"   Oggetti importati")))
+        section("Trasforma")
+        transform=QGroupBox(); tb=QVBoxLayout(transform); tb.setContentsMargins(7,9,7,7)
+        for label,fn,icon in [("Sposta",lambda:self.viewport.set_transform("translate"),"open_with"),("Ruota",lambda:self.viewport.set_transform("rotate"),"rotate_right"),("Duplica",self.duplicate_selected,"content_copy"),("Elimina",self.delete_selected,"delete")]:
+            b=QPushButton(icon+"   "+label); b.setObjectName("toolButton"); b.clicked.connect(fn); tb.addWidget(b)
         box.addWidget(transform); box.addStretch()
         return panel
     def build_inspector(self):
-        panel=QFrame(); panel.setObjectName("panel"); panel.setMinimumWidth(240); box=QVBoxLayout(panel); box.addWidget(QLabel("PROPRIETÀ"))
-        self.inspector=QFormLayout()
-        self.fields={}
-        for key,label in [("x","Posizione X"),("z","Posizione Z"),("sx","Larghezza"),("sy","Altezza"),("sz","Profondità"),("rotation","Rotazione °")]:
-            spin=QDoubleSpinBox(); spin.setRange(-100000,100000); spin.setDecimals(1); spin.setSingleStep(.1 if key!="rotation" else 15); spin.valueChanged.connect(lambda v,k=key:self.update_selected(k,v)); self.fields[key]=spin; self.inspector.addRow(label,spin)
-        box.addLayout(self.inspector)
-        self.color_btn=QPushButton("Colore"); self.color_btn.clicked.connect(self.choose_color); box.addWidget(self.color_btn)
-        palette=QGridLayout()
+        panel=QFrame(); panel.setObjectName("panel"); panel.setMinimumWidth(250); panel.setMaximumWidth(340)
+        outer=QVBoxLayout(panel); outer.setContentsMargins(14,12,14,10); outer.setSpacing(8)
+        heading=QLabel("Proprietà"); heading.setObjectName("sectionTitle"); outer.addWidget(heading)
+        self.empty_inspector=QLabel("touch_app\\n\\nNessuna selezione\\n\\nSeleziona un elemento nel piano per modificarne le proprietà.")
+        self.empty_inspector.setAlignment(Qt.AlignCenter); self.empty_inspector.setWordWrap(True); self.empty_inspector.setStyleSheet("color:#9aa0a6;padding:28px 12px")
+        outer.addWidget(self.empty_inspector)
+        self.inspector_content=QWidget(); content=QVBoxLayout(self.inspector_content); content.setContentsMargins(0,0,0,0); content.setSpacing(8)
+        self.selected_label=QLabel("view_in_ar   Oggetto"); self.selected_label.setStyleSheet("background:#2b3038;border:1px solid #383d46;border-radius:9px;padding:13px;font-weight:600")
+        content.addWidget(self.selected_label)
+        def group_title(text):
+            l=QLabel(text.upper()); l.setObjectName("groupLabel"); content.addWidget(l)
+        group_title("Posizione"); self.fields={}
+        for key,label in [("x","X"),("z","Z"),("sx","Larghezza"),("sy","Altezza"),("sz","Profondità"),("rotation","Rotazione °")]:
+            row=QHBoxLayout(); lab=QLabel(label); lab.setMinimumWidth(84); spin=QDoubleSpinBox(); spin.setRange(-100000,100000); spin.setDecimals(1); spin.setSingleStep(.1 if key!="rotation" else 15)
+            spin.valueChanged.connect(lambda v,k=key:self.update_selected(k,v)); self.fields[key]=spin; row.addWidget(lab); row.addWidget(spin,1); content.addLayout(row)
+        group_title("Colore"); self.color_btn=QPushButton("palette   Scegli colore"); self.color_btn.clicked.connect(self.choose_color); content.addWidget(self.color_btn)
+        palette=QGridLayout(); palette.setSpacing(6)
         for i,color in enumerate(PALETTE):
-            swatch=QPushButton(); swatch.setFixedSize(24,24); swatch.setToolTip(color)
-            swatch.setStyleSheet(f"background:{color};border:1px solid #69717c;border-radius:4px")
-            swatch.clicked.connect(lambda checked=False,c=color:self.set_color(c))
-            palette.addWidget(swatch,i//8,i%8)
-        box.addLayout(palette)
-        self.texture_combo=QComboBox()
+            swatch=QPushButton(); swatch.setFixedSize(25,25); swatch.setToolTip(color); swatch.setStyleSheet(f"background:{color};border:1px solid #69717c;border-radius:6px;padding:0")
+            swatch.clicked.connect(lambda checked=False,c=color:self.set_color(c)); palette.addWidget(swatch,i//8,i%8)
+        content.addLayout(palette)
+        group_title("Texture"); self.texture_combo=QComboBox()
         for name in TEXTURES: self.texture_combo.addItem(name,name)
-        self.texture_combo.currentIndexChanged.connect(lambda i:self.update_material("texture",self.texture_combo.itemData(i)) if i>=0 else None)
-        box.addWidget(QLabel("Texture")); box.addWidget(self.texture_combo)
-        self.finish_combo=QComboBox()
+        self.texture_combo.currentIndexChanged.connect(lambda i:self.update_material("texture",self.texture_combo.itemData(i)) if i>=0 else None); content.addWidget(self.texture_combo)
+        group_title("Finitura"); self.finish_combo=QComboBox()
         for name in ["Opaco","Satinato","Lucido","Metallico"]: self.finish_combo.addItem(name,name)
-        self.finish_combo.currentIndexChanged.connect(lambda i:self.update_material("finish",self.finish_combo.itemData(i)) if i>=0 else None)
-        box.addWidget(QLabel("Finitura")); box.addWidget(self.finish_combo)
-        box.addStretch(); return panel
+        self.finish_combo.currentIndexChanged.connect(lambda i:self.update_material("finish",self.finish_combo.itemData(i)) if i>=0 else None); content.addWidget(self.finish_combo); content.addStretch()
+        scroll=QScrollArea(); scroll.setWidgetResizable(True); scroll.setWidget(self.inspector_content); outer.addWidget(scroll,1)
+        self.inspector_content.setVisible(False)
+        return panel
     def set_tool(self,k):
         self.viewport.tool=k
         for name,button in getattr(self,"tool_buttons",{}).items(): button.setChecked(name==k)
