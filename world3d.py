@@ -64,7 +64,7 @@ class Viewport(QOpenGLWidget):
         self.transform_mode="translate"; self.drag_origin=None; self.dragging=False; self.texture_assets={}; self.gl_textures={}; self.procedural_images={}
         self.yaw=math.radians(42); self.pitch=math.radians(34); self.distance=58.
         self.target=np.array([0.,0.,0.]); self.grid=True; self.snap=True
-        self.tool="select"; self.last_pos=None; self.dragging=False; self.drag_axis=None; self.drag_axis_vector=None; self.drag_start_pos=None
+        self.tool="select"; self.last_pos=None; self.dragging=False; self.drag_axis=None; self.drag_axis_vector=None; self.drag_start_pos=None; self.orbit_drag=False
         self.setFocusPolicy(Qt.StrongFocus)
     def initializeGL(self):
         glClearColor(.72,.75,.78,1); glEnable(GL_DEPTH_TEST); glEnable(GL_MULTISAMPLE)
@@ -268,6 +268,8 @@ class Viewport(QOpenGLWidget):
                 if hit is not None and hit is self.selected:
                     self.dragging=True; self.drag_axis=None
                     self.drag_origin=self.screen_ground(self.last_pos)
+                elif hit is None:
+                    self.orbit_drag=True
                 else:
                     self.selected=hit; self.selectedChanged.emit(self.selected)
             self.update()
@@ -288,15 +290,15 @@ class Viewport(QOpenGLWidget):
                 self.selected["x"]=round(x*10)/10 if self.snap else x
                 self.selected["z"]=round(z*10)/10 if self.snap else z
             self.selectedChanged.emit(self.selected)
-        elif self.last_pos is not None and e.buttons() & Qt.RightButton:
+        elif self.last_pos is not None and e.buttons() & Qt.LeftButton and self.orbit_drag:
             delta=p-self.last_pos; self.yaw-=delta.x()*.008; self.pitch=max(.04,min(1.52,self.pitch+delta.y()*.008))
-        elif self.last_pos is not None and e.buttons() & Qt.MiddleButton:
+        elif self.last_pos is not None and (e.buttons() & Qt.RightButton or e.buttons() & Qt.MiddleButton):
             delta=p-self.last_pos; self.target[0]-=delta.x()*self.distance/self.width()*.8; self.target[2]+=delta.y()*self.distance/self.height()*.8
         self.last_pos=p; self.update()
     def mouseReleaseEvent(self,e):
         if self.dragging:
             self.dragging=False; self.drag_origin=None; self.drag_axis=None; self.drag_axis_vector=None; self.drag_start_pos=None; self.changed.emit()
-        self.last_pos=None
+        self.orbit_drag=False; self.last_pos=None
     def wheelEvent(self,e): self.distance=max(2,min(100000,self.distance*(.88 if e.angleDelta().y()>0 else 1.14))); self.update()
     def screen_ground(self,p):
         self.makeCurrent()
