@@ -14,7 +14,7 @@ Editor 3D desktop nativo per Linux, sviluppato in Python, PySide6 e OpenGL. L'in
 Debian / Ubuntu:
 
 ```bash
-sudo apt install python3 python3-pyside6.qtwidgets python3-opengl python3-numpy python3-trimesh python3-pil
+sudo apt install python3 python3-pyside6.qtwidgets python3-pyside6.qtopenglwidgets python3-opengl python3-numpy python3-trimesh python3-pil
 ```
 
 Arch / Manjaro:
