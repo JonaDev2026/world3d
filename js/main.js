@@ -27,11 +27,10 @@ $("moveBtn").addEventListener("click",()=>{editor.setTransform("translate");$("m
 $("rotateBtn").addEventListener("click",()=>{editor.setTransform("rotate");$("rotateBtn").classList.add("active");$("moveBtn").classList.remove("active");});
 $("deleteBtn").addEventListener("click",()=>editor.deleteSelected());
 $("duplicateBtn").addEventListener("click",()=>editor.duplicateSelected());
-$("saveBtn").addEventListener("click",()=>{editor.save();$("saveState").textContent=t("Salvato nel browser");});
 $("exportProjectBtn").addEventListener("click",()=>{
  const blob=new Blob([JSON.stringify(editor.projectData(),null,2)],{type:"application/json"});
  const url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download="world3d-project.json";a.click();URL.revokeObjectURL(url);
+ a.href=url;a.download="world3d-project.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$("saveState").textContent=t("Progetto esportato");
 });
 $("openProjectBtn").addEventListener("click",()=>$("projectFileInput").click());
 $("projectFileInput").addEventListener("change",async event=>{
