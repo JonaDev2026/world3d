@@ -356,7 +356,7 @@ class MainWindow(QMainWindow):
         self.viewport=Viewport(); self.viewport.selectedChanged.connect(self.selection_changed); self.viewport.changed.connect(self.push_history)
         center=QWidget(); center.setObjectName("viewportPanel"); center_layout=QVBoxLayout(center); center_layout.setContentsMargins(0,0,0,0); center_layout.setSpacing(0)
         viewbar=QFrame(); viewbar.setObjectName("viewbar"); view_layout=QHBoxLayout(viewbar); view_layout.setContentsMargins(12,7,12,7); view_layout.setSpacing(5)
-        for icon,label,fn in [("3d_rotation","Orbita",self.viewport.reset_view),("top_panel_open","Dall'alto",self.viewport.set_top),("grid_4x4","Griglia",self.viewport.toggle_grid),("magnet","Snap 0,1 m",self.viewport.toggle_snap),("remove","",lambda:self.viewport.zoom(1.15)),("add","",lambda:self.viewport.zoom(.87)),("center_focus_strong","Centra",self.viewport.reset_view)]:
+        for icon,label,fn in [("3d_rotation","Orbita",self.viewport.reset_view),("vertical_align_top","Dall'alto",self.viewport.set_top),("grid_4x4","Griglia",self.viewport.toggle_grid),("push_pin","Snap 0,1 m",self.viewport.toggle_snap),("remove","",lambda:self.viewport.zoom(1.15)),("add","",lambda:self.viewport.zoom(.87)),("center_focus_strong","Centra",self.viewport.reset_view)]:
             b=self.icon_button(icon,label); b.clicked.connect(fn); view_layout.addWidget(b)
         view_layout.addStretch(); center_layout.addWidget(viewbar); center_layout.addWidget(self.viewport,1)
         split.addWidget(self.build_sidebar()); split.addWidget(center); split.addWidget(self.build_inspector()); split.setSizes([235,970,275]); split.setCollapsible(0,False); split.setCollapsible(2,False)
@@ -423,11 +423,11 @@ class MainWindow(QMainWindow):
             row.addWidget(ico); row.addWidget(txt); row.addStretch()
             b.clicked.connect(lambda checked,k=kind:self.set_tool(k)); self.tool_buttons[kind]=b; box.addWidget(b)
         section("Strumenti")
-        for label,kind,icon in [("Seleziona","select","near_me"),("Muro","wall","width"),("Pavimento","floor","grid_on"),("Porta","door","door_front"),("Finestra","window","window")]: tool(label,kind,icon)
+        for label,kind,icon in [("Seleziona","select","near_me"),("Muro","wall","straighten"),("Pavimento","floor","grid_on"),("Porta","door","door_front"),("Finestra","window","window")]: tool(label,kind,icon)
         section("Oggetti")
         for label,kind,icon in [("Blocco","cube","view_in_ar"),("Albero","tree","park")]: tool(label,kind,icon)
         section("Risorse")
-        for label,fn,icon in [("Importa cartella",self.import_folder,"folder_open"),("Importa texture",self.import_textures,"texture"),("Importa modello 3D",self.import_models,"deployed_code")]:
+        for label,fn,icon in [("Importa cartella",self.import_folder,"folder_open"),("Importa texture",self.import_textures,"texture"),("Importa modello 3D",self.import_models,"view_in_ar")]:
             b=self.icon_button(icon,label); b.setObjectName("toolButton"); b.clicked.connect(fn); box.addWidget(b)
         self.asset_toggle=self.icon_button("expand_more","Oggetti importati",True); self.asset_toggle.setObjectName("assetToggle"); self.asset_toggle.setChecked(True); box.addWidget(self.asset_toggle)
         asset_panel=QWidget(); self.asset_list=QVBoxLayout(asset_panel); self.asset_list.setContentsMargins(5,2,5,5); self.asset_list.setSpacing(4); box.addWidget(asset_panel)
@@ -559,7 +559,7 @@ class MainWindow(QMainWindow):
             ext=Path(name).suffix.lower().lstrip(".")
             mime={"jpg":"jpeg"}.get(ext,ext or "png")
             textures.append({"id":"custom-"+name,"name":name,"data":f"data:image/{mime};base64,{data}"})
-        return {"format":"world3d-project","version":1,"plane":{"width":self.viewport.width_m,"depth":self.viewport.depth_m},"items":items,"models":models,"textures":textures}
+        return {"format":"world3d-project","version":1,"plane":{"straighten":self.viewport.width_m,"depth":self.viewport.depth_m},"items":items,"models":models,"textures":textures}
     def save_to(self,path):
         Path(path).write_text(json.dumps(self.project_data(),ensure_ascii=False,indent=2),encoding="utf-8")
     def save_project(self):
@@ -639,7 +639,7 @@ class MainWindow(QMainWindow):
                 fin=item.get("finish",o.get("finish","Opaco")); o["finish"]=web_finish.get(fin,fin)
                 loaded.append(o)
             self.viewport.items=loaded; self.viewport.selected=None; self.current_path=path
-            self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"])
+            self.viewport.set_plane(d["plane"]["straighten"],d["plane"]["depth"])
             self.selection_changed(None); self.render_assets(); self.viewport.update(); self.history=[]; self.history_index=-1; self.push_history()
         except Exception as e: QMessageBox.critical(self,"World3D",f"Impossibile aprire il progetto:\n{e}")
     def t(self,key): return self.translations.get(key,key)
