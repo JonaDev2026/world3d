@@ -1,67 +1,77 @@
 # World3D
 
-Editor 3D desktop nativo per Linux, sviluppato in Python, PySide6 e OpenGL. Mantiene il layout a tre pannelli dell'editor originale, con Material Icons Round locali, inspector e viewport centrale. Non dipende dal browser.
+![Anteprima di World3D](preview.png)
 
-## Compatibilità
+World3D è un editor 3D di costruzione che permette di progettare e modificare una scena partendo da un piano vuoto. L'interfaccia è pensata per un flusso di lavoro semplice e immediato, ispirato alla modalità Costruisci dei simulatori di architettura e di vita.
 
-- Linux con X11 oppure Wayland.
-- Qt 6 seleziona automaticamente il backend grafico della sessione.
-- Su una sessione Wayland, per forzare il backend nativo: `QT_QPA_PLATFORM=wayland world3d`.
-- Richiede un driver Mesa/OpenGL desktop compatibile.
-- I font Google Sans (Regular e Medium) e Material Icons Round sono inclusi nell'app e caricati localmente, senza dipendenze di rete.
+## Cosa puoi fare
 
-## Installazione dipendenze
+### Costruire
+- Partire da un piano vuoto con dimensioni predefinite di 40 × 40 metri.
+- Inserire muri, pavimenti, porte, finestre, blocchi e alberi.
+- Selezionare gli elementi direttamente nella scena 3D.
+- Spostare, ruotare, ridimensionare, duplicare ed eliminare gli elementi.
 
-Debian / Ubuntu:
+### Lavorare con misure precise
+- Usare i metri come unità di misura.
+- Modificare posizione e dimensioni degli elementi dall'Inspector.
+- Lavorare con incrementi di 0,1 m.
+- Attivare o disattivare lo snap.
+- Scegliere larghezza e profondità del piano dalle Impostazioni, con un minimo di 0,1 m e senza un limite massimo imposto dall'applicazione.
 
-```bash
-sudo apt install python3 python3-pyside6.qtwidgets python3-pyside6.qtopenglwidgets python3-opengl python3-numpy python3-trimesh python3-pil
-```
+### Personalizzare superfici e materiali
+- Scegliere un colore libero oppure uno dei 16 colori della palette.
+- Applicare texture procedurali: legno, piastrelle, marmo, cemento, mattoni, tessuto, metallo e vetro.
+- Scegliere la finitura opaca, satinata, lucida o metallica.
+- Usare texture dimensionate in rapporto alle misure reali del progetto: per esempio, il modulo delle piastrelle è di 10 × 10 cm.
 
-Arch / Manjaro:
+### Muoversi nella scena
+- Ruotare la visuale con la telecamera orbitale.
+- Passare alla vista dall'alto.
+- Usare zoom avanti, zoom indietro e centratura della visuale.
+- Mostrare o nascondere la griglia.
+- Lavorare anche con piani di dimensioni molto estese.
 
-```bash
-sudo pacman -S python pyside6 python-pyopengl python-numpy python-trimesh python-pillow
-```
+### Gestire il progetto
+- Annullare e ripetere le operazioni supportate dalla cronologia.
+- Salvare la scena nel browser.
+- Ritrovare il progetto salvato nello stesso browser e profilo.
 
-Non serve pip.
+### Lingue
+- Italiano
+- English
+- Français
+- Español
 
-## Avvio dal repository
+La lingua può essere rilevata automaticamente dalle preferenze del sistema oppure scelta manualmente nelle Impostazioni. La preferenza selezionata viene conservata nel browser.
 
-```bash
-sh run.sh
-```
+## Avvio
 
-## Installazione nel sistema
+Apri `index.html` tramite un server web locale o un hosting statico. L'applicazione utilizza moduli JavaScript e Three.js, caricato tramite CDN: è quindi necessaria una connessione Internet per scaricare la libreria e i font esterni.
 
-```bash
-sudo sh install.sh
-```
+È richiesto un browser moderno con supporto WebGL.
 
-Il comando `world3d` e la voce applicazione vengono installati sotto `/usr/local`. Per usare un prefisso diverso:
+## Salvataggio e dati
 
-```bash
-sudo PREFIX=/opt sh install.sh
-```
+Il progetto viene salvato localmente nel `localStorage` del browser. I dati non vengono caricati su un server. Il salvataggio è legato al browser e al relativo profilo: cancellando i dati del sito o cambiando browser, il progetto potrebbe non essere più disponibile.
 
-## Funzioni
+## Stato dello sviluppo
 
-- Piano 3D regolabile con incrementi di 0,1 m, griglia e snap.
-- Navigazione orbitale, vista dall'alto, pan e zoom.
-- Strumenti: selezione, muro, pavimento, porta, finestra, blocco e albero.
-- Gizmo cartesiano XYZ visibile, trascinamento sugli assi X/Y/Z, rotazione e proprietà numeriche con incrementi di 0,1 m.
-- Duplicazione, eliminazione, svuotamento, undo e redo.
-- Palette da 16 colori, texture procedurali, texture personalizzate e finiture opaco/satinato/lucido/metallico.
-- Importazione di cartelle, texture PNG/JPG/WEBP e modelli GLB/GLTF/OBJ/STL.
-- Catalogo modelli importati espandibile, inserimento di copie e rimozione dalla lista.
-- Salvataggio, apertura ed esportazione di progetti JSON.
-- Lingue italiano, inglese, francese e spagnolo; rilevamento automatico della lingua di sistema.
-- I modelli importati vengono incorporati nei progetti come GLB autonomi.
+World3D è in sviluppo. Le funzioni descritte sono quelle attualmente presenti nell'applicazione; alcune aree, come la costruzione avanzata di stanze e pareti, sono ancora da ampliare. Le funzioni di importazione di texture personali e modelli 3D non sono ancora incluse.
 
-## Progetti
+Consulta [il diario di sviluppo](diary/PROGRESS.md) per seguire le funzioni implementate e le attività ancora da verificare.
 
-Il formato JSON mantiene `format=world3d-project` e `version=1`, così i progetti creati dalla versione browser possono essere aperti quando le risorse sono incorporate. I GLTF che dipendono da file esterni non incorporati richiedono prima l'esportazione in GLB.
+## Tecnologie
 
-## Stato
+- HTML, CSS e JavaScript
+- [Three.js](https://threejs.org/) per la scena e il rendering 3D
+- [Material Symbols](https://fonts.google.com/icons) per le icone
+- Google Fonts per la tipografia
 
-La versione browser è stata sostituita dall'app desktop Python. L'implementazione nativa è pronta come prima versione di lavoro; prima di definirla stabile va ancora verificata su sessioni Wayland e X11 reali, con test pratici di importazione, modifica e riapertura dei progetti.
+## Risorse personalizzate
+- Importa texture PNG, JPG e WEBP da file multipli o da una cartella scelta.
+- Applica le texture importate agli oggetti selezionati dal catalogo personale.
+- Importa modelli 3D GLB, GLTF autonomo, OBJ e STL; clicca un modello nel catalogo per inserirlo nella scena.
+- I modelli vengono centrati e ridimensionati proporzionalmente all'inserimento.
+- Le risorse importate vengono incorporate nel file JSON del progetto, senza dover mantenere la cartella originale.
+- I file GLTF con risorse esterne non incorporate vanno convertiti in GLB prima dell'importazione.
