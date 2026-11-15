@@ -460,9 +460,32 @@ class MainWindow(QMainWindow):
             swatch=QPushButton(); swatch.setFixedSize(25,25); swatch.setToolTip(color); swatch.setStyleSheet(f"background:{color};border:1px solid #69717c;border-radius:6px;padding:0")
             swatch.clicked.connect(lambda checked=False,c=color:self.set_color(c)); palette.addWidget(swatch,i//8,i%8)
         content.addLayout(palette)
-        group_title("Texture"); self.texture_combo=QComboBox()
+        group_title("Texture")
+        self.texture_combo=QComboBox()
         for name in TEXTURES: self.texture_combo.addItem(name,name)
-        self.texture_combo.currentIndexChanged.connect(lambda i:self.update_material("texture",self.texture_combo.itemData(i)) if i>=0 else None); content.addWidget(self.texture_combo)
+        self.texture_combo.currentIndexChanged.connect(lambda i:self.update_material("texture",self.texture_combo.itemData(i)) if i>=0 else None)
+        self.texture_combo.setVisible(False)
+        texture_grid=QGridLayout(); texture_grid.setSpacing(6); self.texture_buttons={}
+        previews=[
+            ("Nessuna","background:repeating-conic-gradient(#777 0% 25%,#aaa 0% 50%) 0/12px 12px"),
+            ("Legno","background:repeating-linear-gradient(0deg,#8a5738 0 5px,#b47b50 5px 8px,#75472f 8px 9px)"),
+            ("Piastrelle","background-color:#d6d0c5;background-image:linear-gradient(#8d8982 1px,transparent 1px),linear-gradient(90deg,#8d8982 1px,transparent 1px);background-size:13px 13px"),
+            ("Marmo","background:repeating-linear-gradient(145deg,#e2ded6 0 9px,#aaa 10px,#e2ded6 12px 20px)"),
+            ("Cemento","background-color:#929493;background-image:radial-gradient(#6f7472 1px,transparent 1px);background-size:9px 11px"),
+            ("Mattoni","background-color:#a65f4b;background-image:linear-gradient(#d1a18d 2px,transparent 2px),linear-gradient(90deg,#d1a18d 2px,transparent 2px);background-size:22px 12px"),
+            ("Tessuto","background:repeating-linear-gradient(45deg,#788b82 0 2px,#9aaa9f 2px 3px)"),
+            ("Metallo","background:repeating-linear-gradient(90deg,#777 0 2px,#bfc4c8 2px 4px,#858b91 4px 6px)"),
+            ("Vetro","background:linear-gradient(135deg,#d7f2fa,#8abacb 45%,#e8faff 48%,#9bc8d7)")
+        ]
+        for index,(name,preview) in enumerate(previews):
+            b=QPushButton(); b.setCheckable(True); b.setToolTip(name); b.setStyleSheet("QPushButton{padding:5px;background:#191c21;border:1px solid #414751;border-radius:7px} QPushButton:checked{border:2px solid #a8c7fa;background:#34465e}")
+            cell=QVBoxLayout(b); cell.setContentsMargins(3,3,3,3); cell.setSpacing(4)
+            swatch=QLabel(); swatch.setMinimumHeight(28); swatch.setStyleSheet(preview+";border-radius:4px;border:1px solid #ffffff22")
+            caption=QLabel(name); caption.setAlignment(Qt.AlignCenter); caption.setStyleSheet("background:transparent;border:0;font-size:11px")
+            cell.addWidget(swatch); cell.addWidget(caption)
+            b.clicked.connect(lambda checked=False,n=name:self.update_material("texture",n))
+            self.texture_buttons[name]=b; texture_grid.addWidget(b,index//3,index%3)
+        content.addLayout(texture_grid)
         group_title("Finitura"); self.finish_combo=QComboBox()
         for name in ["Opaco","Satinato","Lucido","Metallico"]: self.finish_combo.addItem(name,name)
         self.finish_combo.currentIndexChanged.connect(lambda i:self.update_material("finish",self.finish_combo.itemData(i)) if i>=0 else None); content.addWidget(self.finish_combo); content.addStretch()
@@ -486,6 +509,7 @@ class MainWindow(QMainWindow):
             self.selected_label.setText(LABELS.get(o.get("kind"),o.get("asset_name") or "Oggetto"))
             self.color_btn.setText("Colore · "+o["color"])
             self.texture_combo.blockSignals(True); self.texture_combo.setCurrentIndex(max(0,self.texture_combo.findData(o.get("texture","Nessuna")))); self.texture_combo.blockSignals(False)
+            for name,button in self.texture_buttons.items(): button.setChecked(o.get("texture","Nessuna")==name)
             self.finish_combo.blockSignals(True); self.finish_combo.setCurrentIndex(max(0,self.finish_combo.findData(o.get("finish","Opaco")))); self.finish_combo.blockSignals(False)
         if hasattr(self,"object_count"): self.object_count.setText(f"{len(self.viewport.items)} elementi")
     def update_selected(self,k,v):
