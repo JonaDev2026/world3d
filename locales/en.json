@@ -74,13 +74,13 @@
   "Seleziona un elemento": "Select an object",
   "Annulla strumento": "Cancel tool",
   "Piano": "Plane",
-  "Apri progetto": "Open project",
   "Esporta": "Export",
   "Progetto caricato": "Project loaded",
   "Impossibile aprire il progetto": "Unable to open project",
   "Progetto esportato": "Project exported",
   "Progetto in modifica": "Project editing",
-  "Salva progetto": "Save project",
   "Progetto salvato": "Project saved",
-  "Impossibile salvare il progetto": "Unable to save project"
+  "Impossibile salvare il progetto": "Unable to save project",
+  "Open": "Open",
+  "Save": "Save"
 }
