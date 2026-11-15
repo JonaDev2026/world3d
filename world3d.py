@@ -40,7 +40,7 @@ def make_item(kind,x=0,z=0):
             if not trimesh: continue
             m=(trimesh.creation.cylinder(radius=radius,height=height,sections=12) if index==0
                else trimesh.creation.cone(radius=radius,height=height,sections=12))
-            rotate=trimesh.transformations.rotation_matrix(math.pi/2,[1,0,0])
+            rotate=trimesh.transformations.rotation_matrix(-math.pi/2,[1,0,0])
             m.apply_transform(rotate); m.apply_translation([0,cy,0]); meshes.append(m)
         if meshes:
             v=np.vstack([m.vertices for m in meshes]); f=[]; off=0
@@ -146,7 +146,8 @@ class Viewport(QOpenGLWidget):
         data=self.texture_assets.get(name)
         try:
             if data:
-                img=Image.open(io.BytesIO(base64.b64decode(data))).convert("RGBA")
+                encoded=data.split(",",1)[1] if "," in data else data
+                img=Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGBA")
             else:
                 img=Image.new("RGBA",(256,256),(160,160,160,255)); d=ImageDraw.Draw(img)
                 if name=="Legno":
@@ -261,6 +262,7 @@ class MainWindow(QMainWindow):
         super().__init__(); self.setWindowTitle("World3D"); self.resize(1440,900)
         self.settings_store=QSettings("JonaDev2026","World3D")
         self.language_preference=self.settings_store.value("language","auto")
+        self.hidden_models=set()
         self.lang="it"; self.translations={}; self.history=[]; self.history_index=-1; self.textures={}; self.models={}; self.current_path=None
         root=QWidget(); layout=QVBoxLayout(root); layout.setContentsMargins(0,0,0,0); layout.setSpacing(0)
         top=QHBoxLayout(); top.setContentsMargins(12,8,12,8)
@@ -365,7 +367,27 @@ class MainWindow(QMainWindow):
         if QMessageBox.question(self,"World3D","Eliminare tutti gli elementi dal piano?")!=QMessageBox.Yes:return
         self.viewport.items=[]; self.viewport.selected=None; self.selection_changed(None); self.viewport.update(); self.push_history()
     def project_data(self):
-        return {"format":"world3d-project","version":1,"plane":{"width":self.viewport.width_m,"depth":self.viewport.depth_m},"items":self.viewport.items,"models":self.models,"textures":self.textures}
+        kind_to_web={"Muro":"wall","Pavimento":"floor","Porta":"door","Finestra":"window","Blocco":"cube","Albero":"tree","Modello 3D":"model","wall":"wall","floor":"floor","door":"door","window":"window","cube":"cube","tree":"tree","model":"model"}
+        tex_to_web={"Nessuna":"none","Legno":"wood","Piastrelle":"tile","Marmo":"marble","Cemento":"concrete","Mattoni":"brick","Tessuto":"fabric","Metallo":"metal","Vetro":"glass"}
+        finish_to_web={"Opaco":"matte","Satinato":"satin","Lucido":"glossy","Metallico":"metallic"}
+        items=[]
+        for o in self.viewport.items:
+            kind=kind_to_web.get(o.get("kind"),"cube")
+            size=o.get("size",[1,1,1])
+            if isinstance(size,dict): size=[size.get("x",1),size.get("y",1),size.get("z",1)]
+            item={"kind":kind,"x":float(o.get("x",0)),"z":float(o.get("z",0)),"rotation":math.radians(float(o.get("rotation",0))),"size":{"x":size[0],"y":size[1],"z":size[2]},"color":o.get("color","#b7bdc5"),"texture":tex_to_web.get(o.get("texture","Nessuna"),o.get("texture","none")),"finish":finish_to_web.get(o.get("finish","Opaco"),o.get("finish","matte"))}
+            if kind=="model": item["assetId"]=o.get("asset_id",o.get("id"))
+            items.append(item)
+        models=[]
+        for aid,asset in self.models.items():
+            if asset.get("asset_data"):
+                models.append({"id":aid,"name":asset.get("asset_name",aid),"extension":asset.get("extension","glb"),"data":asset["asset_data"]})
+        textures=[]
+        for name,data in self.textures.items():
+            ext=Path(name).suffix.lower().lstrip(".")
+            mime={"jpg":"jpeg"}.get(ext,ext or "png")
+            textures.append({"id":"custom-"+name,"name":name,"data":f"data:image/{mime};base64,{data}"})
+        return {"format":"world3d-project","version":1,"plane":{"width":self.viewport.width_m,"depth":self.viewport.depth_m},"items":items,"models":models,"textures":textures}
     def save_to(self,path):
         Path(path).write_text(json.dumps(self.project_data(),ensure_ascii=False,indent=2),encoding="utf-8")
     def save_project(self):
@@ -375,16 +397,70 @@ class MainWindow(QMainWindow):
     def export_project(self):
         path=QFileDialog.getSaveFileName(self,"Esporta progetto","","World3D (*.json)")[0]
         if path: self.save_to(path); self.statusBar().showMessage(self.t("Progetto esportato"),4000)
+    def model_from_asset(self,asset):
+        if not trimesh: raise RuntimeError("Il pacchetto python3-trimesh è necessario per importare modelli.")
+        ext=str(asset.get("extension","")).lower()
+        data=asset.get("data","")
+        encoded=data.split(",",1)[1] if "," in data else data
+        raw=base64.b64decode(encoded)
+        scene=trimesh.load(io.BytesIO(raw),file_type=ext,force="scene")
+        merged=scene.dump(concatenate=True) if isinstance(scene,trimesh.Scene) else scene
+        if merged is None: raise ValueError("Il modello non contiene geometrie.")
+        vertices=np.asarray(merged.vertices,float); faces=np.asarray(merged.faces,int)
+        center=(vertices.min(0)+vertices.max(0))/2; vertices-=center
+        extent=vertices.max(0)-vertices.min(0); factor=2/max(float(extent.max()),.001)
+        vertices*=factor; vertices[:,1]-=vertices[:,1].min()
+        base=np.maximum(extent*factor,.1)
+        aid=asset.get("id") or uuid.uuid4().hex
+        return {"id":uuid.uuid4().hex,"asset_id":aid,"kind":"model","x":0.,"z":0.,"rotation":0.,"size":base.tolist(),"base_size":base.tolist(),"color":COLORS["model"],"texture":"Nessuna","finish":"Opaco","vertices":vertices.tolist(),"faces":faces.tolist(),"asset_name":asset.get("name",aid),"extension":ext,"asset_data":data}
     def open_project(self):
         path=QFileDialog.getOpenFileName(self,"Apri progetto","","World3D (*.json)")[0]
         if not path:return
         try:
             d=json.loads(Path(path).read_text(encoding="utf-8"))
             if d.get("format")!="world3d-project" or d.get("version")!=1: raise ValueError("Formato progetto non supportato")
-            self.viewport.items=d.get("items",[]); self.models=d.get("models",{}); self.textures=d.get("textures",{}); self.viewport.texture_assets=self.textures; self.current_path=path
+            raw_models=d.get("models",{})
+            self.models={}
+            if isinstance(raw_models,list):
+                for asset in raw_models:
+                    proto=self.model_from_asset(asset); self.models[proto["asset_id"]]=proto
+            elif isinstance(raw_models,dict):
+                self.models=raw_models
+            raw_textures=d.get("textures",{})
+            if isinstance(raw_textures,list):
+                self.textures={a.get("name",a.get("id","texture")):(a.get("data","").split(",",1)[1] if "," in a.get("data","") else a.get("data","")) for a in raw_textures}
+            else: self.textures=raw_textures
+            self.viewport.texture_assets=self.textures
             for name in self.textures:
                 if self.texture_combo.findData(name)<0: self.texture_combo.addItem(name,name)
-            self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"]); self.viewport.selected=None; self.selection_changed(None); self.render_assets(); self.viewport.update(); self.push_history()
+            web_tex={"none":"Nessuna","wood":"Legno","tile":"Piastrelle","marble":"Marmo","concrete":"Cemento","brick":"Mattoni","fabric":"Tessuto","metal":"Metallo","glass":"Vetro"}
+            web_finish={"matte":"Opaco","satin":"Satinato","glossy":"Lucido","metallic":"Metallico"}
+            loaded=[]
+            for item in d.get("items",[]):
+                kind=item.get("kind","cube")
+                if "vertices" in item and "faces" in item:
+                    o=item
+                elif kind=="model":
+                    aid=item.get("assetId") or item.get("asset_id")
+                    proto=self.models.get(aid)
+                    if proto is None: raise ValueError(f"Modello importato mancante: {aid}")
+                    o=copy.deepcopy(proto); o["id"]=uuid.uuid4().hex; o["asset_id"]=aid
+                else:
+                    o=make_item(kind,float(item.get("x",0)),float(item.get("z",0)))
+                o["x"]=float(item.get("x",0)); o["z"]=float(item.get("z",0))
+                rot=float(item.get("rotation",0))
+                o["rotation"]=math.degrees(rot) if abs(rot)<=6.4 else rot
+                size=item.get("size",o.get("size",[1,1,1]))
+                if isinstance(size,dict): size=[size.get("x",1),size.get("y",1),size.get("z",1)]
+                o["size"]=[float(v) for v in size]
+                o["color"]=item.get("color",o.get("color","#b7bdc5"))
+                tex=item.get("texture",o.get("texture","Nessuna")); o["texture"]=web_tex.get(tex,tex)
+                fin=item.get("finish",o.get("finish","Opaco")); o["finish"]=web_finish.get(fin,fin)
+                loaded.append(o)
+            self.viewport.items=loaded; self.viewport.selected=None; self.current_path=path
+            self.hidden_models=set()
+            self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"])
+            self.selection_changed(None); self.render_assets(); self.viewport.update(); self.history=[]; self.history_index=-1; self.push_history()
         except Exception as e: QMessageBox.critical(self,"World3D",f"Impossibile aprire il progetto:\n{e}")
     def t(self,key): return self.translations.get(key,key)
     def apply_language(self,preference):
