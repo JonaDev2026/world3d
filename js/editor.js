@@ -5,6 +5,46 @@ import { TransformControls } from "three/addons/controls/TransformControls.js";
 const GRID_SIZE = 40;
 const SNAP = 0.5;
 const COLORS = { Muro:0xd7d0c5, Pavimento:0xb6a995, Porta:0x9b7653, Finestra:0x91b9ca, Blocco:0x9da8b7, Albero:0x6e9a72 };
+const TEXTURE_CACHE = new Map();
+
+function makeTexture(type) {
+  if (type === "none") return null;
+  if (TEXTURE_CACHE.has(type)) return TEXTURE_CACHE.get(type);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  const fill = (color) => { ctx.fillStyle = color; ctx.fillRect(0, 0, 256, 256); };
+  if (type === "wood") {
+    fill("#a97850");
+    for (let y=0;y<256;y+=3) { ctx.strokeStyle = y%17===0 ? "#68452f" : y%7===0 ? "#d5a477" : "#8e603e"; ctx.lineWidth=y%17===0?2:1; ctx.beginPath(); ctx.moveTo(0,y); ctx.bezierCurveTo(70,y-4,170,y+4,256,y); ctx.stroke(); }
+    for(let x=64;x<256;x+=96){ctx.strokeStyle="#68452f";ctx.lineWidth=2;ctx.strokeRect(x,0,1,256);}
+  } else if (type === "tile") {
+    fill("#d8d3ca");ctx.strokeStyle="#8e8981";ctx.lineWidth=4;
+    for(let y=0;y<=256;y+=64){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(256,y);ctx.stroke();}
+    for(let row=0;row<4;row++){const offset=row%2?32:0;for(let x=offset;x<=256;x+=64){ctx.beginPath();ctx.moveTo(x,row*64);ctx.lineTo(x,(row+1)*64);ctx.stroke();}}
+  } else if (type === "marble") {
+    fill("#e3dfd7");
+    for(let i=0;i<18;i++){ctx.strokeStyle=i%3===0?"#9b9a96":"#c0bbb2";ctx.lineWidth=i%3===0?2:1;ctx.beginPath();let x=Math.random()*256;ctx.moveTo(x,0);for(let y=0;y<=256;y+=32){x+=Math.sin(y/35+i)*8;ctx.lineTo(x,y);}ctx.stroke();}
+  } else if (type === "concrete") {
+    fill("#999b99");for(let i=0;i<1800;i++){ctx.fillStyle=i%2?"#858987":"#b0b2ae";ctx.globalAlpha=.25+Math.random()*.35;ctx.fillRect(Math.random()*256,Math.random()*256,1+Math.random()*3,1+Math.random()*3);}ctx.globalAlpha=1;
+  } else if (type === "brick") {
+    fill("#a65f4b");ctx.strokeStyle="#d4a18d";ctx.lineWidth=4;
+    for(let y=0;y<256;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(256,y);ctx.stroke();const off=(y/32)%2?64:0;for(let x=off;x<256;x+=128){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+32);ctx.stroke();}}
+  } else if (type === "fabric") {
+    fill("#858d87");ctx.strokeStyle="#aeb6af";ctx.lineWidth=1;
+    for(let i=0;i<256;i+=4){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,256);ctx.moveTo(0,i);ctx.lineTo(256,i);ctx.stroke();}
+  } else if (type === "metal") {
+    const g=ctx.createLinearGradient(0,0,256,0);g.addColorStop(0,"#686e73");g.addColorStop(.25,"#c6cbd0");g.addColorStop(.5,"#858b91");g.addColorStop(.75,"#d7dbde");g.addColorStop(1,"#70767b");fill(g);
+  } else if (type === "glass") {
+    const g=ctx.createLinearGradient(0,0,256,256);g.addColorStop(0,"#d9f4ff");g.addColorStop(.48,"#8bbdce");g.addColorStop(.52,"#effcff");g.addColorStop(1,"#8bbdce");fill(g);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(type==="tile"||type==="brick"?2:1,type==="tile"||type==="brick"?2:1);
+  TEXTURE_CACHE.set(type, texture);
+  return texture;
+}
 
 export class BuildEditor {
   constructor(container) {
@@ -31,7 +71,7 @@ export class BuildEditor {
     this.transform.setMode("translate");
     this.transform.setTranslationSnap(SNAP);
     this.transform.addEventListener("dragging-changed", e => this.controls.enabled = !e.value);
-    this.transform.addEventListener("objectChange", () => { if(this.selected) this.emitSelection(this.selected); });
+    this.transform.addEventListener("objectChange", () => { if(this.selected) { this.emitSelection(this.selected); this.emitChange(); this.pushHistory(); } });
     this.scene.add(this.transform.getHelper());
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
@@ -91,30 +131,49 @@ export class BuildEditor {
     const x=this.snapValue(groundHit.point.x), z=this.snapValue(groundHit.point.z);
     this.addItem(this.tool,x,z);
   };
+  createMaterial(color, texture, finish) {
+    const finishes = {matte:{roughness:.92,metalness:0},satin:{roughness:.48,metalness:0},glossy:{roughness:.16,metalness:.05},metallic:{roughness:.28,metalness:.82}};
+    const opts=finishes[finish]||finishes.matte;
+    return new THREE.MeshStandardMaterial({color, map:makeTexture(texture||"none"), roughness:opts.roughness, metalness:opts.metalness, transparent:texture==="glass", opacity:texture==="glass"?.58:1});
+  }
+  applyMaterial(item, settings={}) {
+    const color=settings.color||item.userData.materialColor||"#d7d0c5";
+    const texture=settings.texture||item.userData.texture||"none";
+    const finish=settings.finish||item.userData.finish||"matte";
+    item.userData.materialColor=color;item.userData.texture=texture;item.userData.finish=finish;
+    item.traverse((obj)=>{
+      if(!obj.isMesh)return;
+      const old=obj.material;
+      obj.material=this.createMaterial(color,texture,finish);
+      if(old){if(Array.isArray(old))old.forEach(m=>m.dispose());else old.dispose();}
+    });
+  }
   addItem(kind,x,z,restored={}) {
     const map={
-      wall:{label:"Muro",size:[3,2.8,.18],color:COLORS.Muro,geo:"box"},
-      floor:{label:"Pavimento",size:[3,.12,3],color:COLORS.Pavimento,geo:"box"},
-      door:{label:"Porta",size:[.95,2.1,.12],color:COLORS.Porta,geo:"box"},
-      window:{label:"Finestra",size:[1.4,1.1,.12],color:COLORS.Finestra,geo:"box"},
-      cube:{label:"Blocco",size:[1,1,1],color:COLORS.Blocco,geo:"box"},
-      tree:{label:"Albero",size:[1.2,3,1.2],color:COLORS.Albero,geo:"tree"}
+      wall:{label:"Muro",size:[3,2.8,.18],color:COLORS.Muro},
+      floor:{label:"Pavimento",size:[3,.12,3],color:COLORS.Pavimento},
+      door:{label:"Porta",size:[.95,2.1,.12],color:COLORS.Porta},
+      window:{label:"Finestra",size:[1.4,1.1,.12],color:COLORS.Finestra},
+      cube:{label:"Blocco",size:[1,1,1],color:COLORS.Blocco},
+      tree:{label:"Albero",size:[1.2,3,1.2],color:COLORS.Albero}
     };
     const cfg=map[kind];if(!cfg)return;
     const size=restored.size||{x:cfg.size[0],y:cfg.size[1],z:cfg.size[2]};
     const group=new THREE.Group();group.position.set(restored.x??x,0,restored.z??z);group.rotation.y=restored.rotation||0;
     group.userData={root:true,kind:cfg.label,label:cfg.label,size:{...size}};
     if(kind==="tree"){
-      const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.13,.18,1.25,8),new THREE.MeshStandardMaterial({color:0x806047}));
+      const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.13,.18,1.25,8),this.createMaterial(restored.color||"#806047","none","matte"));
       trunk.position.y=.625;trunk.castShadow=true;group.add(trunk);
-      const crown=new THREE.Mesh(new THREE.SphereGeometry(.72,12,10),new THREE.MeshStandardMaterial({color:cfg.color}));
+      const crown=new THREE.Mesh(new THREE.SphereGeometry(.72,12,10),this.createMaterial(restored.color||"#6e9a72",restored.texture||"none",restored.finish||"matte"));
       crown.position.y=2.05;crown.scale.set(1,1.35,1);crown.castShadow=true;group.add(crown);
       group.userData.size={x:1.2,y:3,z:1.2};
     }else{
-      const mesh=new THREE.Mesh(new THREE.BoxGeometry(size.x,size.y,size.z),new THREE.MeshStandardMaterial({color:cfg.color,roughness:.82}));
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(size.x,size.y,size.z),this.createMaterial(restored.color||"#"+cfg.color.toString(16).padStart(6,"0"),restored.texture||"none",restored.finish||"matte"));
       mesh.position.y=size.y/2;mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.root=group;group.add(mesh);
     }
     group.traverse(o=>{if(o.isMesh)o.userData.root=group;});
+    group.userData.materialColor=restored.color||"#"+cfg.color.toString(16).padStart(6,"0");
+    group.userData.texture=restored.texture||"none";group.userData.finish=restored.finish||"matte";
     this.scene.add(group);this.items.push(group);this.select(group);this.emitChange();this.pushHistory();return group;
   }
   select(item) { this.selected=item;this.transform.detach();if(item){this.transform.attach(item);this.transform.setMode("translate");}this.selectionCallbacks.forEach(fn=>fn(item)); }
@@ -123,9 +182,15 @@ export class BuildEditor {
   onChange(fn){this.changeCallbacks.push(fn);fn(this.items.length);}
   emitChange(){this.changeCallbacks.forEach(fn=>fn(this.items.length));}
   deleteSelected(){if(!this.selected)return;this.scene.remove(this.selected);this.items=this.items.filter(i=>i!==this.selected);this.select(null);this.emitChange();this.pushHistory();}
-  duplicateSelected(){if(!this.selected)return;const d=this.serializeItem(this.selected);d.x+=1;d.z+=1;this.addItem(d.kind,d.x,d.z,{...d,size:d.size});}
-  updateSelected(key,value){if(!this.selected)return;const o=this.selected;if(key==="x"||key==="z")o.position[key]=this.snapValue(value);if(key==="rotation")o.rotation.y=value*Math.PI/180;if(key==="sx"||key==="sy"||key==="sz"){const k=key==="sx"?"x":key==="sy"?"y":"z";o.userData.size[k]=Math.max(.1,value);const mesh=o.children.find(c=>c.isMesh);if(mesh){mesh.geometry.dispose();mesh.geometry=new THREE.BoxGeometry(o.userData.size.x,o.userData.size.y,o.userData.size.z);mesh.position.y=o.userData.size.y/2;}}this.emitSelection(o);this.emitChange();this.pushHistory();}
-  serializeItem(o){return {kind:o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size}};}
+  duplicateSelected(){if(!this.selected)return;const d=this.serializeItem(this.selected);d.x+=1;d.z+=1;this.addItem(d.kind,d.x,d.z,d);}
+  updateSelected(key,value){if(!this.selected)return;const o=this.selected;
+    if(key==="x"||key==="z")o.position[key]=this.snapValue(value);
+    if(key==="rotation")o.rotation.y=value*Math.PI/180;
+    if(key==="sx"||key==="sy"||key==="sz"){const k=key==="sx"?"x":key==="sy"?"y":"z";o.userData.size[k]=Math.max(.1,value);const mesh=o.children.find(c=>c.isMesh);if(mesh&&mesh.geometry.type==="BoxGeometry"){mesh.geometry.dispose();mesh.geometry=new THREE.BoxGeometry(o.userData.size.x,o.userData.size.y,o.userData.size.z);mesh.position.y=o.userData.size.y/2;}}
+    if(key==="color"||key==="texture"||key==="finish"){this.applyMaterial(o,{[key]:value});}
+    this.emitSelection(o);this.emitChange();this.pushHistory();
+  }
+  serializeItem(o){return {kind:o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size},color:o.userData.materialColor,texture:o.userData.texture,finish:o.userData.finish};}
   save(){localStorage.setItem("build-editor-scene",JSON.stringify(this.items.map(o=>this.serializeItem(o))));}
   load(){try{const data=JSON.parse(localStorage.getItem("build-editor-scene")||"[]");data.forEach(d=>this.addItem(d.kind,d.x,d.z,d));this.select(null);}catch(e){console.warn("Salvataggio non leggibile",e);}}
   clear(){this.items.forEach(o=>this.scene.remove(o));this.items=[];this.select(null);this.emitChange();this.pushHistory();}
