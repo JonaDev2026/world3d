@@ -140,6 +140,12 @@ class Viewport(QOpenGLWidget):
                 for zz in [lo[2],hi[2]]: glVertex3f(xx,lo[1],zz); glVertex3f(xx,hi[1],zz)
             glEnd(); glEnable(GL_LIGHTING)
         glPopMatrix()
+    def clear_texture_cache(self):
+        self.makeCurrent()
+        if self.gl_textures:
+            glDeleteTextures(list(self.gl_textures.values()))
+            self.gl_textures.clear()
+        self.doneCurrent()
     def texture_id(self,name):
         if not name or name=="Nessuna": return 0
         if name in self.gl_textures: return self.gl_textures[name]
@@ -381,7 +387,7 @@ class MainWindow(QMainWindow):
         models=[]
         for aid,asset in self.models.items():
             if asset.get("asset_data"):
-                models.append({"id":aid,"name":asset.get("asset_name",aid),"extension":asset.get("extension","glb"),"data":asset["asset_data"]})
+                models.append({"id":aid,"name":asset.get("asset_name",aid),"extension":asset.get("extension","glb"),"data":asset["asset_data"],"hiddenFromCatalog":aid in self.hidden_models})
         textures=[]
         for name,data in self.textures.items():
             ext=Path(name).suffix.lower().lstrip(".")
@@ -420,10 +426,11 @@ class MainWindow(QMainWindow):
             d=json.loads(Path(path).read_text(encoding="utf-8"))
             if d.get("format")!="world3d-project" or d.get("version")!=1: raise ValueError("Formato progetto non supportato")
             raw_models=d.get("models",{})
-            self.models={}
+            self.models={}; self.hidden_models=set()
             if isinstance(raw_models,list):
                 for asset in raw_models:
                     proto=self.model_from_asset(asset); self.models[proto["asset_id"]]=proto
+                    if asset.get("hiddenFromCatalog"): self.hidden_models.add(proto["asset_id"])
             elif isinstance(raw_models,dict):
                 self.models=raw_models
             raw_textures=d.get("textures",{})
@@ -436,8 +443,11 @@ class MainWindow(QMainWindow):
                     texture_ids[asset.get("id",name)]=name
             else: self.textures=raw_textures
             self.viewport.texture_assets=self.textures
-            for name in self.textures:
-                if self.texture_combo.findData(name)<0: self.texture_combo.addItem(name,name)
+            self.viewport.clear_texture_cache()
+            self.texture_combo.blockSignals(True); self.texture_combo.clear()
+            for name in TEXTURES: self.texture_combo.addItem(name,name)
+            for name in self.textures: self.texture_combo.addItem(name,name)
+            self.texture_combo.blockSignals(False)
             web_tex={"none":"Nessuna","wood":"Legno","tile":"Piastrelle","marble":"Marmo","concrete":"Cemento","brick":"Mattoni","fabric":"Tessuto","metal":"Metallo","glass":"Vetro"}
             web_finish={"matte":"Opaco","satin":"Satinato","glossy":"Lucido","metallic":"Metallico"}
             loaded=[]
@@ -541,6 +551,7 @@ class MainWindow(QMainWindow):
             try:self.textures[Path(p).name]=base64.b64encode(Path(p).read_bytes()).decode("ascii")
             except Exception:pass
         self.viewport.texture_assets=self.textures
+        self.viewport.clear_texture_cache()
         for name in self.textures:
             if self.texture_combo.findData(name)<0: self.texture_combo.addItem(name,name)
         self.render_assets()
@@ -567,7 +578,7 @@ class MainWindow(QMainWindow):
         self.history_index=len(self.history)-1
     def restore_history(self,index):
         if index<0 or index>=len(self.history):return
-        self.history_index=index; d=json.loads(self.history[index]); self.viewport.items=d["items"]; self.models=d.get("models",self.models); self.textures=d.get("textures",self.textures); self.render_assets(); self.viewport.set_plane(*d["plane"]); self.viewport.selected=None; self.selection_changed(None); self.viewport.update()
+        self.history_index=index; d=json.loads(self.history[index]); self.viewport.items=d["items"]; self.models=d.get("models",self.models); self.textures=d.get("textures",self.textures); self.viewport.texture_assets=self.textures; self.viewport.clear_texture_cache(); self.render_assets(); self.viewport.set_plane(*d["plane"]); self.viewport.selected=None; self.selection_changed(None); self.viewport.update()
     def undo(self): self.restore_history(self.history_index-1)
     def redo(self): self.restore_history(self.history_index+1)
 
