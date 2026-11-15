@@ -217,7 +217,8 @@ $("applySettings").addEventListener("click",async()=>{
  const w=Number($("planeWidth").value),d=Number($("planeDepth").value);
  if(!Number.isFinite(w)||!Number.isFinite(d)||w<0.1||d<0.1){alert(t("Inserisci dimensioni valide: minimo 0,1 metri."));return;}
  editor.setPlaneSize(w,d);
- await i18n.setLanguage($("languageSelect").value);\n  renderProjectAssets();
+ await i18n.setLanguage($("languageSelect").value);
+  renderProjectAssets();
  editor.emitSelection(editor.selected);
  editor.emitPlaneSize(editor.planeWidth,editor.planeDepth);
  $("objectCount").textContent=editor.items.length+" "+t(editor.items.length===1?"elemento":"elementi");
