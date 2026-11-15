@@ -27,10 +27,34 @@ $("moveBtn").addEventListener("click",()=>{editor.setTransform("translate");$("m
 $("rotateBtn").addEventListener("click",()=>{editor.setTransform("rotate");$("rotateBtn").classList.add("active");$("moveBtn").classList.remove("active");});
 $("deleteBtn").addEventListener("click",()=>editor.deleteSelected());
 $("duplicateBtn").addEventListener("click",()=>editor.duplicateSelected());
+function projectBlob(){
+ return new Blob([JSON.stringify(editor.projectData(),null,2)],{type:"application/json"});
+}
+function downloadProject(){
+ const url=URL.createObjectURL(projectBlob()),a=document.createElement("a");
+ a.href=url;a.download="world3d-project.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$("saveProjectBtn").addEventListener("click",async()=>{
+ try{
+  if(window.showSaveFilePicker){
+   const handle=await window.showSaveFilePicker({
+    suggestedName:"world3d-project.json",
+    types:[{description:"Progetto World3D",accept:{"application/json":[".json"]}}]
+   });
+   const writable=await handle.createWritable();
+   await writable.write(projectBlob());
+   await writable.close();
+  }else{
+   downloadProject();
+  }
+  $("saveState").textContent=t("Progetto salvato");
+ }catch(error){
+  if(error.name!=="AbortError")alert(t("Impossibile salvare il progetto")+": "+error.message);
+ }
+});
 $("exportProjectBtn").addEventListener("click",()=>{
- const blob=new Blob([JSON.stringify(editor.projectData(),null,2)],{type:"application/json"});
- const url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download="world3d-project.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$("saveState").textContent=t("Progetto esportato");
+ downloadProject();
+ $("saveState").textContent=t("Progetto esportato");
 });
 $("openProjectBtn").addEventListener("click",()=>$("projectFileInput").click());
 $("projectFileInput").addEventListener("change",async event=>{
