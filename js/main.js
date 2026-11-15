@@ -118,16 +118,42 @@ function addTextureButton(asset){
  const label=document.createElement("span");label.textContent=asset.name;
  button.append(image,label);$("customTextureCatalog").append(button);
 }
-function renderProjectAssets(){
- $("customTextureCatalog").replaceChildren();
- for(const asset of editor.customTextures.values())addTextureButton(asset);
- $("modelCatalog").replaceChildren();
- for(const asset of editor.customModels.values()){const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;button.addEventListener("click",async()=>{try{await editor.addModelAsset(asset);}catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}});$("modelCatalog").append(button);}}
-function addModelButton(asset){
- const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;
- button.addEventListener("click",async()=>{try{await editor.addModelAsset(asset);$("saveState").textContent=t("Modifiche non salvate");}catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}});
- $("modelCatalog").append(button);
-}
+function renderModelCatalog(){
+  const catalog=$("modelCatalog");
+  catalog.replaceChildren();
+  const assets=[...editor.customModels.values()].filter(asset=>!asset.hiddenFromCatalog);
+  $("modelAssetCount").textContent=String(assets.length);
+  for(const asset of assets){
+   const row=document.createElement("div");row.className="asset-row";
+   const add=document.createElement("button");add.type="button";add.className="asset-entry";add.dataset.modelAdd=asset.id;add.textContent=asset.name;add.title=asset.name;
+   const remove=document.createElement("button");remove.type="button";remove.className="asset-remove";remove.dataset.modelRemove=asset.id;remove.title=t("Rimuovi dalla lista");remove.setAttribute("aria-label",t("Rimuovi dalla lista"));
+   const icon=document.createElement("span");icon.className="material-symbols-rounded";icon.textContent="delete";
+   remove.append(icon);row.append(add,remove);catalog.append(row);
+  }
+ }
+ function renderProjectAssets(){
+  $("customTextureCatalog").replaceChildren();
+  for(const asset of editor.customTextures.values())addTextureButton(asset);
+  renderModelCatalog();
+ }
+ $("modelCatalog").addEventListener("click",async event=>{
+  const remove=event.target.closest("[data-model-remove]");
+  if(remove){
+   const id=remove.dataset.modelRemove,asset=editor.customModels.get(id);
+   if(!asset)return;
+   const used=editor.items.some(item=>item.userData.modelAsset?.id===id);
+   if(used)asset.hiddenFromCatalog=true;else editor.customModels.delete(id);
+   renderModelCatalog();
+   $("saveState").textContent=t("Modifiche non salvate");
+   return;
+  }
+  const add=event.target.closest("[data-model-add]");
+  if(!add)return;
+  const asset=editor.customModels.get(add.dataset.modelAdd);
+  if(!asset)return;
+  try{await editor.addModelAsset(asset);$("saveState").textContent=t("Modifiche non salvate");}
+  catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}
+ });
 async function importFiles(files){
  for(const file of files){
   const ext=file.name.split(".").pop().toLowerCase();
@@ -136,7 +162,7 @@ async function importFiles(files){
    addTextureButton(asset);
   }else if(["glb","gltf","obj","stl"].includes(ext)){
    const asset={id:"model-"+crypto.randomUUID(),name:file.name,extension:ext,data:await dataUrl(file)};
-   editor.customModels.set(asset.id,asset);addModelButton(asset);
+   editor.customModels.set(asset.id,asset);renderModelCatalog();
   }
  }
 }
@@ -191,7 +217,7 @@ $("applySettings").addEventListener("click",async()=>{
  const w=Number($("planeWidth").value),d=Number($("planeDepth").value);
  if(!Number.isFinite(w)||!Number.isFinite(d)||w<0.1||d<0.1){alert(t("Inserisci dimensioni valide: minimo 0,1 metri."));return;}
  editor.setPlaneSize(w,d);
- await i18n.setLanguage($("languageSelect").value);
+ await i18n.setLanguage($("languageSelect").value);\n  renderProjectAssets();
  editor.emitSelection(editor.selected);
  editor.emitPlaneSize(editor.planeWidth,editor.planeDepth);
  $("objectCount").textContent=editor.items.length+" "+t(editor.items.length===1?"elemento":"elementi");
