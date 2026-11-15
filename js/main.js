@@ -65,7 +65,7 @@ editor.onSelection(item=>{
  $("rotation").value=Math.round(item.rotation.y*180/Math.PI);updateMaterialControls(item);
 });
 editor.onChange(count=>{$("objectCount").textContent=count+" "+t(count===1?"elemento":"elementi");$("saveState").textContent=t("Modifiche non salvate");});
-editor.onPlaneSize((w,d)=>{$("planeWidth").value=w;$("planeDepth").value=d;document.querySelector(".panel-footer span:last-child").textContent=t("Piano vuoto")+(editor.items.length?"":" · ")+w.toFixed(1)+" × "+d.toFixed(1)+" m";});
+editor.onPlaneSize((w,d)=>{$("planeWidth").value=w;$("planeDepth").value=d;document.querySelector(".panel-footer span:last-child").textContent=(editor.items.length?t("Piano"):t("Piano vuoto"))+" · "+w.toFixed(1)+" × "+d.toFixed(1)+" m";});
 
 const modal=$("settingsModal");
 function openSettings(){modal.classList.remove("hidden");$("planeWidth").value=editor.planeWidth;$("planeDepth").value=editor.planeDepth;$("languageSelect").value=i18n.preference;}
@@ -79,6 +79,7 @@ $("applySettings").addEventListener("click",async()=>{
  if(!Number.isFinite(w)||!Number.isFinite(d)||w<1||d<1||w>500||d>500){alert(t("Inserisci dimensioni tra 1 e 500 metri."));return;}
  editor.setPlaneSize(w,d);
  await i18n.setLanguage($("languageSelect").value);
+ editor.emitSelection(editor.selected);
  closeSettings();
 });
 window.addEventListener("keydown",event=>{
