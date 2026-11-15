@@ -49,7 +49,7 @@ sudo PREFIX=/opt sh install.sh
 - Piano 3D regolabile con incrementi di 0,1 m, griglia e snap.
 - Navigazione orbitale, vista dall'alto, pan e zoom.
 - Strumenti: selezione, muro, pavimento, porta, finestra, blocco e albero.
-- Gizmo cartesiano XYZ visibile, trascinamento sugli assi X/Z, rotazione e proprietà numeriche con incrementi di 0,1 m.
+- Gizmo cartesiano XYZ visibile, trascinamento sugli assi X/Y/Z, rotazione e proprietà numeriche con incrementi di 0,1 m.
 - Duplicazione, eliminazione, svuotamento, undo e redo.
 - Palette da 16 colori, texture procedurali, texture personalizzate e finiture opaco/satinato/lucido/metallico.
 - Importazione di cartelle, texture PNG/JPG/WEBP e modelli GLB/GLTF/OBJ/STL.
