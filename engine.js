@@ -146,7 +146,7 @@ export function createWorld(start={}){
  for(const neighbor of s.neighbors){const site=nearestLandTile(geography,neighbor.x,neighbor.y);if(site){neighbor.x=site.x;neighbor.y=site.y;}Object.assign(neighbor,nearbyCoordinates(s.settlements[0],neighbor.x,neighbor.y));}
  const names=Array.isArray(s.personalNames)&&s.personalNames.length?s.personalNames:["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara"];
  const usedGiven=new Set(),usedFamilies=new Set();
- for(let i=0;i<24;i++){let given=null;for(let attempt=0;attempt<60;attempt++){const candidate=pick(s,names);if(!usedGiven.has(String(candidate).toLocaleLowerCase())){given=candidate;break;}}given=given||pick(s,names);usedGiven.add(String(given).toLocaleLowerCase());s.population.push({id:i+1,name:given,family:inventFamilyName(s,usedFamilies),age:Math.floor(8+random(s)*43),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",settlementId:1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
+ for(let i=0;i<24;i++){let given=null;for(let attempt=0;attempt<60;attempt++){const candidate=pick(s,names);if(!usedGiven.has(String(candidate).toLocaleLowerCase())){given=candidate;break;}}given=given||pick(s,names);usedGiven.add(String(given).toLocaleLowerCase());s.population.push({id:i+1,name:given,family:inventFamilyName(s,usedFamilies),age:Math.floor(8+random(s)*43),sex:random(s)<.5?"F":"M",alive:true,health:80+random(s)*20,skill:1+random(s)*3,wealth:0,partner:null,parents:[],children:[],role:i<8?"raccoglitore":i<14?"cacciatore":"artigiano",settlementId:1,belief:0,infectionDays:0,immunityDays:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}});}
  addEvent(s,"La comunità si stabilisce","Ventiquattro persone scelgono un luogo vicino all’acqua. Il territorio non ha ancora un nome condiviso.","society");
  return s;
 }
@@ -224,7 +224,7 @@ function addPerson(s,parents=[]){
  const first=Array.isArray(s.personalNames)&&s.personalNames.length?s.personalNames:["Aren","Mira","Tarek","Sena","Ilan","Nara","Oren","Lira","Daren","Ena","Korin","Suri","Belen","Toma","Asha","Rovan","Eris","Niko","Vara","Maren","Ciro","Lena","Orin","Yara","Evan","Sela","Rian","Talia"];
  const p1=s.population.find(p=>p.id===parents[0]),p2=s.population.find(p=>p.id===parents[1]);
  const surname=p1?.family||p2?.family||"della Valle";
- const person={id:s.nextPersonId++,name:pick(s,first),family:surname,age:0,sex:random(s)<.5?"F":"M",alive:true,health:90+random(s)*10,skill:.2+random(s)*.4,wealth:0,partner:null,parents,children:[],role:"bambino",settlementId:p1?.settlementId||p2?.settlementId||1,belief:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}};
+ const person={id:s.nextPersonId++,name:pick(s,first),family:surname,age:0,sex:random(s)<.5?"F":"M",alive:true,health:90+random(s)*10,skill:.2+random(s)*.4,wealth:0,partner:null,parents,children:[],role:"bambino",settlementId:p1?.settlementId||p2?.settlementId||1,belief:0,infectionDays:0,immunityDays:0,traits:{cooperation:random(s),ambition:random(s),aggression:random(s)}};
  s.population.push(person);s._dailyPersonIndex?.set(person.id,person);for(const id of parents){const p=s.population.find(x=>x.id===id);if(p)p.children.push(person.id);}s.stats.births++;return person;
 }
 function updateSocial(s){
