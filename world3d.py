@@ -37,7 +37,7 @@ def make_item(kind,x=0,z=0):
     if kind=="tree":
         # Geometria semplice combinata: tronco + chioma triangolata.
         meshes=[]
-        for index,(radius,height,cy) in enumerate([(.16,1.3,.65),(.78,1.55,2.1)]):
+        for index,(radius,height,cy) in enumerate([(.16,1.3,.65),(.78,1.55,1.3)]):
             if not trimesh: continue
             m=(trimesh.creation.cylinder(radius=radius,height=height,sections=12) if index==0
                else trimesh.creation.cone(radius=radius,height=height,sections=12))
