@@ -74,13 +74,12 @@
   "Seleziona un elemento": "Seleziona un elemento",
   "Annulla strumento": "Annulla strumento",
   "Piano": "Piano",
-  "Apri progetto": "Apri progetto",
   "Esporta": "Esporta",
   "Progetto caricato": "Progetto caricato",
   "Impossibile aprire il progetto": "Impossibile aprire il progetto",
   "Progetto esportato": "Progetto esportato",
   "Progetto in modifica": "Progetto in modifica",
-  "Salva progetto": "Salva progetto",
   "Progetto salvato": "Progetto salvato",
-  "Impossibile salvare il progetto": "Impossibile salvare il progetto"
+  "Impossibile salvare il progetto": "Impossibile salvare il progetto",
+  "Apri": "Apri"
 }
