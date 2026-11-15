@@ -574,9 +574,12 @@ class MainWindow(QMainWindow):
         path=self.current_path or QFileDialog.getSaveFileName(self,"Salva progetto","","World3D (*.json)")[0]
         if path:
             self.save_to(path); self.current_path=path; self.statusBar().showMessage(self.t("Progetto salvato"),4000)
+            if hasattr(self,"save_state"): self.save_state.setText("Progetto salvato")
     def export_project(self):
         path=QFileDialog.getSaveFileName(self,"Esporta progetto","","World3D (*.json)")[0]
-        if path: self.save_to(path); self.statusBar().showMessage(self.t("Progetto esportato"),4000)
+        if path:
+            self.save_to(path); self.statusBar().showMessage(self.t("Progetto esportato"),4000)
+            if hasattr(self,"save_state"): self.save_state.setText("Progetto esportato")
     def model_from_asset(self,asset):
         if not trimesh: raise RuntimeError("Il pacchetto python3-trimesh è necessario per importare modelli.")
         ext=str(asset.get("extension","")).lower()
@@ -755,6 +758,8 @@ class MainWindow(QMainWindow):
         self.history=self.history[:self.history_index+1]; self.history.append(state)
         if len(self.history)>40:self.history.pop(0)
         self.history_index=len(self.history)-1
+        if hasattr(self,"save_state"): self.save_state.setText("Modifiche non salvate")
+        if hasattr(self,"object_count"): self.object_count.setText(f"{len(self.viewport.items)} elementi")
     def restore_history(self,index):
         if index<0 or index>=len(self.history):return
         self.history_index=index; d=json.loads(self.history[index]); restored=[]
