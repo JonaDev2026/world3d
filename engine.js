@@ -649,7 +649,27 @@ export function summary(s){
 export function validateWorld(s){
  if(!s||![1,2,VERSION].includes(s.version)||!Array.isArray(s.population)||!Array.isArray(s.settlements))throw new Error("Salvataggio non valido o versione incompatibile");
  if(!Number.isFinite(s.day)||!Number.isFinite(s.year)||!Number.isFinite(s.rng))throw new Error("Calendario o generatore casuale non valido");
+ if(!s.settlements.length)throw new Error("Il salvataggio non contiene insediamenti");
  if(!Number.isFinite(s.seed))s.seed=s.rng>>>0;
+ // Complete legacy saves before any simulation system reads their collections.
+ if(!Array.isArray(s.neighbors))s.neighbors=[];
+ if(!Array.isArray(s.events))s.events=[];
+ if(!Array.isArray(s.technology))s.technology=[];
+ if(!Array.isArray(s.institutions))s.institutions=[];
+ if(!Array.isArray(s.routes))s.routes=[];
+ if(!Array.isArray(s.specializations))s.specializations=[];
+ if(!Array.isArray(s.history))s.history=[];
+ if(!Array.isArray(s.civilizationNameHistory))s.civilizationNameHistory=[];
+ if(!s.stats||typeof s.stats!=="object")s.stats={};
+ for(const key of ["births","deaths","crimes","discoveries","migrations","wars","epidemics","naturalDisasters"])if(!Number.isFinite(s.stats[key]))s.stats[key]=0;
+ if(!Number.isFinite(s.nextEventId))s.nextEventId=Math.max(0,...s.events.map(event=>Number(event.id)||0))+1;
+ if(!Number.isFinite(s.nextPersonId))s.nextPersonId=Math.max(0,...s.population.map(person=>Number(person.id)||0))+1;
+ if(!Number.isFinite(s.nextSettlementId))s.nextSettlementId=Math.max(0,...s.settlements.map(site=>Number(site.id)||0))+1;
+ if(!Number.isFinite(s.food))s.food=s.settlements.reduce((total,site)=>total+(Number(site.stores)||0),0);
+ if(!Number.isFinite(s.knowledge))s.knowledge=0;
+ if(!Number.isFinite(s.health))s.health=100;
+ if(!Number.isFinite(s.cohesion))s.cohesion=75;
+ if(!Number.isFinite(s.order))s.order=20;
  if(!s.climate)s.climate={type:"normale",days:0,severity:0};
  if(!Array.isArray(s.naturalEvents))s.naturalEvents=[];if(!Number.isFinite(s.nextNaturalEventId))s.nextNaturalEventId=s.naturalEvents.reduce((n,e)=>Math.max(n,Number(e.id)||0),0)+1;if(!Number.isFinite(s.stats?.naturalDisasters))s.stats.naturalDisasters=s.naturalEvents.length;
  if(!s.geography)s.geography=generateGeography(s.rng||9041987);
@@ -687,8 +707,7 @@ export function validateWorld(s){
  s.familyArchive=compactArchive;
  if(!s.nationName)s.nationName=null;
   if(!s.civilizationName)s.civilizationName=null;
-  if(!Array.isArray(s.routes))s.routes=[];
- if(!s.nationType)s.nationType=null;
+  if(!s.nationType)s.nationType=null;
  for(const g of s.neighbors){if(g.allied===undefined)g.allied=false;if(!Number.isFinite(g.truceUntil))g.truceUntil=0;}
  if(!s.social)s.social={inequality:0,tension:0,topShare:0,classes:{poveri:0,lavoratori:living(s).length,agiati:0,"élite":0},medianWealth:0};
  if(!Array.isArray(s.specializations))s.specializations=[];
