@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """World3D - editor desktop Linux."""
 from __future__ import annotations
-import sys, json, math, base64, copy, uuid, io
+import sys, json, math, base64, copy, uuid, io, locale
 from pathlib import Path
 import numpy as np
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QSettings
 from PySide6.QtGui import QColor, QSurfaceFormat, QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QGridLayout, QSplitter, QFrame, QLabel, QPushButton, QToolButton, QComboBox,
     QDoubleSpinBox, QColorDialog, QFileDialog, QMessageBox, QScrollArea, QLineEdit,
-    QGroupBox, QFormLayout, QInputDialog, QMenu, QOpenGLWidget)
+    QGroupBox, QFormLayout, QInputDialog, QMenu, QOpenGLWidget, QDialog, QDialogButtonBox)
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from PIL import Image, ImageDraw
@@ -251,7 +251,9 @@ class Viewport(QOpenGLWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__(); self.setWindowTitle("World3D"); self.resize(1440,900)
-        self.lang="it"; self.history=[]; self.history_index=-1; self.textures={}; self.models={}; self.current_path=None
+        self.settings_store=QSettings("JonaDev2026","World3D")
+        self.language_preference=self.settings_store.value("language","auto")
+        self.lang="it"; self.translations={}; self.history=[]; self.history_index=-1; self.textures={}; self.models={}; self.current_path=None
         root=QWidget(); layout=QVBoxLayout(root); layout.setContentsMargins(0,0,0,0); layout.setSpacing(0)
         top=QHBoxLayout(); top.setContentsMargins(12,8,12,8)
         title=QLabel("◈  World3D"); title.setStyleSheet("font-size:18px;font-weight:700;color:#e8eaed")
@@ -270,6 +272,7 @@ class MainWindow(QMainWindow):
         viewbar.addStretch(); center_layout.addLayout(viewbar); center_layout.addWidget(self.viewport,1)
         split.addWidget(self.build_sidebar()); split.addWidget(center); split.addWidget(self.build_inspector()); split.setSizes([220,950,270]); layout.addWidget(split)
         self.setCentralWidget(root); self.setStyleSheet(self.styles())
+        self.apply_language(self.language_preference)
         self.statusBar().showMessage("Piano vuoto · 40 × 40 m")
         self.push_history()
         self.set_shortcuts()
@@ -299,8 +302,14 @@ class MainWindow(QMainWindow):
             spin=QDoubleSpinBox(); spin.setRange(-100000,100000); spin.setDecimals(1); spin.setSingleStep(.1 if key!="rotation" else 15); spin.valueChanged.connect(lambda v,k=key:self.update_selected(k,v)); self.fields[key]=spin; self.inspector.addRow(label,spin)
         box.addLayout(self.inspector)
         self.color_btn=QPushButton("Colore"); self.color_btn.clicked.connect(self.choose_color); box.addWidget(self.color_btn)
-        self.texture_combo=QComboBox(); self.texture_combo.addItems(TEXTURES); self.texture_combo.currentTextChanged.connect(lambda v:self.update_material("texture",v)); box.addWidget(QLabel("Texture")); box.addWidget(self.texture_combo)
-        self.finish_combo=QComboBox(); self.finish_combo.addItems(["Opaco","Satinato","Lucido","Metallico"]); self.finish_combo.currentTextChanged.connect(lambda v:self.update_material("finish",v)); box.addWidget(QLabel("Finitura")); box.addWidget(self.finish_combo)
+        self.texture_combo=QComboBox()
+        for name in TEXTURES: self.texture_combo.addItem(name,name)
+        self.texture_combo.currentIndexChanged.connect(lambda i:self.update_material("texture",self.texture_combo.itemData(i)) if i>=0 else None)
+        box.addWidget(QLabel("Texture")); box.addWidget(self.texture_combo)
+        self.finish_combo=QComboBox()
+        for name in ["Opaco","Satinato","Lucido","Metallico"]: self.finish_combo.addItem(name,name)
+        self.finish_combo.currentIndexChanged.connect(lambda i:self.update_material("finish",self.finish_combo.itemData(i)) if i>=0 else None)
+        box.addWidget(QLabel("Finitura")); box.addWidget(self.finish_combo)
         box.addStretch(); return panel
     def set_tool(self,k): self.viewport.tool=k
     def set_shortcuts(self):
@@ -311,8 +320,8 @@ class MainWindow(QMainWindow):
             w.blockSignals(True); w.setValue(0 if o is None else (o["x"] if key=="x" else o["z"] if key=="z" else o["rotation"] if key=="rotation" else o["size"][{"sx":0,"sy":1,"sz":2}[key]])); w.setEnabled(o is not None); w.blockSignals(False)
         self.color_btn.setEnabled(o is not None); self.texture_combo.setEnabled(o is not None); self.finish_combo.setEnabled(o is not None)
         if o:
-            self.color_btn.setText("Colore · "+o["color"]); self.texture_combo.blockSignals(True); self.texture_combo.setCurrentText(o.get("texture","Nessuna")); self.texture_combo.blockSignals(False)
-            self.finish_combo.blockSignals(True); self.finish_combo.setCurrentText(o.get("finish","Opaco")); self.finish_combo.blockSignals(False)
+            self.color_btn.setText("Colore · "+o["color"]); self.texture_combo.blockSignals(True); self.texture_combo.setCurrentIndex(max(0,self.texture_combo.findData(o.get("texture","Nessuna")))); self.texture_combo.blockSignals(False)
+            self.finish_combo.blockSignals(True); self.finish_combo.setCurrentIndex(max(0,self.finish_combo.findData(o.get("finish","Opaco")))); self.finish_combo.blockSignals(False)
     def update_selected(self,k,v):
         o=self.viewport.selected
         if not o:return
@@ -355,12 +364,49 @@ class MainWindow(QMainWindow):
             self.viewport.items=d.get("items",[]); self.models=d.get("models",{}); self.textures=d.get("textures",{}); self.viewport.texture_assets=self.textures; self.current_path=path
             self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"]); self.viewport.selected=None; self.selection_changed(None); self.render_assets(); self.viewport.update(); self.push_history()
         except Exception as e: QMessageBox.critical(self,"World3D",f"Impossibile aprire il progetto:\n{e}")
+    def t(self,key): return self.translations.get(key,key)
+    def apply_language(self,preference):
+        code=preference
+        if code=="auto":
+            system=(locale.getlocale()[0] or "en").lower()
+            code=next((x for x in ("it","fr","es") if system.startswith(x)),"en")
+        if code not in ("it","en","fr","es"): code="en"
+        path=APP_DIR/"locales"/f"{code}.json"
+        try: self.translations=json.loads(path.read_text(encoding="utf-8"))
+        except Exception: self.translations={}
+        self.lang=code
+        for widget in self.findChildren(QWidget):
+            if isinstance(widget,QComboBox):
+                for i in range(widget.count()):
+                    source=widget.itemData(i)
+                    if source is None:
+                        source=widget.itemText(i); widget.setItemData(i,source)
+                    widget.setItemText(i,self.t(str(source)))
+            elif isinstance(widget,(QLabel,QPushButton,QToolButton,QGroupBox)):
+                getter=widget.title if isinstance(widget,QGroupBox) else widget.text
+                setter=widget.setTitle if isinstance(widget,QGroupBox) else widget.setText
+                source=widget.property("world3d_source_text")
+                if source is None:
+                    source=getter(); widget.setProperty("world3d_source_text",source)
+                setter(self.t(source))
+        self.setWindowTitle(self.t("World3D"))
     def settings(self):
-        w,d=self.viewport.width_m,self.viewport.depth_m
-        w,ok=QInputDialog.getDouble(self,"Dimensioni piano","Larghezza X (m)",w,.1,1000000,1)
-        if not ok:return
-        d,ok=QInputDialog.getDouble(self,"Dimensioni piano","Profondità Z (m)",d,.1,1000000,1)
-        if ok:self.viewport.set_plane(w,d); self.statusBar().showMessage(f"Piano · {w:.1f} × {d:.1f} m",4000); self.push_history()
+        dialog=QDialog(self); dialog.setWindowTitle(self.t("Impostazioni")); dialog.setMinimumWidth(360)
+        form=QFormLayout(dialog)
+        width=QDoubleSpinBox(); width.setRange(.1,1000000); width.setDecimals(1); width.setSingleStep(.1); width.setValue(self.viewport.width_m)
+        depth=QDoubleSpinBox(); depth.setRange(.1,1000000); depth.setDecimals(1); depth.setSingleStep(.1); depth.setValue(self.viewport.depth_m)
+        language=QComboBox()
+        for code,label in [("auto","Automatico (sistema)"),("it","Italiano"),("en","English"),("fr","Français"),("es","Español")]: language.addItem(label,code)
+        language.setCurrentIndex(max(0,language.findData(self.language_preference)))
+        form.addRow(self.t("Larghezza (X)"),width); form.addRow(self.t("Profondità (Z)"),depth); form.addRow(self.t("Lingua"),language)
+        buttons=QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); form.addRow(buttons)
+        if dialog.exec()==QDialog.Accepted:
+            self.viewport.set_plane(width.value(),depth.value())
+            self.language_preference=language.currentData()
+            self.settings_store.setValue("language",self.language_preference)
+            self.apply_language(self.language_preference)
+            self.statusBar().showMessage(self.t("Modifiche non salvate"),4000); self.push_history()
     def import_models(self):
         paths=QFileDialog.getOpenFileNames(self,"Importa modelli 3D","","Modelli 3D (*.glb *.gltf *.obj *.stl)")[0]
         self.load_models(paths)
@@ -398,7 +444,7 @@ class MainWindow(QMainWindow):
             except Exception:pass
         self.viewport.texture_assets=self.textures
         for name in self.textures:
-            if self.texture_combo.findText(name)<0: self.texture_combo.addItem(name)
+            if self.texture_combo.findData(name)<0: self.texture_combo.addItem(name,name)
         self.render_assets()
     def render_assets(self):
         while self.asset_list.count():
