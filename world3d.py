@@ -298,6 +298,7 @@ class MainWindow(QMainWindow):
             b=QPushButton(label); b.clicked.connect(fn); viewbar.addWidget(b)
         viewbar.addStretch(); center_layout.addLayout(viewbar); center_layout.addWidget(self.viewport,1)
         split.addWidget(self.build_sidebar()); split.addWidget(center); split.addWidget(self.build_inspector()); split.setSizes([220,950,270]); layout.addWidget(split)
+        self.set_tool("select")
         self.setCentralWidget(root); self.setStyleSheet(self.styles())
         self.apply_language(self.language_preference)
         self.statusBar().showMessage("Piano vuoto · 40 × 40 m")
@@ -308,14 +309,17 @@ class MainWindow(QMainWindow):
     def build_sidebar(self):
         panel=QFrame(); panel.setObjectName("panel"); panel.setMinimumWidth(190); box=QVBoxLayout(panel)
         box.addWidget(QLabel("COSTRUZIONE"))
+        self.tool_buttons={}
         for title,tools in [("STRUMENTI",[("Seleziona","select"),("Muro","wall"),("Pavimento","floor"),("Porta","door"),("Finestra","window")]),("OGGETTI",[("Blocco","cube"),("Albero","tree")])]:
             box.addWidget(QLabel(title))
             for label,kind in tools:
-                b=QPushButton(label); b.setCheckable(True); b.clicked.connect(lambda checked,k=kind:self.set_tool(k)); box.addWidget(b)
+                b=QPushButton(label); b.setCheckable(True); b.clicked.connect(lambda checked,k=kind:self.set_tool(k)); self.tool_buttons[kind]=b; box.addWidget(b)
         box.addWidget(QLabel("RISORSE"))
         for label,fn in [("Importa cartella",self.import_folder),("Importa texture",self.import_textures),("Importa modello 3D",self.import_models)]: 
             b=QPushButton(label); b.clicked.connect(fn); box.addWidget(b)
-        self.asset_list=QVBoxLayout(); asset_group=QGroupBox("Oggetti importati"); asset_group.setLayout(self.asset_list); box.addWidget(asset_group)
+        self.asset_toggle=QToolButton(); self.asset_toggle.setText("Oggetti importati"); self.asset_toggle.setCheckable(True); self.asset_toggle.setChecked(True); self.asset_toggle.setArrowType(Qt.DownArrow); self.asset_toggle.setToolButtonStyle(Qt.ToolButtonTextBesideIcon); box.addWidget(self.asset_toggle)
+        asset_panel=QWidget(); self.asset_list=QVBoxLayout(asset_panel); self.asset_list.setContentsMargins(4,2,4,4); box.addWidget(asset_panel)
+        self.asset_toggle.toggled.connect(lambda shown:(asset_panel.setVisible(shown),self.asset_toggle.setArrowType(Qt.DownArrow if shown else Qt.RightArrow)))
         transform=QGroupBox("TRASFORMA"); tb=QVBoxLayout(transform)
         for label,fn in [("Sposta",lambda:self.viewport.set_transform("translate")),("Ruota",lambda:self.viewport.set_transform("rotate")),("Elimina",self.delete_selected),("Duplica",self.duplicate_selected)]:
             b=QPushButton(label); b.clicked.connect(fn); tb.addWidget(b)
@@ -345,7 +349,9 @@ class MainWindow(QMainWindow):
         self.finish_combo.currentIndexChanged.connect(lambda i:self.update_material("finish",self.finish_combo.itemData(i)) if i>=0 else None)
         box.addWidget(QLabel("Finitura")); box.addWidget(self.finish_combo)
         box.addStretch(); return panel
-    def set_tool(self,k): self.viewport.tool=k
+    def set_tool(self,k):
+        self.viewport.tool=k
+        for name,button in getattr(self,"tool_buttons",{}).items(): button.setChecked(name==k)
     def set_shortcuts(self):
         for key,fn in [("Delete",self.delete_selected),("Ctrl+S",self.save_project),("Ctrl+O",self.open_project),("Ctrl+Z",self.undo),("Ctrl+Y",self.redo),("V",lambda:self.set_tool("select"))]:
             a=QAction(self); a.setShortcut(QKeySequence(key)); a.triggered.connect(fn); self.addAction(a)
