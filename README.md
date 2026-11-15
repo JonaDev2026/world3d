@@ -1,6 +1,6 @@
 # World3D
 
-Editor 3D desktop nativo per Linux, sviluppato in Python, PySide6 e OpenGL. L'interfaccia usa Qt 6 e non dipende dal browser.
+Editor 3D desktop nativo per Linux, sviluppato in Python, PySide6 e OpenGL. Mantiene il layout a tre pannelli dell'editor originale, con Material Icons Round locali, inspector e viewport centrale. Non dipende dal browser.
 
 ## Compatibilità
 
@@ -8,6 +8,7 @@ Editor 3D desktop nativo per Linux, sviluppato in Python, PySide6 e OpenGL. L'in
 - Qt 6 seleziona automaticamente il backend grafico della sessione.
 - Su una sessione Wayland, per forzare il backend nativo: `QT_QPA_PLATFORM=wayland world3d`.
 - Richiede un driver Mesa/OpenGL desktop compatibile.
+- Il font Material Icons Round è incluso nell'app. Google Sans viene selezionato se installato nel sistema; in caso contrario Qt usa Noto Sans come fallback.
 
 ## Installazione dipendenze
 
@@ -48,7 +49,7 @@ sudo PREFIX=/opt sh install.sh
 - Piano 3D regolabile con incrementi di 0,1 m, griglia e snap.
 - Navigazione orbitale, vista dall'alto, pan e zoom.
 - Strumenti: selezione, muro, pavimento, porta, finestra, blocco e albero.
-- Spostamento e rotazione con trascinamento; posizione, dimensioni e rotazione numeriche.
+- Gizmo cartesiano XYZ visibile, trascinamento sugli assi X/Z, rotazione e proprietà numeriche con incrementi di 0,1 m.
 - Duplicazione, eliminazione, svuotamento, undo e redo.
 - Palette da 16 colori, texture procedurali, texture personalizzate e finiture opaco/satinato/lucido/metallico.
 - Importazione di cartelle, texture PNG/JPG/WEBP e modelli GLB/GLTF/OBJ/STL.
