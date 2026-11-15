@@ -82,5 +82,11 @@
   "Progetto salvato": "Project saved",
   "Impossibile salvare il progetto": "Unable to save project",
   "Open": "Open",
-  "Save": "Save"
+  "Save": "Save",
+  "Importa cartella": "Import folder",
+  "Importa texture": "Import texture",
+  "Importa modello 3D": "Import 3D model",
+  "Impossibile importare il modello": "Unable to import model",
+  "Il browser non supporta la selezione di cartelle. Usa Importa texture o Importa modello 3D.": "This browser does not support folder selection. Use Import texture or Import 3D model.",
+  "Nessuna risorsa compatibile trovata nella cartella.": "No supported assets found in this folder."
 }
