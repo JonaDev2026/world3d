@@ -249,3 +249,44 @@ test("the same seed reproduces the initial world and every subsequent day", () =
   };
   assert.deepEqual(comparable(first), comparable(second));
 });
+
+test("legacy saves restore missing collections and counters before resuming", () => {
+  const world = createWorld({ seed: 42 });
+  world.version = 1;
+  for (const key of [
+    "events", "stats", "neighbors", "technology", "institutions", "routes",
+    "specializations", "history", "civilizationNameHistory", "nextEventId",
+    "nextPersonId", "nextSettlementId"
+  ]) delete world[key];
+
+  validateWorld(world);
+  assert.deepEqual(world.events, []);
+  assert.deepEqual(world.neighbors, []);
+  assert.equal(world.stats.births, 0);
+  assert.equal(world.stats.deaths, 0);
+  assert.equal(world.nextEventId, 1);
+  assert.equal(world.nextPersonId, 25);
+  assert.equal(world.nextSettlementId, 2);
+  assert.ok(Array.isArray(world.technology));
+  assert.ok(Array.isArray(world.institutions));
+  assert.equal(advance(world, 1).advanced, 1);
+});
+
+test("a JSON save can resume the same deterministic timeline", () => {
+  const uninterrupted = createWorld({ seed: 20261115 });
+  const checkpoint = createWorld({ seed: 20261115 });
+  advance(uninterrupted, 365);
+  advance(checkpoint, 365);
+
+  const restored = validateWorld(JSON.parse(JSON.stringify(checkpoint)));
+  advance(uninterrupted, 240);
+  advance(restored, 240);
+
+  const comparable = state => {
+    const copy = structuredClone(state);
+    delete copy.lastWallTime;
+    delete copy._dailyPersonIndex;
+    return copy;
+  };
+  assert.deepEqual(comparable(restored), comparable(uninterrupted));
+});
