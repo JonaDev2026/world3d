@@ -77,5 +77,7 @@
   "Apri progetto": "Abrir proyecto",
   "Esporta": "Exportar",
   "Progetto caricato": "Proyecto cargado",
-  "Impossibile aprire il progetto": "No se pudo abrir el proyecto"
+  "Impossibile aprire il progetto": "No se pudo abrir el proyecto",
+  "Progetto esportato": "Proyecto exportado",
+  "Progetto in modifica": "Proyecto en edición"
 }
