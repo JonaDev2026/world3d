@@ -281,6 +281,7 @@ test("a JSON save can resume the same deterministic timeline", () => {
   const restored = validateWorld(JSON.parse(JSON.stringify(checkpoint)));
   advance(uninterrupted, 240);
   advance(restored, 240);
+  validateWorld(uninterrupted);
 
   const comparable = state => {
     const copy = structuredClone(state);
