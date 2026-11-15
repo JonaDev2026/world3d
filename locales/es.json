@@ -88,5 +88,7 @@
   "Importa modello 3D": "Importar modelo 3D",
   "Impossibile importare il modello": "No se pudo importar el modelo",
   "Il browser non supporta la selezione di cartelle. Usa Importa texture o Importa modello 3D.": "Este navegador no admite la selección de carpetas. Usa Importar texturas o Importar modelo 3D.",
-  "Nessuna risorsa compatibile trovata nella cartella.": "No se encontraron recursos compatibles en esta carpeta."
+  "Nessuna risorsa compatibile trovata nella cartella.": "No se encontraron recursos compatibles en esta carpeta.",
+  "Oggetti importati": "Objetos importados",
+  "Rimuovi dalla lista": "Quitar de la lista"
 }
