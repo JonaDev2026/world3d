@@ -7,6 +7,14 @@ const DEFAULT_DEPTH = 40;
 const SNAP = 0.1;
 const COLORS = { Muro:0xd7d0c5, Pavimento:0xb6a995, Porta:0x9b7653, Finestra:0x91b9ca, Blocco:0x9da8b7, Albero:0x6e9a72 };
 const TEXTURE_CACHE = new Map();
+function makeGrid(width, depth) {
+  const points=[];
+  for(let x=-width/2;x<=width/2+0.0001;x+=SNAP){points.push(x,0,-depth/2,x,0,depth/2);}
+  for(let z=-depth/2;z<=depth/2+0.0001;z+=SNAP){points.push(-width/2,0,z,width/2,0,z);}
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute("position",new THREE.Float32BufferAttribute(points,3));
+  return new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:0x9ca5ae,transparent:true,opacity:.58}));
+}
 
 function makeTexture(type) {
   if (type === "none") return null;
@@ -114,7 +122,7 @@ export class BuildEditor {
     this.ground.geometry.dispose();
     this.ground.geometry=new THREE.PlaneGeometry(w,d);
     this.scene.remove(this.grid); this.grid.geometry.dispose(); this.grid.material.dispose();
-    this.grid=new THREE.GridHelper(Math.max(w,d),Math.max(w,d)*10,0x8d969f,0xb0b7be);
+    this.grid=makeGrid(w,d);
     this.grid.position.y=0.012; this.grid.visible=this.gridVisible; this.scene.add(this.grid);
     this.scene.remove(this.border); this.border.geometry.dispose(); this.border.material.dispose();
     this.border=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w,0.02,d)),new THREE.LineBasicMaterial({color:0x77818b}));
