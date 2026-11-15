@@ -17,6 +17,14 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Salvataggio locale della scena nel browser.
 - Annulla/ripeti per le operazioni registrate.
 
+## Colori, texture e finiture
+- Palette di 16 colori selezionabili e selettore colore libero.
+- Catalogo materiali con legno, piastrelle, marmo, cemento, mattoni, tessuto, metallo e vetro.
+- Texture procedurali generate nel browser, senza immagini esterne.
+- Finiture opaca, satinata, lucida e metallica.
+- Applicazione all'elemento selezionato e memorizzazione di colore, texture e finitura nel salvataggio locale.
+- Materiali inclusi nella cronologia annulla/ripeti.
+
 ## Da verificare
 - Test nel browser su desktop.
 - Rifinire la costruzione di stanze e pareti per segmenti.
