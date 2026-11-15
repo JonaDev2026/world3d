@@ -44,6 +44,7 @@ export class BuildEditor {
     this.changeCallbacks = [];
     this.history = [];
     this.historyIndex = -1;
+    this.restoring = false;
     this.setupWorld();
     this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -128,8 +129,8 @@ export class BuildEditor {
   save(){localStorage.setItem("build-editor-scene",JSON.stringify(this.items.map(o=>this.serializeItem(o))));}
   load(){try{const data=JSON.parse(localStorage.getItem("build-editor-scene")||"[]");data.forEach(d=>this.addItem(d.kind,d.x,d.z,d));this.select(null);}catch(e){console.warn("Salvataggio non leggibile",e);}}
   clear(){this.items.forEach(o=>this.scene.remove(o));this.items=[];this.select(null);this.emitChange();this.pushHistory();}
-  pushHistory(){const state=JSON.stringify(this.items.map(o=>this.serializeItem(o)));if(this.history[this.historyIndex]===state)return;this.history=this.history.slice(0,this.historyIndex+1);this.history.push(state);if(this.history.length>40)this.history.shift();this.historyIndex=this.history.length-1;}
-  restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.items.forEach(o=>this.scene.remove(o));this.items=[];JSON.parse(this.history[index]).forEach(d=>this.addItem(d.kind,d.x,d.z,d));this.select(null);this.emitChange();}
+  pushHistory(){if(this.restoring)return;const state=JSON.stringify(this.items.map(o=>this.serializeItem(o)));if(this.history[this.historyIndex]===state)return;this.history=this.history.slice(0,this.historyIndex+1);this.history.push(state);if(this.history.length>40)this.history.shift();this.historyIndex=this.history.length-1;}
+  restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.restoring=true;this.items.forEach(o=>this.scene.remove(o));this.items=[];JSON.parse(this.history[index]).forEach(d=>this.addItem(d.kind,d.x,d.z,d));this.restoring=false;this.select(null);this.emitChange();}
   undo(){this.restoreHistory(this.historyIndex-1);}
   redo(){this.restoreHistory(this.historyIndex+1);}
   dispose(){cancelAnimationFrame(this.frame);this.resizeObserver.disconnect();this.renderer.dispose();}
