@@ -274,7 +274,7 @@ export class BuildEditor {
   onChange(fn){this.changeCallbacks.push(fn);fn(this.items.length);}
   emitChange(){this.changeCallbacks.forEach(fn=>fn(this.items.length));}
   deleteSelected(){if(!this.selected)return;this.scene.remove(this.selected);this.items=this.items.filter(i=>i!==this.selected);this.select(null);this.emitChange();this.pushHistory();}
-  duplicateSelected(){if(!this.selected)return;const d=this.serializeItem(this.selected);d.x+=1;d.z+=1;if(d.kind==="model")this.addModelAsset(d.asset,{x:d.x,z:d.z});else this.addItem(d.kind,d.x,d.z,d);}
+  duplicateSelected(){if(!this.selected)return;const d=this.serializeItem(this.selected);d.x+=1;d.z+=1;if(d.kind==="model")this.addModelAsset(this.customModels.get(d.assetId)||d.asset,{x:d.x,z:d.z});else this.addItem(d.kind,d.x,d.z,d);}
   updateSelected(key,value){if(!this.selected)return;const o=this.selected;
     if(key==="x"||key==="z")o.position[key]=this.snapValue(value);
     if(key==="rotation")o.rotation.y=value*Math.PI/180;
@@ -282,26 +282,26 @@ export class BuildEditor {
     if(key==="color"||key==="texture"||key==="finish"){this.applyMaterial(o,{[key]:value});}
     this.emitSelection(o);this.emitChange();this.pushHistory();
   }
-  serializeItem(o){const base={kind:o.userData.modelAsset?"model":o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size},color:o.userData.materialColor,texture:o.userData.texture,finish:o.userData.finish};if(o.userData.modelAsset)base.asset=o.userData.modelAsset;return base;}
+  serializeItem(o){const base={kind:o.userData.modelAsset?"model":o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size},color:o.userData.materialColor,texture:o.userData.texture,finish:o.userData.finish};if(o.userData.modelAsset)base.assetId=o.userData.modelAsset.id;return base;}
   projectData(){return {format:"world3d-project",version:1,plane:{width:this.planeWidth,depth:this.planeDepth},textures:[...this.customTextures.values()],models:[...this.customModels.values()],items:this.items.map(o=>this.serializeItem(o))};}
   async importProject(data){
     if(!data||data.format!=="world3d-project"||data.version!==1||!data.plane||!Array.isArray(data.items))throw new Error("Formato progetto non valido o non supportato.");
     const width=Number(data.plane.width),depth=Number(data.plane.depth);
     if(!Number.isFinite(width)||!Number.isFinite(depth)||width<0.1||depth<0.1)throw new Error("Dimensioni del piano non valide.");
     const allowed=new Set(["wall","floor","door","window","cube","tree","model"]);
-    if(data.items.some(item=>!item||!allowed.has(item.kind)||!Number.isFinite(Number(item.x))||!Number.isFinite(Number(item.z))||(item.kind==="model"&&!item.asset)))throw new Error("Il progetto contiene elementi non validi.");
+    if(data.items.some(item=>!item||!allowed.has(item.kind)||!Number.isFinite(Number(item.x))||!Number.isFinite(Number(item.z))||(item.kind==="model"&&!item.asset&&!item.assetId)))throw new Error("Il progetto contiene elementi non validi.");
     this.restoring=true;
     this.items.forEach(o=>this.scene.remove(o));this.items=[];
     this.customTextures.clear();(data.textures||[]).forEach(asset=>this.customTextures.set(asset.id,asset));
     this.customModels.clear();(data.models||[]).forEach(asset=>this.customModels.set(asset.id,asset));
     this.setPlaneSize(width,depth);
-    for(const d of data.items){if(d.kind==="model"){const model=await this.addModelAsset(d.asset,{x:Number(d.x),z:Number(d.z)});model.rotation.y=Number(d.rotation)||0;}else this.addItem(d.kind,Number(d.x),Number(d.z),d);}
+    for(const d of data.items){if(d.kind==="model"){const model=await this.addModelAsset(d.asset||this.customModels.get(d.assetId),{x:Number(d.x),z:Number(d.z)});model.rotation.y=Number(d.rotation)||0;}else this.addItem(d.kind,Number(d.x),Number(d.z),d);}
     this.restoring=false;this.select(null);this.emitChange();
     this.history=[];this.historyIndex=-1;this.pushHistory();
   }
   clear(){this.items.forEach(o=>this.scene.remove(o));this.items=[];this.select(null);this.emitChange();this.pushHistory();}
   pushHistory(){if(this.restoring)return;const state=JSON.stringify(this.items.map(o=>this.serializeItem(o)));if(this.history[this.historyIndex]===state)return;this.history=this.history.slice(0,this.historyIndex+1);this.history.push(state);if(this.history.length>40)this.history.shift();this.historyIndex=this.history.length-1;}
-  async restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.restoring=true;this.items.forEach(o=>this.scene.remove(o));this.items=[];for(const d of JSON.parse(this.history[index])){if(d.kind==="model")await this.addModelAsset(d.asset,{x:d.x,z:d.z});else this.addItem(d.kind,d.x,d.z,d);}this.restoring=false;this.select(null);this.emitChange();}
+  async restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.restoring=true;this.items.forEach(o=>this.scene.remove(o));this.items=[];for(const d of JSON.parse(this.history[index])){if(d.kind==="model")await this.addModelAsset(d.asset||this.customModels.get(d.assetId),{x:d.x,z:d.z});else this.addItem(d.kind,d.x,d.z,d);}this.restoring=false;this.select(null);this.emitChange();}
   undo(){this.restoreHistory(this.historyIndex-1);}
   redo(){this.restoreHistory(this.historyIndex+1);}
   dispose(){cancelAnimationFrame(this.frame);this.resizeObserver.disconnect();this.renderer.dispose();}
