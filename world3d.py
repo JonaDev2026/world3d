@@ -587,20 +587,37 @@ class MainWindow(QMainWindow):
             o["x"]+=1; o["z"]+=1; self.viewport.items.append(o); self.viewport.selected=o
             self.selection_changed(o); self.viewport.update(); self.push_history()
     def remove_asset(self,aid):
-        if any(o.get("asset_id")==aid for o in self.viewport.items):
-            self.hidden_models.add(aid)
-        else:
-            self.models.pop(aid,None); self.hidden_models.discard(aid)
+        self.hidden_models.add(aid)
         self.render_assets(); self.push_history()
+    def history_item(self,o):
+        return {"id":o.get("id"),"kind":o.get("kind","cube"),"asset_id":o.get("asset_id",o.get("id") if o.get("kind")=="model" else None),
+                "x":o.get("x",0),"z":o.get("z",0),"rotation":o.get("rotation",0),"size":o.get("size",[1,1,1]),
+                "color":o.get("color","#b7bdc5"),"texture":o.get("texture","Nessuna"),"finish":o.get("finish","Opaco")}
     def push_history(self):
-        state=json.dumps({"items":self.viewport.items,"plane":[self.viewport.width_m,self.viewport.depth_m],"models":self.models,"textures":self.textures,"hidden_models":list(self.hidden_models)},separators=(",",":"))
+        state=json.dumps({"items":[self.history_item(o) for o in self.viewport.items],"plane":[self.viewport.width_m,self.viewport.depth_m],"hidden_models":list(self.hidden_models)},separators=(",",":"))
         if self.history and self.history[self.history_index]==state:return
         self.history=self.history[:self.history_index+1]; self.history.append(state)
         if len(self.history)>40:self.history.pop(0)
         self.history_index=len(self.history)-1
     def restore_history(self,index):
         if index<0 or index>=len(self.history):return
-        self.history_index=index; d=json.loads(self.history[index]); self.viewport.items=d["items"]; self.models=d.get("models",self.models); self.textures=d.get("textures",self.textures); self.hidden_models=set(d.get("hidden_models",[])); self.viewport.texture_assets=self.textures; self.viewport.clear_texture_cache(); self.render_assets(); self.viewport.set_plane(*d["plane"]); self.viewport.selected=None; self.selection_changed(None); self.viewport.update()
+        self.history_index=index; d=json.loads(self.history[index]); restored=[]
+        for item in d["items"]:
+            kind=item.get("kind","cube")
+            if kind=="model":
+                aid=item.get("asset_id"); source=self.models.get(aid)
+                if source is None: continue
+                o=copy.deepcopy(source); o["id"]=item.get("id") or uuid.uuid4().hex; o["asset_id"]=aid
+            else:
+                o=make_item(kind,float(item.get("x",0)),float(item.get("z",0)))
+            o["x"]=float(item.get("x",0)); o["z"]=float(item.get("z",0)); o["rotation"]=float(item.get("rotation",0))
+            size=item.get("size",o.get("size",[1,1,1]))
+            if isinstance(size,dict): size=[size.get("x",1),size.get("y",1),size.get("z",1)]
+            o["size"]=[float(v) for v in size]
+            o["color"]=item.get("color",o.get("color","#b7bdc5")); o["texture"]=item.get("texture","Nessuna"); o["finish"]=item.get("finish","Opaco")
+            restored.append(o)
+        self.viewport.items=restored; self.hidden_models=set(d.get("hidden_models",[])); self.render_assets()
+        self.viewport.set_plane(*d["plane"]); self.viewport.selected=None; self.selection_changed(None); self.viewport.update()
     def undo(self): self.restore_history(self.history_index-1)
     def redo(self): self.restore_history(self.history_index+1)
 
