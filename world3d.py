@@ -340,7 +340,10 @@ class MainWindow(QMainWindow):
         self.lang="it"; self.translations={}; self.history=[]; self.history_index=-1; self.textures={}; self.models={}; self.current_path=None
         root=QWidget(); layout=QVBoxLayout(root); layout.setContentsMargins(0,0,0,0); layout.setSpacing(0)
         topbar=QFrame(); topbar.setObjectName("topbar"); top=QHBoxLayout(topbar); top.setContentsMargins(18,10,18,10); top.setSpacing(8)
-        brand=QLabel("◈  Editor 3D"); brand.setObjectName("brand"); brand.setFont(QFont("Google Sans",16,QFont.DemiBold)); top.addWidget(brand); top.addStretch()
+        brand=QWidget(); brand_row=QHBoxLayout(brand); brand_row.setContentsMargins(7,0,14,0); brand_row.setSpacing(10)
+        brand_icon=QLabel("view_in_ar"); brand_icon.setFont(self.icon_font); brand_icon.setStyleSheet("color:#a8c7fa;background:#35465e;border-radius:9px;padding:7px")
+        brand_title=QLabel("Editor 3D"); brand_title.setObjectName("brand"); brand_title.setFont(QFont("Google Sans",16,QFont.DemiBold))
+        brand_row.addWidget(brand_icon); brand_row.addWidget(brand_title); top.addWidget(brand); top.addStretch()
         self.save_state=QLabel("Progetto in modifica"); self.save_state.setObjectName("saveState"); top.addWidget(self.save_state)
         def top_button(icon,label,fn,primary=False):
             b=self.icon_button(icon,label); b.setProperty("primary",primary); b.clicked.connect(fn); top.addWidget(b); return b
@@ -372,6 +375,7 @@ class MainWindow(QMainWindow):
         row=QHBoxLayout(b); row.setContentsMargins(10,0,10,0); row.setSpacing(7)
         glyph=QLabel(icon); glyph.setFont(self.icon_font); glyph.setStyleSheet("background:transparent;border:0;color:#aebed5")
         row.addWidget(glyph)
+        b._icon_label=glyph
         if label:
             caption=QLabel(label); caption.setStyleSheet("background:transparent;border:0")
             row.addWidget(caption)
@@ -425,9 +429,9 @@ class MainWindow(QMainWindow):
         section("Risorse")
         for label,fn,icon in [("Importa cartella",self.import_folder,"folder_open"),("Importa texture",self.import_textures,"texture"),("Importa modello 3D",self.import_models,"deployed_code")]:
             b=self.icon_button(icon,label); b.setObjectName("toolButton"); b.clicked.connect(fn); box.addWidget(b)
-        self.asset_toggle=QToolButton(); self.asset_toggle.setText("expand_more   Oggetti importati"); self.asset_toggle.setCheckable(True); self.asset_toggle.setChecked(True); box.addWidget(self.asset_toggle)
+        self.asset_toggle=self.icon_button("expand_more","Oggetti importati",True); self.asset_toggle.setObjectName("assetToggle"); self.asset_toggle.setChecked(True); box.addWidget(self.asset_toggle)
         asset_panel=QWidget(); self.asset_list=QVBoxLayout(asset_panel); self.asset_list.setContentsMargins(5,2,5,5); self.asset_list.setSpacing(4); box.addWidget(asset_panel)
-        self.asset_toggle.toggled.connect(lambda shown:(asset_panel.setVisible(shown),self.asset_toggle.setText(("expand_more" if shown else "chevron_right")+"   Oggetti importati")))
+        self.asset_toggle.toggled.connect(lambda shown:(asset_panel.setVisible(shown),self.asset_toggle._icon_label.setText("expand_more" if shown else "chevron_right")))
         section("Trasforma")
         transform=QGroupBox(); tb=QVBoxLayout(transform); tb.setContentsMargins(7,9,7,7)
         for label,fn,icon in [("Sposta",lambda:self.viewport.set_transform("translate"),"open_with"),("Ruota",lambda:self.viewport.set_transform("rotate"),"rotate_right"),("Duplica",self.duplicate_selected,"content_copy"),("Elimina",self.delete_selected,"delete")]:
@@ -700,7 +704,7 @@ class MainWindow(QMainWindow):
         for aid,asset in self.models.items():
             if aid in self.hidden_models: continue
             name=asset.get("asset_name",aid) if isinstance(asset,dict) else str(asset)
-            row=QHBoxLayout(); b=QPushButton(name); b.setToolTip("Inserisci una copia nel piano"); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("×"); rm.setToolTip("Rimuovi dalla lista"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
+            row=QHBoxLayout(); b=QPushButton(name); b.setToolTip("Inserisci una copia nel piano"); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("delete"); rm.setFont(self.icon_font); rm.setToolTip("Rimuovi dalla lista"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
     def insert_model(self,aid):
         source=self.models.get(aid)
         if source:
