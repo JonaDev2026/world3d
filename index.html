@@ -47,6 +47,15 @@
           <button class="tool-button" data-tool="tree"><span class="material-symbols-rounded">park</span><span>Albero</span></button>
         </div>
         <div class="tool-group">
+          <div class="group-label">RISORSE</div>
+          <button class="tool-button" id="importFolderBtn"><span class="material-symbols-rounded">folder_open</span><span>Importa cartella</span></button>
+          <button class="tool-button" id="importTextureBtn"><span class="material-symbols-rounded">texture</span><span>Importa texture</span></button>
+          <button class="tool-button" id="importModelBtn"><span class="material-symbols-rounded">deployed_code</span><span>Importa modello 3D</span></button>
+          <input id="textureFilesInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+          <input id="modelFilesInput" type="file" accept=".glb,.gltf,.obj,.stl,model/gltf-binary,model/gltf+json,model/obj,model/stl" multiple hidden>
+          <div id="modelCatalog" class="asset-catalog"></div>
+        </div>
+        <div class="tool-group">
           <div class="group-label">TRASFORMA</div>
           <button class="tool-button" id="moveBtn"><span class="material-symbols-rounded">open_with</span><span>Sposta</span></button>
           <button class="tool-button" id="rotateBtn"><span class="material-symbols-rounded">rotate_right</span><span>Ruota</span></button>
@@ -111,6 +120,7 @@
               <button type="button" class="texture-option" data-texture="metal"><span class="texture-preview texture-metal"></span><span>Metallo</span></button>
               <button type="button" class="texture-option" data-texture="glass"><span class="texture-preview texture-glass"></span><span>Vetro</span></button>
             </div>
+            <div class="custom-texture-list" id="customTextureCatalog"></div>
             <label for="surfaceFinish">Finitura</label>
             <select id="surfaceFinish">
               <option value="matte">Opaco</option>
