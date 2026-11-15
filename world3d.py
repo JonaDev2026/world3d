@@ -9,7 +9,8 @@ from PySide6.QtGui import QColor, QSurfaceFormat, QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QGridLayout, QSplitter, QFrame, QLabel, QPushButton, QToolButton, QComboBox,
     QDoubleSpinBox, QColorDialog, QFileDialog, QMessageBox, QScrollArea, QLineEdit,
-    QGroupBox, QFormLayout, QInputDialog, QMenu, QOpenGLWidget, QDialog, QDialogButtonBox)
+    QGroupBox, QFormLayout, QInputDialog, QMenu, QDialog, QDialogButtonBox)
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from PIL import Image, ImageDraw
