@@ -58,3 +58,9 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - L'editor parte da una scena vuota con piano predefinito a ogni nuovo avvio.
 - L'apertura e l'esportazione dei progetti avvengono esclusivamente tramite file JSON.
 - Lingua e preferenze dell'interfaccia restano salvate separatamente nel browser.
+
+## Salvataggio del progetto corrente
+- Aggiunto il pulsante dedicato **Salva progetto**.
+- Il salvataggio propone un nome e una posizione tramite il selettore file del browser quando disponibile; negli altri browser scarica direttamente il file JSON.
+- Il comando **Esporta** resta separato e continua a scaricare una copia del progetto.
+- Aggiornate le traduzioni italiano, inglese, francese e spagnolo.
