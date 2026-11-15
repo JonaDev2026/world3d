@@ -10,7 +10,7 @@ const TEXTURE_CACHE = new Map();
 function makeGrid(width, depth) {
   const points=[];
   // Keep the viewport light on kilometre-scale plots; transform snap remains 0.1 m.
-  const step=Math.max(SNAP,Math.ceil(Math.max(width,depth)/2000)*SNAP);
+  const step=Math.max(SNAP,Math.ceil(Math.max(width,depth)/200)*SNAP);
   for(let x=-width/2;x<=width/2+0.0001;x+=step){points.push(x,0,-depth/2,x,0,depth/2);}
   for(let z=-depth/2;z<=depth/2+0.0001;z+=step){points.push(-width/2,0,z,width/2,0,z);}
   const geometry=new THREE.BufferGeometry();
@@ -191,7 +191,7 @@ export class BuildEditor {
       const p=obj.geometry?.parameters||{};
       const dimensions={x:p.width||1,y:p.height||1,z:p.depth||1};
       obj.material=this.createMaterial(color,texture,finish,dimensions);
-      if(old){if(Array.isArray(old))old.forEach(m=>m.dispose());else old.dispose();}
+      if(old){const materials=Array.isArray(old)?old:[old];materials.forEach(m=>{if(m.map)m.map.dispose();m.dispose();});}
     });
   }
   addItem(kind,x,z,restored={}) {
