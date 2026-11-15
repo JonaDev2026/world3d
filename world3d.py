@@ -466,7 +466,8 @@ class MainWindow(QMainWindow):
             swatch.clicked.connect(lambda checked=False,c=color:self.set_color(c)); palette.addWidget(swatch,i//8,i%8)
         content.addLayout(palette)
         group_title("Texture")
-        self.texture_combo=QComboBox(); self.texture_combo.addItem("Nessuna","Nessuna")
+        self.texture_combo=QComboBox()
+        for name in TEXTURES: self.texture_combo.addItem(name,name)
         self.texture_combo.currentIndexChanged.connect(lambda i:self.update_material("texture",self.texture_combo.itemData(i)) if i>=0 else None)
         texture_grid=QGridLayout(); texture_grid.setSpacing(6); self.texture_buttons={}
         previews=[
@@ -489,7 +490,7 @@ class MainWindow(QMainWindow):
             b.clicked.connect(lambda checked=False,n=name:self.update_material("texture",n))
             self.texture_buttons[name]=b; texture_grid.addWidget(b,index//3,index%3)
         content.addLayout(texture_grid)
-        group_title("Texture importate"); content.addWidget(self.texture_combo)
+        group_title("Altre texture"); content.addWidget(self.texture_combo)
         group_title("Finitura"); self.finish_combo=QComboBox()
         for name in ["Opaco","Satinato","Lucido","Metallico"]: self.finish_combo.addItem(name,name)
         self.finish_combo.currentIndexChanged.connect(lambda i:self.update_material("finish",self.finish_combo.itemData(i)) if i>=0 else None); content.addWidget(self.finish_combo); content.addStretch()
@@ -530,8 +531,12 @@ class MainWindow(QMainWindow):
     def update_material(self,k,v):
         if self.viewport.selected:
             self.viewport.selected[k]=v; self.viewport.update(); self.push_history()
-            if k=="texture" and hasattr(self,"texture_buttons"):
-                for name,button in self.texture_buttons.items(): button.setChecked(name==v)
+            if k=="texture":
+                self.texture_combo.blockSignals(True); index=self.texture_combo.findData(v)
+                if index>=0: self.texture_combo.setCurrentIndex(index)
+                self.texture_combo.blockSignals(False)
+                if hasattr(self,"texture_buttons"):
+                    for name,button in self.texture_buttons.items(): button.setChecked(name==v)
     def set_color(self,color):
         if not self.viewport.selected:return
         self.viewport.selected["color"]=color; self.selection_changed(self.viewport.selected); self.viewport.update(); self.push_history()
