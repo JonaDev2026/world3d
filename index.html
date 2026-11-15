@@ -53,7 +53,7 @@
           <button class="tool-button" id="importModelBtn"><span class="material-symbols-rounded">deployed_code</span><span>Importa modello 3D</span></button>
           <input id="textureFilesInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
           <input id="modelFilesInput" type="file" accept=".glb,.gltf,.obj,.stl,model/gltf-binary,model/gltf+json,model/obj,model/stl" multiple hidden>
-          <div id="modelCatalog" class="asset-catalog"></div>
+          <details class="imported-assets"><summary><span>Oggetti importati</span><span class="asset-count" id="modelAssetCount">0</span></summary><div id="modelCatalog" class="asset-catalog"></div></details>
         </div>
         <div class="tool-group">
           <div class="group-label">TRASFORMA</div>
