@@ -1,8 +1,0 @@
-{
-  "name": "anno-zero-simulation",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "node --check app.js && node --check cesium-map.js && node --check engine.js && node --check name-data.js && node --check sim-worker.js && node --test"
-  }
-}
