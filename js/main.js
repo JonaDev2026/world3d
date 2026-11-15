@@ -30,20 +30,27 @@ $("duplicateBtn").addEventListener("click",()=>editor.duplicateSelected());
 function projectBlob(){
  return new Blob([JSON.stringify(editor.projectData(),null,2)],{type:"application/json"});
 }
+let currentFileHandle=null;
 function downloadProject(){
  const url=URL.createObjectURL(projectBlob()),a=document.createElement("a");
  a.href=url;a.download="world3d-project.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+async function writeProject(handle){
+ const writable=await handle.createWritable();
+ await writable.write(projectBlob());
+ await writable.close();
+ currentFileHandle=handle;
+}
 $("saveProjectBtn").addEventListener("click",async()=>{
  try{
-  if(window.showSaveFilePicker){
+  if(currentFileHandle){
+   await writeProject(currentFileHandle);
+  }else if(window.showSaveFilePicker){
    const handle=await window.showSaveFilePicker({
     suggestedName:"world3d-project.json",
     types:[{description:"Progetto World3D",accept:{"application/json":[".json"]}}]
    });
-   const writable=await handle.createWritable();
-   await writable.write(projectBlob());
-   await writable.close();
+   await writeProject(handle);
   }else{
    downloadProject();
   }
@@ -56,11 +63,31 @@ $("exportProjectBtn").addEventListener("click",()=>{
  downloadProject();
  $("saveState").textContent=t("Progetto esportato");
 });
-$("openProjectBtn").addEventListener("click",()=>$("projectFileInput").click());
+$("openProjectBtn").addEventListener("click",async()=>{
+ if(window.showOpenFilePicker){
+  try{
+   const [handle]=await window.showOpenFilePicker({
+    multiple:false,
+    types:[{description:"Progetto World3D",accept:{"application/json":[".json"]}}]
+   });
+   const file=await handle.getFile();
+   const data=JSON.parse(await file.text());
+   editor.importProject(data);
+   currentFileHandle=handle;
+   $("saveState").textContent=t("Progetto caricato");
+  }catch(error){
+   if(error.name!=="AbortError")alert(t("Impossibile aprire il progetto")+": "+error.message);
+  }
+ }else{
+  currentFileHandle=null;
+  $("projectFileInput").click();
+ }
+});
 $("projectFileInput").addEventListener("change",async event=>{
  const file=event.currentTarget.files?.[0];if(!file)return;
  try{
   const data=JSON.parse(await file.text());editor.importProject(data);
+  currentFileHandle=null;
   $("saveState").textContent=t("Progetto caricato");
  }catch(error){alert(t("Impossibile aprire il progetto")+": "+error.message);}
  event.currentTarget.value="";
