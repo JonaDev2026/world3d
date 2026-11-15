@@ -5,7 +5,7 @@ import sys, json, math, base64, copy, uuid, io, locale
 from pathlib import Path
 import numpy as np
 from PySide6.QtCore import Qt, Signal, QSettings
-from PySide6.QtGui import QColor, QSurfaceFormat, QAction, QKeySequence
+from PySide6.QtGui import QColor, QSurfaceFormat, QAction, QKeySequence, QPainter, QPen, QFont, QFontDatabase
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QGridLayout, QSplitter, QFrame, QLabel, QPushButton, QToolButton, QComboBox,
     QDoubleSpinBox, QColorDialog, QFileDialog, QMessageBox, QScrollArea, QLineEdit,
@@ -64,7 +64,7 @@ class Viewport(QOpenGLWidget):
         self.transform_mode="translate"; self.drag_origin=None; self.dragging=False; self.texture_assets={}; self.gl_textures={}; self.procedural_images={}
         self.yaw=math.radians(42); self.pitch=math.radians(34); self.distance=58.
         self.target=np.array([0.,0.,0.]); self.grid=True; self.snap=True
-        self.tool="select"; self.last_pos=None; self.dragging=False
+        self.tool="select"; self.last_pos=None; self.dragging=False; self.drag_axis=None; self.drag_axis_vector=None
         self.setFocusPolicy(Qt.StrongFocus)
     def initializeGL(self):
         glClearColor(.72,.75,.78,1); glEnable(GL_DEPTH_TEST); glEnable(GL_MULTISAMPLE)
@@ -84,6 +84,7 @@ class Viewport(QOpenGLWidget):
         eye=self.camera(); gluLookAt(*eye,*self.target,0,1,0)
         self.draw_ground()
         for item in self.items: self.draw_item(item)
+        self.draw_orientation_widget()
     def draw_ground(self):
         glDisable(GL_LIGHTING); glColor3f(.88,.89,.90)
         glBegin(GL_QUADS); glVertex3f(-self.width_m/2,0,-self.depth_m/2); glVertex3f(self.width_m/2,0,-self.depth_m/2); glVertex3f(self.width_m/2,0,self.depth_m/2); glVertex3f(-self.width_m/2,0,self.depth_m/2); glEnd()
@@ -96,7 +97,22 @@ class Viewport(QOpenGLWidget):
             for x in np.arange(-self.width_m/2,self.width_m/2+step,step): glVertex3f(x,.012,-self.depth_m/2); glVertex3f(x,.012,self.depth_m/2)
             for z in np.arange(-self.depth_m/2,self.depth_m/2+step,step): glVertex3f(-self.width_m/2,.012,z); glVertex3f(self.width_m/2,.012,z)
             glEnd()
-        glEnable(GL_LIGHTING)
+        glLineWidth(2.6); glBegin(GL_LINES)
+        glColor3f(.88,.20,.22); glVertex3f(-2.5,.035,0); glVertex3f(2.5,.035,0)
+        glColor3f(.20,.72,.36); glVertex3f(0,0,0); glVertex3f(0,3.0,0)
+        glColor3f(.20,.48,.95); glVertex3f(0,.035,-2.5); glVertex3f(0,.035,2.5)
+        glEnd(); glLineWidth(1.0); glEnable(GL_LIGHTING)
+    def draw_orientation_widget(self):
+        p=QPainter(self); p.setRenderHint(QPainter.Antialiasing)
+        p.setPen(Qt.NoPen); p.setBrush(QColor(32,35,41,225)); p.drawRoundedRect(self.width()-76,14,62,62,10,10)
+        p.setPen(QPen(QColor("#e34b50"),2)); p.drawLine(self.width()-45,45,self.width()-20,45)
+        p.setPen(QPen(QColor("#38b96a"),2)); p.drawLine(self.width()-45,45,self.width()-45,21)
+        p.setPen(QPen(QColor("#4d8df5"),2)); p.drawLine(self.width()-45,45,self.width()-61,59)
+        p.setFont(QFont("Google Sans",10,QFont.Bold))
+        p.setPen(QColor("#e34b50")); p.drawText(self.width()-18,49,"X")
+        p.setPen(QColor("#38b96a")); p.drawText(self.width()-49,19,"Y")
+        p.setPen(QColor("#4d8df5")); p.drawText(self.width()-70,67,"Z")
+        p.end()
     def draw_item(self,o):
         glPushMatrix(); glTranslatef(o["x"],0,o["z"]); glRotatef(o.get("rotation",0),0,1,0)
         base=np.array(o.get("base_size",o["size"]),float); size=np.array(o["size"],float)
