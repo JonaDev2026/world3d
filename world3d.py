@@ -37,10 +37,11 @@ def make_item(kind,x=0,z=0):
     if kind=="tree":
         # Geometria semplice combinata: tronco + chioma triangolata.
         meshes=[]
-        for index,(radius,height,cy) in enumerate([(.16,1.3,.65),(.78,1.55,1.3)]):
+        for index,(radius,height,cy) in enumerate([(.16,1.3,.65),(.72,1.0,2.05)]):
             if not trimesh: continue
             m=(trimesh.creation.cylinder(radius=radius,height=height,sections=12) if index==0
-               else trimesh.creation.cone(radius=radius,height=height,sections=12))
+               else trimesh.creation.icosphere(subdivisions=2,radius=radius))
+            if index==1: m.apply_scale([1,1.35,1])
             rotate=trimesh.transformations.rotation_matrix(-math.pi/2,[1,0,0])
             m.apply_transform(rotate); m.apply_translation([0,cy,0]); meshes.append(m)
         if meshes:
