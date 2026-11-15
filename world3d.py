@@ -375,7 +375,7 @@ class MainWindow(QMainWindow):
             kind=kind_to_web.get(o.get("kind"),"cube")
             size=o.get("size",[1,1,1])
             if isinstance(size,dict): size=[size.get("x",1),size.get("y",1),size.get("z",1)]
-            item={"kind":kind,"x":float(o.get("x",0)),"z":float(o.get("z",0)),"rotation":math.radians(float(o.get("rotation",0))),"size":{"x":size[0],"y":size[1],"z":size[2]},"color":o.get("color","#b7bdc5"),"texture":tex_to_web.get(o.get("texture","Nessuna"),o.get("texture","none")),"finish":finish_to_web.get(o.get("finish","Opaco"),o.get("finish","matte"))}
+            item={"kind":kind,"x":float(o.get("x",0)),"z":float(o.get("z",0)),"rotation":math.radians(float(o.get("rotation",0))),"size":{"x":size[0],"y":size[1],"z":size[2]},"color":o.get("color","#b7bdc5"),"texture":tex_to_web.get(o.get("texture","Nessuna"),("custom-"+o.get("texture")) if o.get("texture") in self.textures else o.get("texture","none")),"finish":finish_to_web.get(o.get("finish","Opaco"),o.get("finish","matte"))}
             if kind=="model": item["assetId"]=o.get("asset_id",o.get("id"))
             items.append(item)
         models=[]
@@ -427,8 +427,13 @@ class MainWindow(QMainWindow):
             elif isinstance(raw_models,dict):
                 self.models=raw_models
             raw_textures=d.get("textures",{})
+            texture_ids={}
             if isinstance(raw_textures,list):
-                self.textures={a.get("name",a.get("id","texture")):(a.get("data","").split(",",1)[1] if "," in a.get("data","") else a.get("data","")) for a in raw_textures}
+                self.textures={}
+                for asset in raw_textures:
+                    name=asset.get("name",asset.get("id","texture"))
+                    self.textures[name]=asset.get("data","").split(",",1)[1] if "," in asset.get("data","") else asset.get("data","")
+                    texture_ids[asset.get("id",name)]=name
             else: self.textures=raw_textures
             self.viewport.texture_assets=self.textures
             for name in self.textures:
@@ -454,7 +459,7 @@ class MainWindow(QMainWindow):
                 if isinstance(size,dict): size=[size.get("x",1),size.get("y",1),size.get("z",1)]
                 o["size"]=[float(v) for v in size]
                 o["color"]=item.get("color",o.get("color","#b7bdc5"))
-                tex=item.get("texture",o.get("texture","Nessuna")); o["texture"]=web_tex.get(tex,tex)
+                tex=item.get("texture",o.get("texture","Nessuna")); o["texture"]=web_tex.get(tex,texture_ids.get(tex,tex))
                 fin=item.get("finish",o.get("finish","Opaco")); o["finish"]=web_finish.get(fin,fin)
                 loaded.append(o)
             self.viewport.items=loaded; self.viewport.selected=None; self.current_path=path
@@ -519,19 +524,14 @@ class MainWindow(QMainWindow):
         for path in paths:
             try:
                 scene=trimesh.load(path,force="scene")
-                if isinstance(scene,trimesh.Scene):
-                    merged=scene.dump(concatenate=True)
-                    meshes=[merged] if merged is not None else []
-                else: meshes=[scene]
-                vertices=[]; faces=[]; offset=0
-                for m in meshes:
-                    v=np.asarray(m.vertices,float); f=np.asarray(m.faces,int)
-                    vertices.extend(v.tolist()); faces.extend((f+offset).tolist()); offset+=len(v)
-                v=np.asarray(vertices,float); center=(v.min(0)+v.max(0))/2; v-=center
-                extent=v.max(0)-v.min(0); factor=2/max(extent.max(),.001); v*=factor; v[:,1]-=v[:,1].min()
-                base=np.maximum(extent*factor,.1)
-                o={"id":uuid.uuid4().hex,"kind":"model","x":0.,"z":0.,"rotation":0.,"size":base.tolist(),"base_size":base.tolist(),"color":COLORS["model"],"texture":"Nessuna","finish":"Opaco","vertices":v.tolist(),"faces":faces,"asset_name":Path(path).name}
-                self.models[o["id"]]=copy.deepcopy(o); self.viewport.items.append(o); self.viewport.selected=o
+                merged=scene.dump(concatenate=True) if isinstance(scene,trimesh.Scene) else scene
+                if merged is None: raise ValueError("Nessuna geometria trovata")
+                # Normalizza gli import nel formato GLB autonomo, includendo le risorse del modello.
+                blob=merged.export(file_type="glb")
+                aid=uuid.uuid4().hex
+                asset={"id":aid,"name":Path(path).name,"extension":"glb","data":"data:model/gltf-binary;base64,"+base64.b64encode(blob).decode("ascii")}
+                o=self.model_from_asset(asset); o["asset_name"]=Path(path).name
+                self.models[aid]=copy.deepcopy(o); self.viewport.items.append(o); self.viewport.selected=o
             except Exception as e: QMessageBox.warning(self,"World3D",f"{Path(path).name}: {e}")
         self.selection_changed(self.viewport.selected); self.render_assets(); self.viewport.update(); self.push_history()
     def import_textures(self):
@@ -549,6 +549,7 @@ class MainWindow(QMainWindow):
             w=self.asset_list.takeAt(0).widget()
             if w:w.deleteLater()
         for aid,asset in self.models.items():
+            if aid in self.hidden_models: continue
             name=asset.get("asset_name",aid) if isinstance(asset,dict) else str(asset)
             row=QHBoxLayout(); b=QPushButton(name); b.setToolTip("Inserisci una copia nel piano"); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("🗑"); rm.setToolTip("Rimuovi dalla lista"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
     def insert_model(self,aid):
