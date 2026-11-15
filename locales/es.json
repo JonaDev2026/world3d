@@ -74,13 +74,13 @@
   "Seleziona un elemento": "Seleccionar un objeto",
   "Annulla strumento": "Cancelar herramienta",
   "Piano": "Plano",
-  "Apri progetto": "Abrir proyecto",
   "Esporta": "Exportar",
   "Progetto caricato": "Proyecto cargado",
   "Impossibile aprire il progetto": "No se pudo abrir el proyecto",
   "Progetto esportato": "Proyecto exportado",
   "Progetto in modifica": "Proyecto en edición",
-  "Salva progetto": "Guardar proyecto",
   "Progetto salvato": "Proyecto guardado",
-  "Impossibile salvare il progetto": "No se pudo guardar el proyecto"
+  "Impossibile salvare il progetto": "No se pudo guardar el proyecto",
+  "Abrir": "Abrir",
+  "Guardar": "Guardar"
 }
