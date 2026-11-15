@@ -74,7 +74,7 @@ async function initWorldMap(s){
 }
 function openDB(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});}
 async function load(){const db=await openDB();return new Promise((ok,no)=>{const r=db.transaction(STORE,"readonly").objectStore(STORE).get("world");r.onsuccess=()=>{db.close();ok(r.result||null);};r.onerror=()=>{db.close();no(r.error);};});}
-async function save(){if(!world)return;const meta={speed,paused,timeRemainderMs:elapsedMs,realMinuteMs,pendingDays,lastWallTime:Date.now()};if(worker&&workerReady){const result=await workerRequest({type:"save",meta});latestSummary=result.summary;}else{Object.assign(world,meta);const db=await openDB();await new Promise((ok,no)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});db.close();}lastSaved=Date.now();$("save-state").textContent="Salvato sul dispositivo";$("last-save").textContent="SALVATO "+new Date(lastSaved).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});}
+async function save(){if(!world)return;const meta={speed,paused,timeRemainderMs:elapsedMs,realMinuteMs,pendingDays,lastWallTime:Date.now()};if(worker&&workerReady){const result=await workerRequest({type:"save",meta});latestSummary=result.summary;if(result.world)world=result.world;}else{Object.assign(world,meta);const db=await openDB();await new Promise((ok,no)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(world,"world");tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});db.close();}lastSaved=Date.now();$("save-state").textContent="Salvato sul dispositivo";$("last-save").textContent="SALVATO "+new Date(lastSaved).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});}
 function esc(t){return String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function updateClock(s){const fraction=(elapsedMs%60000)/60000,totalSeconds=Math.floor(fraction*86400),hh=String(Math.floor(totalSeconds/3600)).padStart(2,"0"),mm=String(Math.floor(totalSeconds%3600/60)).padStart(2,"0"),ss=String(totalSeconds%60).padStart(2,"0");$("real-clock").textContent=hh+":"+mm+":"+ss;$("real-date").textContent="ORA SIMULATA · CICLO DI 24 ORE";}
 function calendarLabel(s){const names=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"],lengths=[31,28,31,30,31,30,31,31,30,31,30,31];let d=((s.day-1)%365)+1,m=0;while(m<11&&d>lengths[m]){d-=lengths[m];m++;}return d+" "+names[m]+" · "+(m<2||m>10?"Inverno":m<5?"Primavera":m<8?"Estate":"Autunno");}
@@ -120,7 +120,25 @@ function updateAtmosphere(s){
 }
 function setPaused(value){paused=value;$("pause").innerHTML=paused?'<span class="material-symbols-rounded">play_arrow</span> Riprendi':'<span class="material-symbols-rounded">pause</span> Pausa';$("status").textContent=paused?"SIMULAZIONE IN PAUSA":"SIMULAZIONE ATTIVA";$("status-dot").parentElement.classList.toggle("paused",paused);}
 function workerRequest(payload){return new Promise((resolve,reject)=>{const id=++step.id;let settled=false;const cleanup=()=>{clearTimeout(timer);worker?.removeEventListener("message",handler);worker?.removeEventListener("error",failed);worker?.removeEventListener("messageerror",failed);};const finish=(fn,value)=>{if(settled)return;settled=true;cleanup();fn(value);};const handler=e=>{if(e.data.id!==id)return;e.data.error?finish(reject,new Error(e.data.error)):finish(resolve,e.data);};const failed=e=>finish(reject,new Error(e?.message||"Worker non disponibile"));const timer=setTimeout(()=>finish(reject,new Error("Timeout del worker")),8000);worker.addEventListener("message",handler);worker.addEventListener("error",failed);worker.addEventListener("messageerror",failed);try{worker.postMessage({id,...payload});}catch(error){finish(reject,error);}});}
-async function runAdvance(days){if(worker){try{const result=await workerRequest(workerReady?{type:"advance",days}:{type:"init",world,days});workerReady=true;latestSummary=result.summary;if(result.world)world=result.world;return;}catch(error){console.warn("Worker non disponibile, continuo senza worker:",error);worker.terminate();worker=null;workerReady=false;}}advance(world,days);latestSummary=summary(world);}
+async function runAdvance(days){
+ if(worker){
+  const wasReady=workerReady;
+  const beforeIndex=(Number(world?.year)||0)*365+Math.max(0,(Number(world?.day)||1)-1);
+  const knownIndex=latestSummary?latestSummary.year*365+latestSummary.day-1:beforeIndex;
+  try{
+   const result=await workerRequest(wasReady?{type:"advance",days}:{type:"init",world,days});
+   workerReady=true;latestSummary=result.summary;if(result.world)world=result.world;return;
+  }catch(error){
+   console.warn("Worker non disponibile, recupero dall'ultimo checkpoint:",error);
+   const targetIndex=(wasReady?knownIndex:beforeIndex)+Math.max(0,Math.min(3650,Math.floor(days)));
+   worker.terminate();worker=null;workerReady=false;
+   const savedIndex=(Number(world?.year)||0)*365+Math.max(0,(Number(world?.day)||1)-1);
+   advance(world,Math.max(0,targetIndex-savedIndex));
+   latestSummary=summary(world);return;
+  }
+ }
+ advance(world,days);latestSummary=summary(world);
+}
 async function step(days){if(busy||paused)return false;busy=true;try{await runAdvance(days);render(latestSummary||summary(world));if((latestSummary?.day??world.day)%11===0)await save();return true;}catch(error){console.error(error);$("save-state").textContent="Errore: "+error.message;setPaused(true);return false;}finally{busy=false;}}step.id=0;
 $("pause").addEventListener("click",()=>setPaused(!paused));
 document.querySelectorAll("[data-speed]").forEach(button=>button.addEventListener("click",()=>{speed=Number(button.dataset.speed);document.querySelectorAll("[data-speed]").forEach(item=>item.classList.toggle("selected",item===button));}));
