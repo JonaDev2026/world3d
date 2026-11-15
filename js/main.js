@@ -80,6 +80,9 @@ $("applySettings").addEventListener("click",async()=>{
  editor.setPlaneSize(w,d);
  await i18n.setLanguage($("languageSelect").value);
  editor.emitSelection(editor.selected);
+ editor.emitPlaneSize(editor.planeWidth,editor.planeDepth);
+ $("objectCount").textContent=editor.items.length+" "+t(editor.items.length===1?"elemento":"elementi");
+ $("saveState").textContent=t("Modifiche non salvate");
  closeSettings();
 });
 window.addEventListener("keydown",event=>{
