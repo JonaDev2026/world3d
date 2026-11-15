@@ -174,8 +174,11 @@ export class BuildEditor {
     const source=makeTexture(type);
     const map=source?source.clone():null;
     if(map){
-      const density=type==="tile"?10:type==="brick"?2:1;
-      map.repeat.set(Math.max(dimensions.x,dimensions.z)*density,Math.max(dimensions.y,dimensions.z)*density);
+      // The tile canvas contains 4x4 tiles: 2.5 texture repeats per metre
+      // produce 10 cm tiles. Brick canvas: 2 bricks wide and 8 high.
+      const densityX=type==="tile"?2.5:type==="brick"?1:1;
+      const densityY=type==="tile"?2.5:type==="brick"?0.5:1;
+      map.repeat.set(Math.max(dimensions.x,dimensions.z)*densityX,Math.max(dimensions.y,dimensions.z)*densityY);
       map.needsUpdate=true;
     }
     return new THREE.MeshStandardMaterial({color, map, roughness:opts.roughness, metalness:opts.metalness, transparent:type==="glass", opacity:type==="glass"?.58:1});
