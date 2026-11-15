@@ -47,3 +47,8 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Rimosso il limite massimo di 500 m per larghezza e profondità del piano.
 - La griglia visualizzata diventa progressivamente meno fitta sui piani molto grandi per contenere il carico grafico; lo snap di posizionamento resta a 0,1 m.
 - Distanza massima della camera e piano di clipping ampliate per consentire la navigazione su superfici di scala chilometrica.
+
+## Correzione texture e file progetto
+- Corretto il ripristino delle texture: la creazione del materiale riceve ora le dimensioni effettive dell'oggetto anche durante il caricamento.
+- Aggiunta esportazione del progetto in un file JSON con piano, oggetti, posizioni, dimensioni, rotazioni e materiali.
+- Aggiunta apertura di un file progetto JSON; l'importazione ripristina anche le dimensioni del piano e aggiorna il salvataggio locale.
