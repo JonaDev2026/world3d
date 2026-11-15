@@ -420,19 +420,19 @@ class MainWindow(QMainWindow):
         panel=QFrame(); panel.setObjectName("panel"); panel.setMinimumWidth(250); panel.setMaximumWidth(340)
         outer=QVBoxLayout(panel); outer.setContentsMargins(14,12,14,10); outer.setSpacing(8)
         heading=QLabel("Proprietà"); heading.setObjectName("sectionTitle"); outer.addWidget(heading)
-        self.empty_inspector=QLabel("touch_app\\n\\nNessuna selezione\\n\\nSeleziona un elemento nel piano per modificarne le proprietà.")
+        self.empty_inspector=QLabel("Nessuna selezione\nSeleziona un elemento nel piano per modificarne le proprietà.")
         self.empty_inspector.setAlignment(Qt.AlignCenter); self.empty_inspector.setWordWrap(True); self.empty_inspector.setStyleSheet("color:#9aa0a6;padding:28px 12px")
         outer.addWidget(self.empty_inspector)
         self.inspector_content=QWidget(); content=QVBoxLayout(self.inspector_content); content.setContentsMargins(0,0,0,0); content.setSpacing(8)
-        self.selected_label=QLabel("view_in_ar   Oggetto"); self.selected_label.setStyleSheet("background:#2b3038;border:1px solid #383d46;border-radius:9px;padding:13px;font-weight:600")
+        self.selected_label=QLabel("Oggetto"); self.selected_label.setStyleSheet("background:#2b3038;border:1px solid #383d46;border-radius:9px;padding:13px;font-weight:600")
         content.addWidget(self.selected_label)
         def group_title(text):
             l=QLabel(text.upper()); l.setObjectName("groupLabel"); content.addWidget(l)
         group_title("Posizione"); self.fields={}
-        for key,label in [("x","X"),("z","Z"),("sx","Larghezza"),("sy","Altezza"),("sz","Profondità"),("rotation","Rotazione °")]:
+        for key,label in [("x","Posizione X"),("z","Posizione Z"),("sx","Larghezza"),("sy","Altezza"),("sz","Profondità"),("rotation","Rotazione °")]:
             row=QHBoxLayout(); lab=QLabel(label); lab.setMinimumWidth(84); spin=QDoubleSpinBox(); spin.setRange(-100000,100000); spin.setDecimals(1); spin.setSingleStep(.1 if key!="rotation" else 15)
             spin.valueChanged.connect(lambda v,k=key:self.update_selected(k,v)); self.fields[key]=spin; row.addWidget(lab); row.addWidget(spin,1); content.addLayout(row)
-        group_title("Colore"); self.color_btn=QPushButton("palette   Scegli colore"); self.color_btn.clicked.connect(self.choose_color); content.addWidget(self.color_btn)
+        group_title("Colore"); self.color_btn=QPushButton("Scegli colore"); self.color_btn.clicked.connect(self.choose_color); content.addWidget(self.color_btn)
         palette=QGridLayout(); palette.setSpacing(6)
         for i,color in enumerate(PALETTE):
             swatch=QPushButton(); swatch.setFixedSize(25,25); swatch.setToolTip(color); swatch.setStyleSheet(f"background:{color};border:1px solid #69717c;border-radius:6px;padding:0")
@@ -454,12 +454,18 @@ class MainWindow(QMainWindow):
         for key,fn in [("Delete",self.delete_selected),("Ctrl+S",self.save_project),("Ctrl+O",self.open_project),("Ctrl+Z",self.undo),("Ctrl+Y",self.redo),("V",lambda:self.set_tool("select"))]:
             a=QAction(self); a.setShortcut(QKeySequence(key)); a.triggered.connect(fn); self.addAction(a)
     def selection_changed(self,o):
+        self.empty_inspector.setVisible(o is None); self.inspector_content.setVisible(o is not None)
         for key,w in self.fields.items():
-            w.blockSignals(True); w.setValue(0 if o is None else (o["x"] if key=="x" else o["z"] if key=="z" else o["rotation"] if key=="rotation" else o["size"][{"sx":0,"sy":1,"sz":2}[key]])); w.setEnabled(o is not None); w.blockSignals(False)
+            w.blockSignals(True)
+            w.setValue(0 if o is None else (o["x"] if key=="x" else o["z"] if key=="z" else o["rotation"] if key=="rotation" else o["size"][{"sx":0,"sy":1,"sz":2}[key]]))
+            w.setEnabled(o is not None); w.blockSignals(False)
         self.color_btn.setEnabled(o is not None); self.texture_combo.setEnabled(o is not None); self.finish_combo.setEnabled(o is not None)
         if o:
-            self.color_btn.setText("Colore · "+o["color"]); self.texture_combo.blockSignals(True); self.texture_combo.setCurrentIndex(max(0,self.texture_combo.findData(o.get("texture","Nessuna")))); self.texture_combo.blockSignals(False)
+            self.selected_label.setText(LABELS.get(o.get("kind"),o.get("asset_name") or "Oggetto"))
+            self.color_btn.setText("Colore · "+o["color"])
+            self.texture_combo.blockSignals(True); self.texture_combo.setCurrentIndex(max(0,self.texture_combo.findData(o.get("texture","Nessuna")))); self.texture_combo.blockSignals(False)
             self.finish_combo.blockSignals(True); self.finish_combo.setCurrentIndex(max(0,self.finish_combo.findData(o.get("finish","Opaco")))); self.finish_combo.blockSignals(False)
+        if hasattr(self,"object_count"): self.object_count.setText(f"{len(self.viewport.items)} elementi")
     def update_selected(self,k,v):
         o=self.viewport.selected
         if not o:return
