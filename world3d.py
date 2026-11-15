@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """World3D - editor desktop Linux."""
 from __future__ import annotations
-import sys, json, math, base64, copy, uuid
+import sys, json, math, base64, copy, uuid, io
 from pathlib import Path
 import numpy as np
 from PySide6.QtCore import Qt, Signal
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
     QGroupBox, QFormLayout, QInputDialog, QMenu, QOpenGLWidget)
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from PIL import Image, ImageDraw
 try:
     import trimesh
 except ImportError:
@@ -57,7 +58,7 @@ class Viewport(QOpenGLWidget):
         super().__init__(parent)
         self.setMinimumSize(480,360)
         self.items=[]; self.selected=None; self.width_m=40.; self.depth_m=40.
-        self.transform_mode="translate"; self.drag_origin=None; self.texture_assets={}; self.gl_textures={}
+        self.transform_mode="translate"; self.drag_origin=None; self.dragging=False; self.texture_assets={}; self.gl_textures={}; self.procedural_images={}
         self.yaw=math.radians(42); self.pitch=math.radians(34); self.distance=58.
         self.target=np.array([0.,0.,0.]); self.grid=True; self.snap=True
         self.tool="select"; self.last_pos=None; self.dragging=False
@@ -100,12 +101,24 @@ class Viewport(QOpenGLWidget):
         c=QColor(o.get("color","#b7bdc5")); glColor4f(c.redF(),c.greenF(),c.blueF(),.72 if o.get("texture")=="Vetro" else 1)
         if o.get("texture")=="Vetro": glDepthMask(GL_FALSE)
         verts=np.asarray(o["vertices"],float); faces=np.asarray(o["faces"],int)
+        tex_name=o.get("texture","Nessuna")
+        tex_id=self.texture_id(tex_name)
+        if tex_id:
+            glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D,tex_id)
+        else: glDisable(GL_TEXTURE_2D)
         glBegin(GL_TRIANGLES)
         for tri in faces:
             a,b,c0=verts[tri]; n=np.cross(b-a,c0-a); ln=np.linalg.norm(n)
-            if ln: glNormal3f(*(n/ln))
-            for idx in tri: glVertex3f(*verts[idx])
+            if ln: n=n/ln; glNormal3f(*n)
+            for idx in tri:
+                v=verts[idx]
+                if abs(n[1])>=abs(n[0]) and abs(n[1])>=abs(n[2]): uv=(v[0],v[2])
+                elif abs(n[0])>=abs(n[2]): uv=(v[2],v[1])
+                else: uv=(v[0],v[1])
+                if tex_id: glTexCoord2f(uv[0],uv[1])
+                glVertex3f(*v)
         glEnd()
+        glDisable(GL_TEXTURE_2D)
         glDepthMask(GL_TRUE)
         if self.selected is o:
             glDisable(GL_LIGHTING); glColor3f(.15,.42,.85)
@@ -119,6 +132,51 @@ class Viewport(QOpenGLWidget):
                 for zz in [lo[2],hi[2]]: glVertex3f(xx,lo[1],zz); glVertex3f(xx,hi[1],zz)
             glEnd(); glEnable(GL_LIGHTING)
         glPopMatrix()
+    def texture_id(self,name):
+        if not name or name=="Nessuna": return 0
+        if name in self.gl_textures: return self.gl_textures[name]
+        data=self.texture_assets.get(name)
+        try:
+            if data:
+                img=Image.open(io.BytesIO(base64.b64decode(data))).convert("RGBA")
+            else:
+                img=Image.new("RGBA",(256,256),(160,160,160,255)); d=ImageDraw.Draw(img)
+                if name=="Legno":
+                    img.paste((157,105,67,255),(0,0,256,256))
+                    for y in range(0,256,12): d.line((0,y,256,y+3),fill=(91,57,35,255),width=2)
+                elif name=="Piastrelle":
+                    img.paste((218,214,205,255),(0,0,256,256))
+                    for p in range(0,257,64): d.line((p,0,p,256),fill=(120,117,111,255),width=3); d.line((0,p,256,p),fill=(120,117,111,255),width=3)
+                elif name=="Marmo":
+                    img.paste((226,223,216,255),(0,0,256,256))
+                    for p in range(8): d.line((p*37,0,p*37+80,256),fill=(160,158,151,255),width=2)
+                elif name=="Cemento":
+                    img.paste((145,149,148,255),(0,0,256,256))
+                    for p in range(700):
+                        x=(p*73)%256; y=(p*137)%256; d.point((x,y),fill=(190,192,187,255))
+                elif name=="Mattoni":
+                    img.paste((164,91,72,255),(0,0,256,256))
+                    for y in range(0,256,32):
+                        d.line((0,y,256,y),fill=(215,177,158,255),width=3)
+                        off=0 if (y//32)%2 else 64
+                        for x in range(off,256,128): d.line((x,y,x,y+32),fill=(215,177,158,255),width=3)
+                elif name=="Tessuto":
+                    img.paste((120,137,128,255),(0,0,256,256))
+                    for p in range(0,256,4): d.line((p,0,p,256),fill=(170,180,171,255)); d.line((0,p,256,p),fill=(75,91,82,255))
+                elif name=="Metallo":
+                    for x in range(256):
+                        c=int(100+100*x/255); d.line((x,0,x,256),fill=(c,min(255,c+20),min(255,c+25),255))
+                elif name=="Vetro":
+                    img.paste((151,203,220,180),(0,0,256,256)); d.line((0,220,256,20),fill=(235,250,255,220),width=18)
+            raw=img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes()
+            tex=glGenTextures(1); glBindTexture(GL_TEXTURE_2D,tex)
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT); glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT)
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR); glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR)
+            gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA,img.width,img.height,GL_RGBA,GL_UNSIGNED_BYTE,raw)
+            self.gl_textures[name]=tex
+            return tex
+        except Exception:
+            return 0
     def project(self,p):
         model=glGetDoublev(GL_MODELVIEW_MATRIX); proj=glGetDoublev(GL_PROJECTION_MATRIX); vp=glGetIntegerv(GL_VIEWPORT)
         return gluProject(*p,model,proj,vp)
@@ -193,7 +251,7 @@ class Viewport(QOpenGLWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__(); self.setWindowTitle("World3D"); self.resize(1440,900)
-        self.lang="it"; self.history=[]; self.history_index=-1; self.textures={}; self.models={}
+        self.lang="it"; self.history=[]; self.history_index=-1; self.textures={}; self.models={}; self.current_path=None
         root=QWidget(); layout=QVBoxLayout(root); layout.setContentsMargins(0,0,0,0); layout.setSpacing(0)
         top=QHBoxLayout(); top.setContentsMargins(12,8,12,8)
         title=QLabel("◈  World3D"); title.setStyleSheet("font-size:18px;font-weight:700;color:#e8eaed")
@@ -294,7 +352,7 @@ class MainWindow(QMainWindow):
         try:
             d=json.loads(Path(path).read_text(encoding="utf-8"))
             if d.get("format")!="world3d-project" or d.get("version")!=1: raise ValueError("Formato progetto non supportato")
-            self.viewport.items=d.get("items",[]); self.models=d.get("models",{}); self.textures=d.get("textures",{}); self.current_path=path
+            self.viewport.items=d.get("items",[]); self.models=d.get("models",{}); self.textures=d.get("textures",{}); self.viewport.texture_assets=self.textures; self.current_path=path
             self.viewport.set_plane(d["plane"]["width"],d["plane"]["depth"]); self.viewport.selected=None; self.selection_changed(None); self.render_assets(); self.viewport.update(); self.push_history()
         except Exception as e: QMessageBox.critical(self,"World3D",f"Impossibile aprire il progetto:\n{e}")
     def settings(self):
@@ -338,6 +396,9 @@ class MainWindow(QMainWindow):
         for p in paths:
             try:self.textures[Path(p).name]=base64.b64encode(Path(p).read_bytes()).decode("ascii")
             except Exception:pass
+        self.viewport.texture_assets=self.textures
+        for name in self.textures:
+            if self.texture_combo.findText(name)<0: self.texture_combo.addItem(name)
         self.render_assets()
     def render_assets(self):
         while self.asset_list.count():
