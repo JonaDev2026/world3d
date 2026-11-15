@@ -1,22 +1,28 @@
 # Diario di sviluppo
 
-## Obiettivo
-World3D diventa un editor desktop nativo per Linux, scritto in Python. La versione browser resta temporaneamente nel repository come riferimento durante la migrazione.
+## Migrazione a desktop Python
 
-## Porting Python - prima base desktop
-- Aggiunto `world3d.py` con interfaccia PySide6 e viewport OpenGL.
-- Ricreati piano, griglia, strumenti base, selezione, inspector, trasformazioni numeriche, colori e finiture.
-- Aggiunti importazione modelli GLB, GLTF, OBJ e STL tramite trimesh.
-- Aggiunta importazione immagini PNG, JPG e WEBP.
-- Aggiunti salvataggio/apertura JSON, geometrie dei modelli incorporate e cronologia undo/redo.
-- Aggiunta lista espandibile degli oggetti importati con rimozione dal catalogo.
-- Dipendenze installabili dai repository Linux, senza pip.
+La versione browser è stata rimossa dalla radice del progetto e sostituita con l'app desktop nativa.
 
-## Da completare e verificare
-- Verificare l'avvio e il rendering su Debian/Ubuntu X11 e Wayland.
-- Completare la navigazione e il posizionamento 3D tramite ray casting reale.
-- Portare la mappatura delle texture procedurali in scala metrica e l'applicazione delle texture personali.
-- Completare le traduzioni IT/EN/FR/ES.
-- Migliorare i gizmo interattivi per spostamento e rotazione.
-- Verificare import/export di progetti con modelli e texture.
-- Solo dopo la verifica funzionale rimuovere i file della versione browser.
+### Implementato
+- `world3d.py` con interfaccia PySide6/Qt 6 e viewport OpenGL.
+- Qt OpenGL Widgets separato, con selezione automatica del backend grafico: X11 o Wayland.
+- Piano regolabile, griglia, snap a 0,1 m, orbita, pan, zoom e vista dall'alto.
+- Strumenti per muro, pavimento, porta, finestra, blocco e albero.
+- Selezione tramite bounding box proiettata, spostamento e rotazione con trascinamento.
+- Inspector numerico per posizione, dimensioni e rotazione.
+- Palette 16 colori, texture procedurali, texture personalizzate e finiture.
+- Importazione di cartelle, immagini PNG/JPG/WEBP e modelli GLB/GLTF/OBJ/STL.
+- Conversione dei modelli importati in GLB incorporati nel progetto.
+- Catalogo oggetti importati espandibile, inserimento copie e rimozione non distruttiva.
+- Salvataggio, apertura, esportazione JSON e compatibilità con lo schema dei progetti browser.
+- Undo/redo e preferenza lingua persistente IT/EN/FR/ES con rilevamento automatico.
+- Script di avvio e installazione desktop; nessun uso di pip.
+
+### Da verificare
+- Compilazione Python e avvio effettivo con le dipendenze di sistema.
+- Rendering OpenGL su Wayland nativo e X11.
+- Test interattivi di importazione modelli/texture e riapertura dei progetti.
+- Verifica di progetti browser complessi, soprattutto GLTF con risorse esterne.
+
+La migrazione è una prima versione desktop completa nelle funzioni principali, ma non va ancora dichiarata stabile finché non supera i test su Linux reale.
