@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
 
 const GRID_SIZE = 40;
-const SNAP = 0.5;
+const SNAP = 0.1;
 const COLORS = { Muro:0xd7d0c5, Pavimento:0xb6a995, Porta:0x9b7653, Finestra:0x91b9ca, Blocco:0x9da8b7, Albero:0x6e9a72 };
 const TEXTURE_CACHE = new Map();
 
@@ -112,7 +112,7 @@ export class BuildEditor {
   setTopView(top) { if(top){this.camera.position.set(0,42,0.01);this.controls.target.set(0,0,0);this.controls.maxPolarAngle=Math.PI;}else{this.camera.position.set(28,24,28);this.controls.target.set(0,0,0);this.controls.maxPolarAngle=Math.PI*.49;} this.camera.lookAt(0,0,0); }
   zoom(factor) { this.camera.position.sub(this.controls.target).multiplyScalar(factor).add(this.controls.target); }
   resetView() { this.camera.position.set(28,24,28);this.controls.target.set(0,0,0);this.controls.maxPolarAngle=Math.PI*.49; }
-  snapValue(v) { return this.snap?Math.round(v/SNAP)*SNAP:v; }
+  snapValue(v) { return this.snap?Math.round(v*10)/10:v; }
   onPointerDown = (event) => {
     if(event.button!==0 || this.transform.dragging)return;
     const rect=this.renderer.domElement.getBoundingClientRect();
@@ -186,7 +186,7 @@ export class BuildEditor {
   updateSelected(key,value){if(!this.selected)return;const o=this.selected;
     if(key==="x"||key==="z")o.position[key]=this.snapValue(value);
     if(key==="rotation")o.rotation.y=value*Math.PI/180;
-    if(key==="sx"||key==="sy"||key==="sz"){const k=key==="sx"?"x":key==="sy"?"y":"z";o.userData.size[k]=Math.max(.1,value);const mesh=o.children.find(c=>c.isMesh);if(mesh&&mesh.geometry.type==="BoxGeometry"){mesh.geometry.dispose();mesh.geometry=new THREE.BoxGeometry(o.userData.size.x,o.userData.size.y,o.userData.size.z);mesh.position.y=o.userData.size.y/2;}}
+    if(key==="sx"||key==="sy"||key==="sz"){const k=key==="sx"?"x":key==="sy"?"y":"z";o.userData.size[k]=Math.max(.1,Math.round(value*10)/10);const mesh=o.children.find(c=>c.isMesh);if(mesh&&mesh.geometry.type==="BoxGeometry"){mesh.geometry.dispose();mesh.geometry=new THREE.BoxGeometry(o.userData.size.x,o.userData.size.y,o.userData.size.z);mesh.position.y=o.userData.size.y/2;}}
     if(key==="color"||key==="texture"||key==="finish"){this.applyMaterial(o,{[key]:value});}
     this.emitSelection(o);this.emitChange();this.pushHistory();
   }
