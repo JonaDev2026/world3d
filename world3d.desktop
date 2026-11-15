@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=World3D
+Comment=Editor 3D di costruzione
+Exec=world3d
+Icon=applications-graphics
+Terminal=false
+Categories=Graphics;3DGraphics;
