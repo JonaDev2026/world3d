@@ -74,13 +74,13 @@
   "Seleziona un elemento": "Sélectionner un élément",
   "Annulla strumento": "Annuler l’outil",
   "Piano": "Plan",
-  "Apri progetto": "Ouvrir un projet",
   "Esporta": "Exporter",
   "Progetto caricato": "Projet chargé",
   "Impossibile aprire il progetto": "Impossible d’ouvrir le projet",
   "Progetto esportato": "Projet exporté",
   "Progetto in modifica": "Projet en cours",
-  "Salva progetto": "Enregistrer le projet",
   "Progetto salvato": "Projet enregistré",
-  "Impossibile salvare il progetto": "Impossible d’enregistrer le projet"
+  "Impossibile salvare il progetto": "Impossible d’enregistrer le projet",
+  "Ouvrir": "Ouvrir",
+  "Enregistrer": "Enregistrer"
 }
