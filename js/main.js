@@ -123,7 +123,6 @@ function renderProjectAssets(){
  for(const asset of editor.customTextures.values())addTextureButton(asset);
  $("modelCatalog").replaceChildren();
  for(const asset of editor.customModels.values()){const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;button.addEventListener("click",async()=>{try{await editor.addModelAsset(asset);}catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}});$("modelCatalog").append(button);}}
-}
 function addModelButton(asset){
  const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;
  button.addEventListener("click",async()=>{try{await editor.addModelAsset(asset);$("saveState").textContent=t("Modifiche non salvate");}catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}});
