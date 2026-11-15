@@ -89,18 +89,5 @@
   "Il browser non supporta la selezione di cartelle. Usa Importa texture o Importa modello 3D.": "Il browser non supporta la selezione di cartelle. Usa Importa texture o Importa modello 3D.",
   "Nessuna risorsa compatibile trovata nella cartella.": "Nessuna risorsa compatibile trovata nella cartella.",
   "Oggetti importati": "Oggetti importati",
-  "Rimuovi dalla lista": "Rimuovi dalla lista",
-  "COSTRUZIONE": "COSTRUZIONE",
-  "PROPRIETÀ": "PROPRIETÀ",
-  "Posizione X": "Posizione X",
-  "Posizione Z": "Posizione Z",
-  "Larghezza": "Larghezza",
-  "Altezza": "Altezza",
-  "Profondità": "Profondità",
-  "Texture": "Texture",
-  "Snap 0,1 m": "Snap 0,1 m",
-  "Centra": "Centra",
-  "Modello 3D": "Modello 3D",
-  "Duplica": "Duplica",
-  "Piano vuoto · 40 × 40 m": "Piano vuoto · 40 × 40 m"
+  "Rimuovi dalla lista": "Rimuovi dalla lista"
 }
