@@ -82,5 +82,11 @@
   "Progetto salvato": "Proyecto guardado",
   "Impossibile salvare il progetto": "No se pudo guardar el proyecto",
   "Abrir": "Abrir",
-  "Guardar": "Guardar"
+  "Guardar": "Guardar",
+  "Importa cartella": "Importar carpeta",
+  "Importa texture": "Importar texturas",
+  "Importa modello 3D": "Importar modelo 3D",
+  "Impossibile importare il modello": "No se pudo importar el modelo",
+  "Il browser non supporta la selezione di cartelle. Usa Importa texture o Importa modello 3D.": "Este navegador no admite la selección de carpetas. Usa Importar texturas o Importar modelo 3D.",
+  "Nessuna risorsa compatibile trovata nella cartella.": "No se encontraron recursos compatibles en esta carpeta."
 }
