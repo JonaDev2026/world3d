@@ -84,6 +84,7 @@ class Viewport(QOpenGLWidget):
         eye=self.camera(); gluLookAt(*eye,*self.target,0,1,0)
         self.draw_ground()
         for item in self.items: self.draw_item(item)
+        self.draw_gizmo()
         self.draw_orientation_widget()
     def draw_ground(self):
         glDisable(GL_LIGHTING); glColor3f(.88,.89,.90)
@@ -102,6 +103,15 @@ class Viewport(QOpenGLWidget):
         glColor3f(.20,.72,.36); glVertex3f(0,0,0); glVertex3f(0,3.0,0)
         glColor3f(.20,.48,.95); glVertex3f(0,.035,-2.5); glVertex3f(0,.035,2.5)
         glEnd(); glLineWidth(1.0); glEnable(GL_LIGHTING)
+    def draw_gizmo(self):
+        if not self.selected: return
+        glDisable(GL_LIGHTING); glPushMatrix()
+        glTranslatef(self.selected["x"],.08,self.selected["z"])
+        glLineWidth(3.2); glBegin(GL_LINES)
+        glColor3f(.90,.20,.22); glVertex3f(0,0,0); glVertex3f(2.0,0,0)
+        glColor3f(.20,.75,.38); glVertex3f(0,0,0); glVertex3f(0,2.0,0)
+        glColor3f(.22,.50,.98); glVertex3f(0,0,0); glVertex3f(0,0,2.0)
+        glEnd(); glLineWidth(1.0); glPopMatrix(); glEnable(GL_LIGHTING)
     def draw_orientation_widget(self):
         p=QPainter(self); p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen); p.setBrush(QColor(32,35,41,225)); p.drawRoundedRect(self.width()-76,14,62,62,10,10)
@@ -155,12 +165,7 @@ class Viewport(QOpenGLWidget):
                     glVertex3f(xx,yy,hi[2]); glVertex3f(hi[0] if xx==lo[0] else lo[0],yy,hi[2])
             for xx in [lo[0],hi[0]]:
                 for zz in [lo[2],hi[2]]: glVertex3f(xx,lo[1],zz); glVertex3f(xx,hi[1],zz)
-            glEnd()
-            glLineWidth(3.2); glBegin(GL_LINES)
-            glColor3f(.90,.20,.22); glVertex3f(0,.08,0); glVertex3f(2.0,.08,0)
-            glColor3f(.20,.75,.38); glVertex3f(0,.08,0); glVertex3f(0,2.0,0)
-            glColor3f(.22,.50,.98); glVertex3f(0,.08,0); glVertex3f(0,.08,2.0)
-            glEnd(); glLineWidth(1.0); glEnable(GL_LIGHTING)
+            glEnd(); glEnable(GL_LIGHTING)
         glPopMatrix()
     def clear_texture_cache(self):
         self.makeCurrent()
