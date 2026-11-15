@@ -102,13 +102,12 @@ export class BuildEditor {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
     this.resize();
-    this.load();
     this.animate();
     this.pushHistory();
   }
   setupWorld() {
-    this.planeWidth = Number(localStorage.getItem("build-editor-width")) || DEFAULT_WIDTH;
-    this.planeDepth = Number(localStorage.getItem("build-editor-depth")) || DEFAULT_DEPTH;
+    this.planeWidth = DEFAULT_WIDTH;
+    this.planeDepth = DEFAULT_DEPTH;
     const hemi = new THREE.HemisphereLight(0xffffff, 0x7b8490, 2.1); this.scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffffff, 2.3); sun.position.set(15,30,12); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-30; sun.shadow.camera.right=30; sun.shadow.camera.top=30; sun.shadow.camera.bottom=-30; this.scene.add(sun);
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(this.planeWidth,this.planeDepth), new THREE.MeshStandardMaterial({color:0xe4e6e8, roughness:0.95}));
@@ -130,8 +129,6 @@ export class BuildEditor {
     this.scene.remove(this.border); this.border.geometry.dispose(); this.border.material.dispose();
     this.border=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w,0.02,d)),new THREE.LineBasicMaterial({color:0x77818b}));
     this.border.position.y=0.012; this.scene.add(this.border);
-    localStorage.setItem("build-editor-width",String(w));
-    localStorage.setItem("build-editor-depth",String(d));
     this.controls.maxDistance=Math.max(100,w,d)*2;
     this.camera.far=Math.max(1000,w,d)*10;
     this.camera.updateProjectionMatrix();
@@ -241,7 +238,6 @@ export class BuildEditor {
   }
   serializeItem(o){return {kind:o.userData.kind==="Muro"?"wall":o.userData.kind==="Pavimento"?"floor":o.userData.kind==="Porta"?"door":o.userData.kind==="Finestra"?"window":o.userData.kind==="Albero"?"tree":"cube",x:o.position.x,z:o.position.z,rotation:o.rotation.y,size:{...o.userData.size},color:o.userData.materialColor,texture:o.userData.texture,finish:o.userData.finish};}
   projectData(){return {format:"world3d-project",version:1,plane:{width:this.planeWidth,depth:this.planeDepth},items:this.items.map(o=>this.serializeItem(o))};}
-  save(){localStorage.setItem("build-editor-scene",JSON.stringify(this.items.map(o=>this.serializeItem(o))));}
   importProject(data){
     if(!data||data.format!=="world3d-project"||data.version!==1||!data.plane||!Array.isArray(data.items))throw new Error("Formato progetto non valido o non supportato.");
     const width=Number(data.plane.width),depth=Number(data.plane.depth);
@@ -254,9 +250,7 @@ export class BuildEditor {
     data.items.forEach(d=>this.addItem(d.kind,Number(d.x),Number(d.z),d));
     this.restoring=false;this.select(null);this.emitChange();
     this.history=[];this.historyIndex=-1;this.pushHistory();
-    this.save();
   }
-  load(){try{const data=JSON.parse(localStorage.getItem("build-editor-scene")||"[]");data.forEach(d=>this.addItem(d.kind,d.x,d.z,d));this.select(null);}catch(e){console.warn("Salvataggio non leggibile",e);}}
   clear(){this.items.forEach(o=>this.scene.remove(o));this.items=[];this.select(null);this.emitChange();this.pushHistory();}
   pushHistory(){if(this.restoring)return;const state=JSON.stringify(this.items.map(o=>this.serializeItem(o)));if(this.history[this.historyIndex]===state)return;this.history=this.history.slice(0,this.historyIndex+1);this.history.push(state);if(this.history.length>40)this.history.shift();this.historyIndex=this.history.length-1;}
   restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.restoring=true;this.items.forEach(o=>this.scene.remove(o));this.items=[];JSON.parse(this.history[index]).forEach(d=>this.addItem(d.kind,d.x,d.z,d));this.restoring=false;this.select(null);this.emitChange();}
