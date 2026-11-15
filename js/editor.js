@@ -236,7 +236,8 @@ export class BuildEditor {
     const group=new THREE.Group();
     group.position.set(position.x??0,0,position.z??0);
     group.add(object);
-    group.userData={root:true,kind:"Modello 3D",label:asset.name,size:{x:Math.max(.1,size.x*2/maxDim),y:Math.max(.1,size.y*2/maxDim),z:Math.max(.1,size.z*2/maxDim)},modelAsset:asset,materialColor:"#b7bdc5",texture:"none",finish:"matte"};
+    const baseSize={x:Math.max(.1,size.x*2/maxDim),y:Math.max(.1,size.y*2/maxDim),z:Math.max(.1,size.z*2/maxDim)};
+    group.userData={root:true,kind:"Modello 3D",label:asset.name,size:{...baseSize},baseSize,modelAsset:asset,materialColor:"#b7bdc5",texture:"none",finish:"matte"};
     group.traverse(o=>{if(o.isMesh){o.userData.root=group;o.castShadow=true;o.receiveShadow=true;}});
     this.scene.add(group);this.items.push(group);this.select(group);this.emitChange();this.pushHistory();return group;
   }
@@ -278,7 +279,7 @@ export class BuildEditor {
   updateSelected(key,value){if(!this.selected)return;const o=this.selected;
     if(key==="x"||key==="z")o.position[key]=this.snapValue(value);
     if(key==="rotation")o.rotation.y=value*Math.PI/180;
-    if(key==="sx"||key==="sy"||key==="sz"){const k=key==="sx"?"x":key==="sy"?"y":"z";o.userData.size[k]=Math.max(.1,Math.round(value*10)/10);const mesh=o.children.find(c=>c.isMesh);if(mesh&&mesh.geometry.type==="BoxGeometry"){mesh.geometry.dispose();mesh.geometry=new THREE.BoxGeometry(o.userData.size.x,o.userData.size.y,o.userData.size.z);mesh.position.y=o.userData.size.y/2;}}
+    if(key==="sx"||key==="sy"||key==="sz"){const k=key==="sx"?"x":key==="sy"?"y":"z";o.userData.size[k]=Math.max(.1,Math.round(value*10)/10);if(o.userData.modelAsset&&o.userData.baseSize){o.scale.set(o.userData.size.x/o.userData.baseSize.x,o.userData.size.y/o.userData.baseSize.y,o.userData.size.z/o.userData.baseSize.z);}else{const mesh=o.children.find(c=>c.isMesh);if(mesh&&mesh.geometry.type==="BoxGeometry"){mesh.geometry.dispose();mesh.geometry=new THREE.BoxGeometry(o.userData.size.x,o.userData.size.y,o.userData.size.z);mesh.position.y=o.userData.size.y/2;}}}
     if(key==="color"||key==="texture"||key==="finish"){this.applyMaterial(o,{[key]:value});}
     this.emitSelection(o);this.emitChange();this.pushHistory();
   }
@@ -295,13 +296,13 @@ export class BuildEditor {
     this.customTextures.clear();(data.textures||[]).forEach(asset=>this.customTextures.set(asset.id,asset));
     this.customModels.clear();(data.models||[]).forEach(asset=>this.customModels.set(asset.id,asset));
     this.setPlaneSize(width,depth);
-    for(const d of data.items){if(d.kind==="model"){const model=await this.addModelAsset(d.asset||this.customModels.get(d.assetId),{x:Number(d.x),z:Number(d.z)});model.rotation.y=Number(d.rotation)||0;}else this.addItem(d.kind,Number(d.x),Number(d.z),d);}
+    for(const d of data.items){if(d.kind==="model"){const model=await this.addModelAsset(d.asset||this.customModels.get(d.assetId),{x:Number(d.x),z:Number(d.z)});model.rotation.y=Number(d.rotation)||0;if(d.size){model.userData.size={...d.size};model.scale.set(d.size.x/model.userData.baseSize.x,d.size.y/model.userData.baseSize.y,d.size.z/model.userData.baseSize.z);}}else this.addItem(d.kind,Number(d.x),Number(d.z),d);}
     this.restoring=false;this.select(null);this.emitChange();
     this.history=[];this.historyIndex=-1;this.pushHistory();
   }
   clear(){this.items.forEach(o=>this.scene.remove(o));this.items=[];this.select(null);this.emitChange();this.pushHistory();}
   pushHistory(){if(this.restoring)return;const state=JSON.stringify(this.items.map(o=>this.serializeItem(o)));if(this.history[this.historyIndex]===state)return;this.history=this.history.slice(0,this.historyIndex+1);this.history.push(state);if(this.history.length>40)this.history.shift();this.historyIndex=this.history.length-1;}
-  async restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.restoring=true;this.items.forEach(o=>this.scene.remove(o));this.items=[];for(const d of JSON.parse(this.history[index])){if(d.kind==="model")await this.addModelAsset(d.asset||this.customModels.get(d.assetId),{x:d.x,z:d.z});else this.addItem(d.kind,d.x,d.z,d);}this.restoring=false;this.select(null);this.emitChange();}
+  async restoreHistory(index){if(index<0||index>=this.history.length)return;this.historyIndex=index;this.restoring=true;this.items.forEach(o=>this.scene.remove(o));this.items=[];for(const d of JSON.parse(this.history[index])){if(d.kind==="model"){const model=await this.addModelAsset(d.asset||this.customModels.get(d.assetId),{x:d.x,z:d.z});if(d.size){model.userData.size={...d.size};model.scale.set(d.size.x/model.userData.baseSize.x,d.size.y/model.userData.baseSize.y,d.size.z/model.userData.baseSize.z);}model.rotation.y=Number(d.rotation)||0;}else this.addItem(d.kind,d.x,d.z,d);}this.restoring=false;this.select(null);this.emitChange();}
   undo(){this.restoreHistory(this.historyIndex-1);}
   redo(){this.restoreHistory(this.historyIndex+1);}
   dispose(){cancelAnimationFrame(this.frame);this.resizeObserver.disconnect();this.renderer.dispose();}
