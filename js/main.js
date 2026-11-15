@@ -76,7 +76,7 @@ $("cancelSettings").addEventListener("click",closeSettings);
 modal.addEventListener("click",e=>{if(e.target===modal)closeSettings();});
 $("applySettings").addEventListener("click",async()=>{
  const w=Number($("planeWidth").value),d=Number($("planeDepth").value);
- if(!Number.isFinite(w)||!Number.isFinite(d)||w<1||d<1||w>500||d>500){alert(t("Inserisci dimensioni tra 1 e 500 metri."));return;}
+ if(!Number.isFinite(w)||!Number.isFinite(d)||w<0.1||d<0.1){alert(t("Inserisci dimensioni valide: minimo 0,1 metri."));return;}
  editor.setPlaneSize(w,d);
  await i18n.setLanguage($("languageSelect").value);
  editor.emitSelection(editor.selected);
