@@ -72,7 +72,8 @@ $("openProjectBtn").addEventListener("click",async()=>{
    });
    const file=await handle.getFile();
    const data=JSON.parse(await file.text());
-   editor.importProject(data);
+   await editor.importProject(data);
+   renderProjectAssets();
    currentFileHandle=handle;
    $("saveState").textContent=t("Progetto caricato");
   }catch(error){
@@ -86,7 +87,7 @@ $("openProjectBtn").addEventListener("click",async()=>{
 $("projectFileInput").addEventListener("change",async event=>{
  const file=event.currentTarget.files?.[0];if(!file)return;
  try{
-  const data=JSON.parse(await file.text());editor.importProject(data);
+  const data=JSON.parse(await file.text());await editor.importProject(data);renderProjectAssets();
   currentFileHandle=null;
   $("saveState").textContent=t("Progetto caricato");
  }catch(error){alert(t("Impossibile aprire il progetto")+": "+error.message);}
@@ -107,12 +108,61 @@ const fields={posX:"x",posZ:"z",sizeX:"sx",sizeY:"sy",sizeZ:"sz",rotation:"rotat
 Object.entries(fields).forEach(([id,key])=>$(id).addEventListener("change",()=>{
  const value=Number($(id).value);if(Number.isFinite(value))editor.updateSelected(key,value);
 }));
+
+const textureInput=$("textureFilesInput"),modelInput=$("modelFilesInput");
+function dataUrl(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});}
+function addTextureButton(asset){
+ editor.addCustomTexture(asset);
+ const button=document.createElement("button");button.type="button";button.className="texture-option custom-texture-option";button.dataset.customTexture=asset.id;
+ const image=document.createElement("img");image.src=asset.data;image.alt="";
+ const label=document.createElement("span");label.textContent=asset.name;
+ button.append(image,label);$("customTextureCatalog").append(button);
+}
+function renderProjectAssets(){
+ $("customTextureCatalog").replaceChildren();
+ for(const asset of editor.customTextures.values())addTextureButton(asset);
+ $("modelCatalog").replaceChildren();
+ for(const item of editor.items){if(item.userData.modelAsset){const asset=item.userData.modelAsset;const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;button.addEventListener("click",async()=>{try{await editor.addModelAsset(asset);}catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}});$("modelCatalog").append(button);}}
+}
+function addModelButton(asset){
+ const button=document.createElement("button");button.type="button";button.className="asset-entry";button.textContent=asset.name;
+ button.addEventListener("click",async()=>{try{await editor.addModelAsset(asset);$("saveState").textContent=t("Modifiche non salvate");}catch(error){alert(t("Impossibile importare il modello")+": "+error.message);}});
+ $("modelCatalog").append(button);
+}
+async function importFiles(files){
+ for(const file of files){
+  const ext=file.name.split(".").pop().toLowerCase();
+  if(["png","jpg","jpeg","webp"].includes(ext)){
+   const asset={id:"custom-"+crypto.randomUUID(),name:file.name,data:await dataUrl(file)};
+   addTextureButton(asset);
+  }else if(["glb","gltf","obj","stl"].includes(ext)){
+   const asset={id:"model-"+crypto.randomUUID(),name:file.name,extension:ext,data:await dataUrl(file)};
+   addModelButton(asset);
+  }
+ }
+}
+$("importTextureBtn").addEventListener("click",()=>textureInput.click());
+$("importModelBtn").addEventListener("click",()=>modelInput.click());
+textureInput.addEventListener("change",async e=>{await importFiles([...e.target.files]);e.target.value="";});
+modelInput.addEventListener("change",async e=>{await importFiles([...e.target.files]);e.target.value="";});
+$("importFolderBtn").addEventListener("click",async()=>{
+ if(!window.showDirectoryPicker){alert(t("Il browser non supporta la selezione di cartelle. Usa Importa texture o Importa modello 3D."));return;}
+ try{
+  const dir=await window.showDirectoryPicker({mode:"read"});
+  const found=[];
+  async function scan(handle){for await(const entry of handle.values()){if(entry.kind==="directory")await scan(entry);else if(/\.(png|jpe?g|webp|glb|gltf|obj|stl)$/i.test(entry.name))found.push(await entry.getFile());}}
+  await scan(dir);await importFiles(found);
+  if(!found.length)alert(t("Nessuna risorsa compatibile trovata nella cartella."));
+ }catch(error){if(error.name!=="AbortError")alert(error.message);}
+});
+$("customTextureCatalog").addEventListener("click",e=>{const b=e.target.closest("[data-custom-texture]");if(b)editor.updateSelected("texture",b.dataset.customTexture);});
+
 function updateMaterialControls(item){
  if(!item)return;
  const color=item.userData.materialColor||"#d7d0c5";
  $("objectColor").value=color;$("colorValue").textContent=color.toUpperCase();
  $("surfaceFinish").value=item.userData.finish||"matte";
- document.querySelectorAll("#textureCatalog [data-texture]").forEach(button=>button.classList.toggle("active",button.dataset.texture===(item.userData.texture||"none")));
+ document.querySelectorAll("#textureCatalog [data-texture],#customTextureCatalog [data-custom-texture]").forEach(button=>button.classList.toggle("active",(button.dataset.texture||button.dataset.customTexture)===(item.userData.texture||"none")));
 }
 $("objectColor").addEventListener("input",e=>{$("colorValue").textContent=e.currentTarget.value.toUpperCase();editor.updateSelected("color",e.currentTarget.value);});
 $("colorPalette").addEventListener("click",e=>{const b=e.target.closest("[data-color]");if(!b)return;$("objectColor").value=b.dataset.color;$("colorValue").textContent=b.dataset.color.toUpperCase();editor.updateSelected("color",b.dataset.color);});
