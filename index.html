@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17191d">
+  <title>Editor 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0" rel="stylesheet">
+  <link rel="stylesheet" href="./css/app.css">
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark"><span class="material-symbols-rounded">view_in_ar</span></span><span>Editor 3D</span></div>
+      <div class="top-actions">
+        <span class="save-state" id="saveState">Progetto in modifica</span>
+        <button class="action-button primary" id="saveProjectBtn"><span class="material-symbols-rounded">save</span> Salva</button>
+        <button class="action-button subtle" id="openProjectBtn"><span class="material-symbols-rounded">folder_open</span> Apri</button>
+        <button class="action-button subtle" id="exportProjectBtn"><span class="material-symbols-rounded">file_download</span> Esporta</button>
+        <input id="projectFileInput" type="file" accept=".json,application/json" hidden>
+        <button class="action-button subtle" id="settingsBtn"><span class="material-symbols-rounded">settings</span> Impostazioni</button>
+        <button class="icon-button" id="undoBtn" title="Annulla" aria-label="Annulla"><span class="material-symbols-rounded">undo</span></button>
+        <button class="icon-button" id="redoBtn" title="Ripeti" aria-label="Ripeti"><span class="material-symbols-rounded">redo</span></button>
+        <button class="action-button subtle" id="clearBtn"><span class="material-symbols-rounded">delete_sweep</span> Svuota</button>
+      </div>
+    </header>
+    <section class="workspace">
+      <aside class="tool-panel">
+        <div class="panel-heading"><span>Costruzione</span><span class="material-symbols-rounded">construction</span></div>
+        <div class="tool-group">
+          <div class="group-label">STRUMENTI</div>
+          <button class="tool-button active" data-tool="select"><span class="material-symbols-rounded">near_me</span><span>Seleziona</span><kbd>V</kbd></button>
+          <button class="tool-button" data-tool="wall"><span class="material-symbols-rounded">width</span><span>Muro</span></button>
+          <button class="tool-button" data-tool="floor"><span class="material-symbols-rounded">grid_on</span><span>Pavimento</span></button>
+          <button class="tool-button" data-tool="door"><span class="material-symbols-rounded">door_front</span><span>Porta</span></button>
+          <button class="tool-button" data-tool="window"><span class="material-symbols-rounded">window</span><span>Finestra</span></button>
+        </div>
+        <div class="tool-group">
+          <div class="group-label">OGGETTI</div>
+          <button class="tool-button" data-tool="cube"><span class="material-symbols-rounded">view_in_ar</span><span>Blocco</span></button>
+          <button class="tool-button" data-tool="tree"><span class="material-symbols-rounded">park</span><span>Albero</span></button>
+        </div>
+        <div class="tool-group">
+          <div class="group-label">RISORSE</div>
+          <button class="tool-button" id="importFolderBtn"><span class="material-symbols-rounded">folder_open</span><span>Importa cartella</span></button>
+          <button class="tool-button" id="importTextureBtn"><span class="material-symbols-rounded">texture</span><span>Importa texture</span></button>
+          <button class="tool-button" id="importModelBtn"><span class="material-symbols-rounded">deployed_code</span><span>Importa modello 3D</span></button>
+          <input id="textureFilesInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+          <input id="modelFilesInput" type="file" accept=".glb,.gltf,.obj,.stl,model/gltf-binary,model/gltf+json,model/obj,model/stl" multiple hidden>
+          <details class="imported-assets"><summary><span>Oggetti importati</span><span class="asset-count" id="modelAssetCount">0</span></summary><div id="modelCatalog" class="asset-catalog"></div></details>
+        </div>
+        <div class="tool-group">
+          <div class="group-label">TRASFORMA</div>
+          <button class="tool-button" id="moveBtn"><span class="material-symbols-rounded">open_with</span><span>Sposta</span></button>
+          <button class="tool-button" id="rotateBtn"><span class="material-symbols-rounded">rotate_right</span><span>Ruota</span></button>
+          <button class="tool-button" id="deleteBtn"><span class="material-symbols-rounded">delete</span><span>Elimina</span></button>
+        </div>
+        <div class="panel-footer"><span class="status-dot"></span><span>Piano vuoto · 40 × 40 m</span></div>
+      </aside>
+      <section class="viewport-wrap">
+        <div id="viewport" aria-label="Area di costruzione 3D"></div>
+        <div class="view-toolbar">
+          <button class="view-button active" id="orbitBtn"><span class="material-symbols-rounded">3d_rotation</span> Orbita</button>
+          <button class="view-button" id="topBtn"><span class="material-symbols-rounded">top_panel_open</span> Dall'alto</button>
+          <span class="toolbar-divider"></span>
+          <button class="view-button" id="gridBtn"><span class="material-symbols-rounded">grid_4x4</span> Griglia</button>
+          <button class="view-button active" id="snapBtn"><span class="material-symbols-rounded">magnet</span> Snap attivo</button>
+        </div>
+        <div class="hint-card" id="hintCard"><span class="material-symbols-rounded">mouse</span><span>Seleziona un elemento o scegli uno strumento per iniziare a costruire.</span></div>
+        <div class="axis-cube"><span class="axis-y">Y</span><span class="axis-x">X</span><span class="axis-z">Z</span></div>
+        <div class="zoom-controls"><button id="zoomIn" aria-label="Zoom avanti"><span class="material-symbols-rounded">add</span></button><button id="zoomOut" aria-label="Zoom indietro"><span class="material-symbols-rounded">remove</span></button><button id="homeView" aria-label="Centra vista"><span class="material-symbols-rounded">center_focus_strong</span></button></div>
+      </section>
+      <aside class="inspector">
+        <div class="panel-heading"><span>Proprietà</span><span class="material-symbols-rounded">tune</span></div>
+        <div id="emptyInspector" class="empty-inspector"><span class="material-symbols-rounded">touch_app</span><strong>Nessuna selezione</strong><p>Seleziona un elemento nel piano per modificarne le proprietà.</p></div>
+        <div id="objectInspector" class="object-inspector hidden">
+          <div class="selected-object"><span class="material-symbols-rounded" id="objectIcon">view_in_ar</span><div><strong id="objectName">Blocco</strong><small id="objectType">Oggetto</small></div></div>
+          <label>Posizione</label>
+          <div class="input-row"><span>X</span><input id="posX" type="number" step="0.1"><span>Z</span><input id="posZ" type="number" step="0.1"></div>
+          <label>Dimensioni</label>
+          <div class="input-row"><span>L</span><input id="sizeX" type="number" min="0.1" step="0.1"><span>H</span><input id="sizeY" type="number" min="0.1" step="0.1"><span>P</span><input id="sizeZ" type="number" min="0.1" step="0.1"></div>
+          <label>Rotazione</label>
+          <div class="input-row"><input id="rotation" type="number" step="15"><span>°</span></div>
+          <div class="material-editor">
+            <label for="objectColor">Colore</label>
+            <div class="color-control"><input id="objectColor" type="color" value="#d7d0c5"><span id="colorValue">#D7D0C5</span></div>
+            <div class="swatch-grid" id="colorPalette" aria-label="Palette colori">
+              <button type="button" data-color="#f1eee7" style="--swatch:#f1eee7" aria-label="Avorio"></button>
+              <button type="button" data-color="#c8b9a6" style="--swatch:#c8b9a6" aria-label="Sabbia"></button>
+              <button type="button" data-color="#8e7866" style="--swatch:#8e7866" aria-label="Tortora"></button>
+              <button type="button" data-color="#555b63" style="--swatch:#555b63" aria-label="Ardesia"></button>
+              <button type="button" data-color="#b94f45" style="--swatch:#b94f45" aria-label="Mattone"></button>
+              <button type="button" data-color="#d88b52" style="--swatch:#d88b52" aria-label="Terracotta"></button>
+              <button type="button" data-color="#d8bd72" style="--swatch:#d8bd72" aria-label="Ocra"></button>
+              <button type="button" data-color="#8b9b70" style="--swatch:#8b9b70" aria-label="Salvia"></button>
+              <button type="button" data-color="#4f806e" style="--swatch:#4f806e" aria-label="Verde"></button>
+              <button type="button" data-color="#6d91b8" style="--swatch:#6d91b8" aria-label="Azzurro"></button>
+              <button type="button" data-color="#7774a5" style="--swatch:#7774a5" aria-label="Lavanda"></button>
+              <button type="button" data-color="#c17e9b" style="--swatch:#c17e9b" aria-label="Rosa"></button>
+              <button type="button" data-color="#8a5747" style="--swatch:#8a5747" aria-label="Noce"></button>
+              <button type="button" data-color="#c5c8ca" style="--swatch:#c5c8ca" aria-label="Grigio chiaro"></button>
+              <button type="button" data-color="#34383d" style="--swatch:#34383d" aria-label="Nero"></button>
+              <button type="button" data-color="#ffffff" style="--swatch:#ffffff" aria-label="Bianco"></button>
+            </div>
+            <label>Texture e materiali</label>
+            <div class="texture-grid" id="textureCatalog">
+              <button type="button" class="texture-option active" data-texture="none"><span class="texture-preview texture-none"></span><span>Nessuna</span></button>
+              <button type="button" class="texture-option" data-texture="wood"><span class="texture-preview texture-wood"></span><span>Legno</span></button>
+              <button type="button" class="texture-option" data-texture="tile"><span class="texture-preview texture-tile"></span><span>Piastrelle</span></button>
+              <button type="button" class="texture-option" data-texture="marble"><span class="texture-preview texture-marble"></span><span>Marmo</span></button>
+              <button type="button" class="texture-option" data-texture="concrete"><span class="texture-preview texture-concrete"></span><span>Cemento</span></button>
+              <button type="button" class="texture-option" data-texture="brick"><span class="texture-preview texture-brick"></span><span>Mattoni</span></button>
+              <button type="button" class="texture-option" data-texture="fabric"><span class="texture-preview texture-fabric"></span><span>Tessuto</span></button>
+              <button type="button" class="texture-option" data-texture="metal"><span class="texture-preview texture-metal"></span><span>Metallo</span></button>
+              <button type="button" class="texture-option" data-texture="glass"><span class="texture-preview texture-glass"></span><span>Vetro</span></button>
+            </div>
+            <div class="custom-texture-list" id="customTextureCatalog"></div>
+            <label for="surfaceFinish">Finitura</label>
+            <select id="surfaceFinish">
+              <option value="matte">Opaco</option>
+              <option value="satin">Satinato</option>
+              <option value="glossy">Lucido</option>
+              <option value="metallic">Metallico</option>
+            </select>
+          </div>
+          <button class="action-button full-width" id="duplicateBtn"><span class="material-symbols-rounded">content_copy</span> Duplica elemento</button>
+        </div>
+        <div class="inspector-bottom"><span>UNITÀ</span><strong>Metri (m)</strong></div>
+      </aside>
+    </section>
+    <div class="modal-backdrop hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <section class="settings-dialog">
+        <header class="settings-header"><h2 id="settingsTitle">Impostazioni</h2><button class="icon-button" id="closeSettings" aria-label="Chiudi"><span class="material-symbols-rounded">close</span></button></header>
+        <div class="settings-content">
+          <h3>Dimensioni del piano</h3>
+          <p>Scegli larghezza e profondità del piano di costruzione. Valori in metri, incrementi di 0,1 m. Nessun limite massimo.</p>
+          <div class="settings-fields">
+            <label>Larghezza (X)<input id="planeWidth" type="number" min="0.1" step="0.1" value="40"></label>
+            <label>Profondità (Z)<input id="planeDepth" type="number" min="1" max="500" step="0.1" value="40"></label>
+          </div>
+          <h3>Lingua</h3>
+          <p>Automatico usa la lingua del sistema. Puoi anche scegliere manualmente.</p>
+          <select id="languageSelect">
+            <option value="auto">Automatico (sistema)</option>
+            <option value="it">Italiano</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option>
+          </select>
+        </div>
+        <footer class="settings-footer"><button class="action-button subtle" id="cancelSettings">Annulla</button><button class="action-button primary" id="applySettings">Applica</button></footer>
+      </section>
+    </div>
+    <footer class="bottom-bar"><span id="objectCount">0 elementi</span><span class="footer-separator"></span><span>Griglia 0,1 m</span><span class="footer-spacer"></span><span class="keyboard-help"><kbd>V</kbd> Seleziona <kbd>Del</kbd> Elimina <kbd>Esc</kbd> Annulla strumento</span></footer>
+  </main>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
