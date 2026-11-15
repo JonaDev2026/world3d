@@ -81,5 +81,11 @@
   "Progetto in modifica": "Progetto in modifica",
   "Progetto salvato": "Progetto salvato",
   "Impossibile salvare il progetto": "Impossibile salvare il progetto",
-  "Apri": "Apri"
+  "Apri": "Apri",
+  "Importa cartella": "Importa cartella",
+  "Importa texture": "Importa texture",
+  "Importa modello 3D": "Importa modello 3D",
+  "Impossibile importare il modello": "Impossibile importare il modello",
+  "Il browser non supporta la selezione di cartelle. Usa Importa texture o Importa modello 3D.": "Il browser non supporta la selezione di cartelle. Usa Importa texture o Importa modello 3D.",
+  "Nessuna risorsa compatibile trovata nella cartella.": "Nessuna risorsa compatibile trovata nella cartella."
 }
