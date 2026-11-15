@@ -155,7 +155,12 @@ class Viewport(QOpenGLWidget):
                     glVertex3f(xx,yy,hi[2]); glVertex3f(hi[0] if xx==lo[0] else lo[0],yy,hi[2])
             for xx in [lo[0],hi[0]]:
                 for zz in [lo[2],hi[2]]: glVertex3f(xx,lo[1],zz); glVertex3f(xx,hi[1],zz)
-            glEnd(); glEnable(GL_LIGHTING)
+            glEnd()
+            glLineWidth(3.2); glBegin(GL_LINES)
+            glColor3f(.90,.20,.22); glVertex3f(0,.08,0); glVertex3f(2.0,.08,0)
+            glColor3f(.20,.75,.38); glVertex3f(0,.08,0); glVertex3f(0,2.0,0)
+            glColor3f(.22,.50,.98); glVertex3f(0,.08,0); glVertex3f(0,.08,2.0)
+            glEnd(); glLineWidth(1.0); glEnable(GL_LIGHTING)
         glPopMatrix()
     def clear_texture_cache(self):
         self.makeCurrent()
@@ -293,7 +298,12 @@ class Viewport(QOpenGLWidget):
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__(); self.setWindowTitle("World3D"); self.resize(1440,900)
+        super().__init__(); self.setWindowTitle("Editor 3D · World3D"); self.resize(1480,940)
+        self.setMinimumSize(1120,720)
+        font_dir=APP_DIR/"assets"/"fonts"
+        for font_path in (font_dir/"GoogleSans-Regular.ttf",font_dir/"GoogleSans-Medium.ttf",font_dir/"MaterialSymbolsRounded.ttf"):
+            if font_path.exists(): QFontDatabase.addApplicationFont(str(font_path))
+        self.icon_font=QFont("Material Symbols Rounded",18)
         self.settings_store=QSettings("JonaDev2026","World3D")
         self.language_preference=self.settings_store.value("language","auto")
         self.hidden_models=set()
