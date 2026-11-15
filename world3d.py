@@ -528,7 +528,10 @@ class MainWindow(QMainWindow):
             idx={"sx":0,"sy":1,"sz":2}[k]; o["size"][idx]=max(.1,round(v*10)/10)
         self.viewport.update(); self.push_history()
     def update_material(self,k,v):
-        if self.viewport.selected: self.viewport.selected[k]=v; self.viewport.update(); self.push_history()
+        if self.viewport.selected:
+            self.viewport.selected[k]=v; self.viewport.update(); self.push_history()
+            if k=="texture" and hasattr(self,"texture_buttons"):
+                for name,button in self.texture_buttons.items(): button.setChecked(name==v)
     def set_color(self,color):
         if not self.viewport.selected:return
         self.viewport.selected["color"]=color; self.selection_changed(self.viewport.selected); self.viewport.update(); self.push_history()
