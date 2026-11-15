@@ -461,10 +461,8 @@ class MainWindow(QMainWindow):
             swatch.clicked.connect(lambda checked=False,c=color:self.set_color(c)); palette.addWidget(swatch,i//8,i%8)
         content.addLayout(palette)
         group_title("Texture")
-        self.texture_combo=QComboBox()
-        for name in TEXTURES: self.texture_combo.addItem(name,name)
+        self.texture_combo=QComboBox(); self.texture_combo.addItem("Nessuna","Nessuna")
         self.texture_combo.currentIndexChanged.connect(lambda i:self.update_material("texture",self.texture_combo.itemData(i)) if i>=0 else None)
-        self.texture_combo.setVisible(False)
         texture_grid=QGridLayout(); texture_grid.setSpacing(6); self.texture_buttons={}
         previews=[
             ("Nessuna","background:repeating-conic-gradient(#777 0% 25%,#aaa 0% 50%) 0/12px 12px"),
@@ -486,6 +484,7 @@ class MainWindow(QMainWindow):
             b.clicked.connect(lambda checked=False,n=name:self.update_material("texture",n))
             self.texture_buttons[name]=b; texture_grid.addWidget(b,index//3,index%3)
         content.addLayout(texture_grid)
+        group_title("Texture importate"); content.addWidget(self.texture_combo)
         group_title("Finitura"); self.finish_combo=QComboBox()
         for name in ["Opaco","Satinato","Lucido","Metallico"]: self.finish_combo.addItem(name,name)
         self.finish_combo.currentIndexChanged.connect(lambda i:self.update_material("finish",self.finish_combo.itemData(i)) if i>=0 else None); content.addWidget(self.finish_combo); content.addStretch()
