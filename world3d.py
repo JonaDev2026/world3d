@@ -238,16 +238,33 @@ class Viewport(QOpenGLWidget):
                 depth=sum(p[2] for p in projected)/len(projected)
                 if depth<nearest: best=o; nearest=depth
         return best
+    def axis_handle_at(self,pos):
+        if not self.selected or self.transform_mode!="translate": return None
+        self.makeCurrent(); glMatrixMode(GL_MODELVIEW); glLoadIdentity()
+        eye=self.camera(); gluLookAt(*eye,*self.target,0,1,0)
+        o=self.selected; p0=self.project((o["x"],.12,o["z"]))
+        best=None; best_dist=12.0
+        for axis,end in (("x",(o["x"]+2,.12,o["z"])),("z",(o["x"],.12,o["z"]+2))):
+            p1=self.project(end); ax=p1[0]-p0[0]; ay=-(p1[1]-p0[1]); length=math.hypot(ax,ay)
+            if length<1: continue
+            vx,vy=ax/length,ay/length; px=pos.x()-p0[0]; py=pos.y()-(self.height()-p0[1])
+            along=max(0,min(length,px*vx+py*vy)); dist=math.hypot(px-vx*along,py-vy*along)
+            if dist<best_dist: best=(axis,(vx,vy,length)); best_dist=dist
+        return best
     def mousePressEvent(self,e):
         self.last_pos=e.position().toPoint()
         if e.button()==Qt.LeftButton and self.tool=="select":
-            hit=self.pick(self.last_pos)
-            if hit is not None and hit is self.selected:
-                self.dragging=True
-                self.drag_origin=self.screen_ground(self.last_pos)
+            handle=self.axis_handle_at(self.last_pos)
+            if handle:
+                self.dragging=True; self.drag_axis,self.drag_axis_vector=handle
+                self.drag_origin=(self.selected["x"],self.selected["z"]); self.drag_start_pos=self.last_pos
             else:
-                self.selected=hit
-                self.selectedChanged.emit(self.selected)
+                hit=self.pick(self.last_pos)
+                if hit is not None and hit is self.selected:
+                    self.dragging=True; self.drag_axis=None
+                    self.drag_origin=self.screen_ground(self.last_pos)
+                else:
+                    self.selected=hit; self.selectedChanged.emit(self.selected)
             self.update()
         elif e.button()==Qt.LeftButton and self.tool!="select":
             x,z=self.screen_ground(self.last_pos); self.add_item(self.tool,x,z)
