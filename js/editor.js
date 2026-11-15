@@ -9,8 +9,10 @@ const COLORS = { Muro:0xd7d0c5, Pavimento:0xb6a995, Porta:0x9b7653, Finestra:0x9
 const TEXTURE_CACHE = new Map();
 function makeGrid(width, depth) {
   const points=[];
-  for(let x=-width/2;x<=width/2+0.0001;x+=SNAP){points.push(x,0,-depth/2,x,0,depth/2);}
-  for(let z=-depth/2;z<=depth/2+0.0001;z+=SNAP){points.push(-width/2,0,z,width/2,0,z);}
+  // Keep the viewport light on kilometre-scale plots; transform snap remains 0.1 m.
+  const step=Math.max(SNAP,Math.ceil(Math.max(width,depth)/2000)*SNAP);
+  for(let x=-width/2;x<=width/2+0.0001;x+=step){points.push(x,0,-depth/2,x,0,depth/2);}
+  for(let z=-depth/2;z<=depth/2+0.0001;z+=step){points.push(-width/2,0,z,width/2,0,z);}
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute("position",new THREE.Float32BufferAttribute(points,3));
   return new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:0x9ca5ae,transparent:true,opacity:.58}));
@@ -50,7 +52,8 @@ function makeTexture(type) {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(type==="tile"||type==="brick"?2:1,type==="tile"||type==="brick"?2:1);
+  // Texture patterns are authored in physical metres, not stretched over the
+  // whole object: tile = 10 cm, brick = 50 cm, other patterns = 1 m.
   TEXTURE_CACHE.set(type, texture);
   return texture;
 }
@@ -60,7 +63,7 @@ export class BuildEditor {
     this.container = container;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xb8c0c8);
-    this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
+    this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000000);
     this.camera.position.set(28, 24, 28);
     this.renderer = new THREE.WebGLRenderer({antialias:true});
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -75,7 +78,7 @@ export class BuildEditor {
     this.controls.target.set(0,0,0);
     this.controls.maxPolarAngle = Math.PI * 0.49;
     this.controls.minDistance = 5;
-    this.controls.maxDistance = 100;
+    this.controls.maxDistance = 100000;
     this.transform = new TransformControls(this.camera, this.renderer.domElement);
     this.transform.setMode("translate");
     this.transform.setTranslationSnap(SNAP);
@@ -115,8 +118,8 @@ export class BuildEditor {
     border.position.y=0.012; this.scene.add(border); this.border=border;
   }
   setPlaneSize(width, depth) {
-    const w=Math.max(1,Math.round(Number(width)*10)/10);
-    const d=Math.max(1,Math.round(Number(depth)*10)/10);
+    const w=Math.max(0.1,Math.round(Number(width)*10)/10);
+    const d=Math.max(0.1,Math.round(Number(depth)*10)/10);
     if(!Number.isFinite(w)||!Number.isFinite(d)) return;
     this.planeWidth=w; this.planeDepth=d;
     this.ground.geometry.dispose();
@@ -129,6 +132,9 @@ export class BuildEditor {
     this.border.position.y=0.012; this.scene.add(this.border);
     localStorage.setItem("build-editor-width",String(w));
     localStorage.setItem("build-editor-depth",String(d));
+    this.controls.maxDistance=Math.max(100,w,d)*2;
+    this.camera.far=Math.max(1000,w,d)*10;
+    this.camera.updateProjectionMatrix();
     this.controls.target.set(0,0,0);
     this.emitPlaneSize?.(w,d);
   }
@@ -161,10 +167,18 @@ export class BuildEditor {
     const x=this.snapValue(groundHit.point.x), z=this.snapValue(groundHit.point.z);
     this.addItem(this.tool,x,z);
   };
-  createMaterial(color, texture, finish) {
+  createMaterial(color, texture, finish, dimensions={x:1,y:1,z:1}) {
     const finishes = {matte:{roughness:.92,metalness:0},satin:{roughness:.48,metalness:0},glossy:{roughness:.16,metalness:.05},metallic:{roughness:.28,metalness:.82}};
     const opts=finishes[finish]||finishes.matte;
-    return new THREE.MeshStandardMaterial({color, map:makeTexture(texture||"none"), roughness:opts.roughness, metalness:opts.metalness, transparent:texture==="glass", opacity:texture==="glass"?.58:1});
+    const type=texture||"none";
+    const source=makeTexture(type);
+    const map=source?source.clone():null;
+    if(map){
+      const density=type==="tile"?10:type==="brick"?2:1;
+      map.repeat.set(Math.max(dimensions.x,dimensions.z)*density,Math.max(dimensions.y,dimensions.z)*density);
+      map.needsUpdate=true;
+    }
+    return new THREE.MeshStandardMaterial({color, map, roughness:opts.roughness, metalness:opts.metalness, transparent:type==="glass", opacity:type==="glass"?.58:1});
   }
   applyMaterial(item, settings={}) {
     const color=settings.color||item.userData.materialColor||"#d7d0c5";
@@ -174,7 +188,9 @@ export class BuildEditor {
     item.traverse((obj)=>{
       if(!obj.isMesh)return;
       const old=obj.material;
-      obj.material=this.createMaterial(color,texture,finish);
+      const p=obj.geometry?.parameters||{};
+      const dimensions={x:p.width||1,y:p.height||1,z:p.depth||1};
+      obj.material=this.createMaterial(color,texture,finish,dimensions);
       if(old){if(Array.isArray(old))old.forEach(m=>m.dispose());else old.dispose();}
     });
   }
