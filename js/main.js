@@ -27,7 +27,7 @@ $("duplicateBtn").addEventListener("click", () => editor.duplicateSelected());
 $("saveBtn").addEventListener("click", () => { editor.save(); $("saveState").textContent = "Salvato nel browser"; });
 $("clearBtn").addEventListener("click", () => { if (confirm("Eliminare tutti gli elementi dal piano?")) editor.clear(); });
 $("gridBtn").addEventListener("click", (e) => { editor.toggleGrid(); e.currentTarget.classList.toggle("active"); });
-$("snapBtn").addEventListener("click", (e) => { editor.toggleSnap(); e.currentTarget.classList.toggle("active"); e.currentTarget.textContent = editor.snap ? "magnet Snap attivo" : "magnet Snap disattivo"; });
+$("snapBtn").addEventListener("click", (e) => { editor.toggleSnap(); e.currentTarget.classList.toggle("active"); e.currentTarget.lastChild.textContent = editor.snap ? " Snap attivo" : " Snap disattivo"; });
 $("orbitBtn").addEventListener("click", () => { editor.setTopView(false); $("orbitBtn").classList.add("active"); $("topBtn").classList.remove("active"); });
 $("topBtn").addEventListener("click", () => { editor.setTopView(true); $("topBtn").classList.add("active"); $("orbitBtn").classList.remove("active"); });
 $("zoomIn").addEventListener("click", () => editor.zoom(0.82));
@@ -41,6 +41,35 @@ Object.entries(fields).forEach(([id, key]) => $(id).addEventListener("change", (
   const value = Number($(id).value);
   if (Number.isFinite(value)) editor.updateSelected(key, value);
 }));
+
+function updateMaterialControls(item) {
+  if (!item) return;
+  const color = item.userData.materialColor || "#d7d0c5";
+  $("objectColor").value = color;
+  $("colorValue").textContent = color.toUpperCase();
+  $("surfaceFinish").value = item.userData.finish || "matte";
+  document.querySelectorAll("#textureCatalog [data-texture]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.texture === (item.userData.texture || "none"));
+  });
+}
+$("objectColor").addEventListener("input", (event) => {
+  $("colorValue").textContent = event.currentTarget.value.toUpperCase();
+  editor.updateSelected("color", event.currentTarget.value);
+});
+$("colorPalette").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-color]");
+  if (!button) return;
+  $("objectColor").value = button.dataset.color;
+  $("colorValue").textContent = button.dataset.color.toUpperCase();
+  editor.updateSelected("color", button.dataset.color);
+});
+$("textureCatalog").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-texture]");
+  if (!button) return;
+  editor.updateSelected("texture", button.dataset.texture);
+});
+$("surfaceFinish").addEventListener("change", (event) => editor.updateSelected("finish", event.currentTarget.value));
+
 editor.onSelection((item) => {
   $("emptyInspector").classList.toggle("hidden", !!item);
   $("objectInspector").classList.toggle("hidden", !item);
@@ -54,10 +83,11 @@ editor.onSelection((item) => {
   $("sizeY").value = item.userData.size.y.toFixed(1);
   $("sizeZ").value = item.userData.size.z.toFixed(1);
   $("rotation").value = Math.round(item.rotation.y * 180 / Math.PI);
+  updateMaterialControls(item);
 });
 editor.onChange((count) => { $("objectCount").textContent = count + (count === 1 ? " elemento" : " elementi"); $("saveState").textContent = "Modifiche non salvate"; });
 window.addEventListener("keydown", (event) => {
-  if (event.target instanceof HTMLInputElement) return;
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
   if (event.key.toLowerCase() === "v") setTool("select");
   if (event.key === "Delete" || event.key === "Backspace") editor.deleteSelected();
   if (event.key === "Escape") setTool("select");
