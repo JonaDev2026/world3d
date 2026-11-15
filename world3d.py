@@ -198,12 +198,23 @@ class Viewport(QOpenGLWidget):
     def pick(self,pos):
         self.makeCurrent()
         glMatrixMode(GL_MODELVIEW); glLoadIdentity(); eye=self.camera(); gluLookAt(*eye,*self.target,0,1,0)
-        best=None; dist=1e9
+        best=None; nearest=1e9; px=float(pos.x()); py=float(self.height()-pos.y())
         for o in self.items:
-            p=self.project((o["x"],max(.5,o["size"][1]/2),o["z"]))
-            d=math.hypot(p[0]-pos.x(),self.height()-p[1])
-            threshold=max(18, min(60, 420/max(1,p[2])))
-            if d<threshold and d<dist: best=o; dist=d
+            verts=np.asarray(o["vertices"],float)
+            base=np.asarray(o.get("base_size",o["size"]),float); size=np.asarray(o["size"],float)
+            scale=np.divide(size,base,out=np.ones(3),where=base!=0)
+            lo=verts.min(axis=0)*scale; hi=verts.max(axis=0)*scale
+            corners=[]
+            angle=math.radians(float(o.get("rotation",0))); c=math.cos(angle); sn=math.sin(angle)
+            for x in (lo[0],hi[0]):
+                for y in (lo[1],hi[1]):
+                    for z in (lo[2],hi[2]):
+                        corners.append((o["x"]+x*c+z*sn,y,o["z"]-x*sn+z*c))
+            projected=[self.project(p) for p in corners]
+            xs=[p[0] for p in projected]; ys=[self.height()-p[1] for p in projected]
+            if min(xs)-7<=px<=max(xs)+7 and min(ys)-7<=py<=max(ys)+7:
+                depth=sum(p[2] for p in projected)/len(projected)
+                if depth<nearest: best=o; nearest=depth
         return best
     def mousePressEvent(self,e):
         self.last_pos=e.position().toPoint()
@@ -227,7 +238,7 @@ class Viewport(QOpenGLWidget):
                 x,z=self.screen_ground(p)
                 self.selected["x"]=round(x*10)/10 if self.snap else x
                 self.selected["z"]=round(z*10)/10 if self.snap else z
-            self.selectedChanged.emit(self.selected); self.changed.emit()
+            self.selectedChanged.emit(self.selected)
         elif self.last_pos is not None and e.buttons() & Qt.RightButton:
             delta=p-self.last_pos; self.yaw-=delta.x()*.008; self.pitch=max(.04,min(1.52,self.pitch+delta.y()*.008))
         elif self.last_pos is not None and e.buttons() & Qt.MiddleButton:
@@ -561,7 +572,7 @@ class MainWindow(QMainWindow):
         for aid,asset in self.models.items():
             if aid in self.hidden_models: continue
             name=asset.get("asset_name",aid) if isinstance(asset,dict) else str(asset)
-            row=QHBoxLayout(); b=QPushButton(name); b.setToolTip("Inserisci una copia nel piano"); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("🗑"); rm.setToolTip("Rimuovi dalla lista"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
+            row=QHBoxLayout(); b=QPushButton(name); b.setToolTip("Inserisci una copia nel piano"); b.clicked.connect(lambda checked=False,k=aid:self.insert_model(k)); rm=QToolButton(); rm.setText("×"); rm.setToolTip("Rimuovi dalla lista"); rm.clicked.connect(lambda checked=False,k=aid:self.remove_asset(k)); row.addWidget(b,1); row.addWidget(rm); holder=QWidget(); holder.setLayout(row); self.asset_list.addWidget(holder)
     def insert_model(self,aid):
         source=self.models.get(aid)
         if source:
