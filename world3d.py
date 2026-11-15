@@ -356,8 +356,12 @@ class MainWindow(QMainWindow):
         self.viewport=Viewport(); self.viewport.selectedChanged.connect(self.selection_changed); self.viewport.changed.connect(self.push_history)
         center=QWidget(); center.setObjectName("viewportPanel"); center_layout=QVBoxLayout(center); center_layout.setContentsMargins(0,0,0,0); center_layout.setSpacing(0)
         viewbar=QFrame(); viewbar.setObjectName("viewbar"); view_layout=QHBoxLayout(viewbar); view_layout.setContentsMargins(12,7,12,7); view_layout.setSpacing(5)
-        for icon,label,fn in [("3d_rotation","Orbita",self.viewport.reset_view),("vertical_align_top","Dall'alto",self.viewport.set_top),("grid_4x4","Griglia",self.viewport.toggle_grid),("push_pin","Snap 0,1 m",self.viewport.toggle_snap),("remove","",lambda:self.viewport.zoom(1.15)),("add","",lambda:self.viewport.zoom(.87)),("center_focus_strong","Centra",self.viewport.reset_view)]:
-            b=self.icon_button(icon,label); b.clicked.connect(fn); view_layout.addWidget(b)
+        self.view_buttons={}
+        for icon,label,fn in [("3d_rotation","Orbita",lambda:self.set_view_mode("orbit")),("vertical_align_top","Dall'alto",lambda:self.set_view_mode("top")),("grid_4x4","Griglia",self.viewport.toggle_grid),("push_pin","Snap 0,1 m",self.viewport.toggle_snap),("remove","",lambda:self.viewport.zoom(1.15)),("add","",lambda:self.viewport.zoom(.87)),("center_focus_strong","Centra",lambda:self.set_view_mode("orbit"))]:
+            checkable=label in ("Orbita","Dall'alto","Griglia","Snap 0,1 m")
+            b=self.icon_button(icon,label,checkable); b.clicked.connect(fn); view_layout.addWidget(b)
+            if label: self.view_buttons[label]=b
+            if label in ("Orbita","Griglia","Snap 0,1 m"): b.setChecked(True)
         view_layout.addStretch(); center_layout.addWidget(viewbar); center_layout.addWidget(self.viewport,1)
         self.hint_label=QLabel("Seleziona un elemento o scegli uno strumento per iniziare a costruire."); self.hint_label.setObjectName("hint")
         self.hint_label.setAlignment(Qt.AlignCenter); center_layout.addWidget(self.hint_label)
@@ -502,6 +506,11 @@ class MainWindow(QMainWindow):
         scroll=QScrollArea(); scroll.setWidgetResizable(True); scroll.setWidget(self.inspector_content); outer.addWidget(scroll,1)
         self.inspector_content.setVisible(False)
         return panel
+    def set_view_mode(self,mode):
+        if mode=="top": self.viewport.set_top()
+        else: self.viewport.reset_view()
+        for label,button in self.view_buttons.items():
+            if label in ("Orbita","Dall'alto"): button.setChecked(label==("Dall'alto" if mode=="top" else "Orbita"))
     def set_transform_mode(self,mode):
         self.viewport.set_transform(mode)
         for key,button in self.transform_buttons.items(): button.setChecked(key==mode)
