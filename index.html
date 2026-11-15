@@ -1,127 +1,86 @@
 <!doctype html>
 <html lang="it">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111713">
-<title>WORLD — Le Cronache di Vaelmar</title>
-<style>
-:root{color-scheme:dark;--bg:#111713;--panel:#1a231e;--panel2:#202c25;--line:#34443a;--text:#e6eee8;--muted:#9aaba0;--accent:#9cce9b;--danger:#d77b70}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.4 Inter,ui-sans-serif,system-ui,sans-serif}button,input,select{font:inherit}button{border:1px solid var(--line);background:#26342b;color:var(--text);border-radius:7px;padding:8px 11px;cursor:pointer}button:hover{background:#33483a;border-color:#66836d}button:disabled{opacity:.35;cursor:not-allowed}.primary{background:#789f78;color:#101810;border-color:#9cce9b;font-weight:700}.danger{color:#ffb1a8}.muted{color:var(--muted)}#menu{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 42%,#293b30 0,#17231b 42%,#0d120f 100%)}.menu-card{width:min(540px,calc(100% - 36px));padding:42px;border:1px solid #405547;border-radius:18px;background:#121b16eF;box-shadow:0 24px 90px #0009}.eyebrow{letter-spacing:.22em;text-transform:uppercase;color:#a6c7a6;font-size:11px}.menu-card h1{font-size:clamp(34px,7vw,58px);line-height:1.03;margin:12px 0 8px;font-weight:650}.menu-card p{color:#aebeb2;margin:0 0 28px}.menu-actions{display:flex;gap:10px;flex-wrap:wrap}.menu-note{margin-top:28px!important;font-size:12px;color:#829487!important}#editor{position:fixed;inset:0;display:none}#view{position:absolute;inset:0;background:#9caeaa}#topbar{position:absolute;top:10px;left:10px;right:10px;height:48px;display:flex;align-items:center;gap:8px;padding:6px 10px;background:#131b17ed;border:1px solid var(--line);border-radius:10px;z-index:3;backdrop-filter:blur(12px)}.brand{font-weight:700;letter-spacing:.06em;margin:0 10px 0 4px}.spacer{flex:1}.status{font-size:12px;color:var(--muted);white-space:nowrap}#leftpanel,#rightpanel{position:absolute;top:68px;bottom:12px;width:250px;overflow:auto;background:#141d18f2;border:1px solid var(--line);border-radius:10px;padding:12px;z-index:3;backdrop-filter:blur(12px)}#leftpanel{left:10px}#rightpanel{right:10px;width:270px}.section{border-bottom:1px solid #2d3b32;padding:0 0 13px;margin:0 0 13px}.section:last-child{border:0}.section h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#a6b8aa;margin:2px 0 9px}.toolgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.toolgrid button{font-size:12px;min-height:38px}.toolgrid button.active{background:#506d54;border-color:#a2c49e;color:#fff}.field{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;color:#b7c4ba;font-size:12px}.field input[type=number],.field select{width:112px;min-width:0;background:#0e1511;border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px}.field input[type=range]{width:112px}.rowbtn{display:flex;gap:6px;flex-wrap:wrap}.rowbtn button{flex:1;font-size:12px}.hint{font-size:11px;color:#829487;line-height:1.5;margin-top:8px}#bottomhelp{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);z-index:2;background:#121a16d9;border:1px solid #34443a;border-radius:8px;padding:7px 12px;color:#c2d0c5;font-size:11px;white-space:nowrap;pointer-events:none}#toast{position:absolute;z-index:8;bottom:54px;left:50%;transform:translateX(-50%);background:#26372b;border:1px solid #66836d;border-radius:8px;padding:9px 15px;opacity:0;transition:opacity .2s;pointer-events:none}#toast.show{opacity:1}.hidden{display:none!important}#fileinput{display:none}@media(max-width:850px){#leftpanel{width:205px}#rightpanel{width:220px}#bottomhelp{display:none}.status{display:none}}@media(max-width:600px){#leftpanel,#rightpanel{top:auto;bottom:10px;height:42%;width:48%;padding:8px}#leftpanel{left:8px}#rightpanel{right:8px}#topbar{left:8px;right:8px;top:8px}.brand{display:none}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17191d">
+  <title>Editor 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0" rel="stylesheet">
+  <link rel="stylesheet" href="./css/app.css">
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+  </script>
 </head>
 <body>
-<div id="menu"><div class="menu-card"><div class="eyebrow">Sandbox di costruzione 3D</div><h1>WORLD</h1><p>Le Cronache di Vaelmar</p><div class="menu-actions"><button class="primary" id="newGame">Nuova partita</button><button id="loadGame">Carica progetto</button><button id="importGame">Importa JSON</button></div><p class="menu-note">Un mondo da costruire. Nessun edificio o oggetto è presente all'inizio.</p></div></div>
-<div id="editor">
-<div id="view"></div>
-<div id="topbar"><span class="brand">WORLD <span class="muted">/ VAELMAR</span></span><button id="backMenu">Menu</button><button id="undo" title="Ctrl+Z">↶</button><button id="redo" title="Ctrl+Y">↷</button><button id="save">Salva</button><button id="export">Esporta</button><span class="spacer"></span><span class="status" id="worldstatus">40 × 25 km · 1.000 km²</span><button id="gridToggle">Griglia: ON</button></div>
-<aside id="leftpanel">
-<div class="section"><h3>Modalità</h3><div class="toolgrid"><button class="active" data-mode="select">Seleziona</button><button data-mode="move">Sposta</button><button data-mode="rotate">Ruota</button><button data-mode="scale">Scala</button></div></div>
-<div class="section"><h3>Terreno</h3><div class="toolgrid"><button data-terrain="raise">Alza</button><button data-terrain="lower">Abbassa</button><button data-terrain="flatten">Appiattisci</button><button data-terrain="smooth">Levigatura</button></div><div class="field"><label for="brush">Raggio pennello</label><input id="brush" type="range" min="50" max="1500" step="25" value="350"></div><div class="field"><label for="strength">Intensità</label><input id="strength" type="range" min="1" max="100" value="25"></div><div class="hint">Seleziona un'azione e trascina sul terreno. Il terreno è modificabile a pennello.</div></div>
-<div class="section"><h3>Costruisci</h3><div class="toolgrid"><button data-build="house">Casa base</button><button data-build="wall">Muro</button><button data-build="floor">Pavimento</button><button data-build="roof">Tetto</button><button data-build="tree">Albero</button><button data-build="rock">Roccia</button><button data-build="road">Strada</button><button data-build="water">Acqua</button><button data-build="lamp">Lampione</button><button data-build="cube">Blocco</button></div><div class="hint">Gli elementi vengono creati al centro della visuale. Puoi selezionarli e trasformarli liberamente.</div></div>
-<div class="section"><h3>Allineamento</h3><div class="field"><label for="snap">Aggancio griglia</label><select id="snap"><option value="1">1 m</option><option value="5" selected>5 m</option><option value="10">10 m</option><option value="25">25 m</option><option value="100">100 m</option><option value="0">Libero</option></select></div></div>
-</aside>
-<aside id="rightpanel">
-<div class="section"><h3>Elemento selezionato</h3><div id="noSelection" class="muted">Nessun elemento selezionato.</div><div id="selectionUI" class="hidden">
-<div class="field"><label>Nome</label><input id="objname" type="text" style="width:145px;background:#0e1511;color:white;border:1px solid var(--line);padding:6px;border-radius:6px"></div>
-<div class="field"><label>Posizione X</label><input id="posx" type="number" step="1"></div><div class="field"><label>Posizione Y</label><input id="posy" type="number" step="1"></div><div class="field"><label>Posizione Z</label><input id="posz" type="number" step="1"></div>
-<div class="field"><label>Rotazione Y°</label><input id="roty" type="number" step="5"></div><div class="field"><label>Scala</label><input id="scaleall" type="number" min=".1" max="1000" step=".1"></div>
-<div class="rowbtn"><button id="applyTransform">Applica</button><button id="duplicate">Duplica</button></div><div class="rowbtn" style="margin-top:6px"><button id="delete" class="danger">Elimina</button></div></div></div>
-<div class="section"><h3>Progetto</h3><div class="field"><label>Oggetti</label><strong id="objectCount">0</strong></div><div class="field"><label>Dimensione mondo</label><span>40 × 25 km</span></div><div class="rowbtn"><button id="clearWorld" class="danger">Svuota mondo</button></div></div>
-<div class="section"><h3>Visuale</h3><div class="rowbtn"><button id="focusWorld">Centra</button><button id="topView">Vista dall'alto</button></div><div class="hint">Tasto destro + trascina: orbita. Rotella: zoom. Rotella premuta: panoramica.</div></div>
-</aside>
-<div id="bottomhelp">Click: seleziona · W: sposta · E: ruota · R: scala · Canc: elimina · Ctrl+D: duplica</div><div id="toast"></div>
-</div>
-<input id="fileinput" type="file" accept=".json,application/json">
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
-import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/controls/OrbitControls.js';
-import {TransformControls} from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/controls/TransformControls.js';
-
-const $=id=>document.getElementById(id), WORLD={width:40000,depth:25000}, state={objects:[],selected:null,mode:'select',terrainMode:null,grid:true,history:[],future:[],painting:false};
-let scene,camera,renderer,orbit,transform,ground,groundGeo,grid,raycaster,mouse,toastTimer,terrainBefore=null;
-const menu=$('menu'),editor=$('editor'),view=$('view');
-function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1900)}
-function init3D(){
- scene=new THREE.Scene();scene.background=new THREE.Color('#a9b8b1');scene.fog=new THREE.Fog('#a9b8b1',30000,85000);
- camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.5,150000);camera.position.set(18000,14500,21000);
- renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;view.appendChild(renderer.domElement);
- orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.07;orbit.maxPolarAngle=Math.PI*.49;orbit.minDistance=15;orbit.maxDistance=80000;orbit.target.set(0,0,0);
- scene.add(new THREE.HemisphereLight(0xe5f0e8,0x657365,2));
- const sun=new THREE.DirectionalLight(0xfff0d8,2.1);sun.position.set(-12000,18000,9000);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-20000;sun.shadow.camera.right=20000;sun.shadow.camera.top=16000;sun.shadow.camera.bottom=-16000;scene.add(sun);
- groundGeo=new THREE.PlaneGeometry(WORLD.width,WORLD.depth,160,100);groundGeo.rotateX(-Math.PI/2);
- const colors=[];for(let i=0;i<groundGeo.attributes.position.count;i++)colors.push(.72,.70,.59);groundGeo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
- ground=new THREE.Mesh(groundGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}));ground.rotation.y=0;ground.receiveShadow=true;ground.name='Terreno';scene.add(ground);
- grid=makeGrid();scene.add(grid);
- transform=new TransformControls(camera,renderer.domElement);transform.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);transform.addEventListener('objectChange',syncInspector);scene.add(transform.getHelper());
- raycaster=new THREE.Raycaster();mouse=new THREE.Vector2();
- renderer.domElement.addEventListener('pointerdown',onPointerDown);renderer.domElement.addEventListener('pointermove',onPointerMove);renderer.domElement.addEventListener('pointerup',()=>{state.painting=false;terrainBefore=null});
- addEventListener('resize',resize);animate();
-}
-function makeGrid(){const g=new THREE.Group(),mat=new THREE.LineBasicMaterial({color:0x526458,transparent:true,opacity:.28});const pts=[];for(let x=-WORLD.width/2;x<=WORLD.width/2;x+=500){pts.push(new THREE.Vector3(x,.08,-WORLD.depth/2),new THREE.Vector3(x,.08,WORLD.depth/2))}for(let z=-WORLD.depth/2;z<=WORLD.depth/2;z+=500){pts.push(new THREE.Vector3(-WORLD.width/2,.08,z),new THREE.Vector3(WORLD.width/2,.08,z))}const geo=new THREE.BufferGeometry().setFromPoints(pts);g.add(new THREE.LineSegments(geo,mat));return g}
-function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
-function animate(){requestAnimationFrame(animate);if(orbit)orbit.update();if(renderer)renderer.render(scene,camera)}
-function enter(){menu.style.display='none';editor.style.display='block';if(!renderer)init3D();resize()}
-$('newGame').onclick=()=>{enter();toast('Mondo vuoto pronto per essere costruito')};
-$('loadGame').onclick=()=>{const raw=localStorage.getItem('vaelmar-project');if(!raw){toast('Nessun salvataggio trovato');return}enter();loadData(JSON.parse(raw))};
-$('importGame').onclick=()=>$('fileinput').click();
-$('fileinput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{enter();loadData(JSON.parse(await f.text()));toast('Progetto importato')}catch(err){toast('File JSON non valido')}e.target.value=''};
-$('backMenu').onclick=()=>{editor.style.display='none';menu.style.display='grid'};
-function snapshot(){return JSON.stringify({objects:state.objects.map(o=>serialize(o)),terrain:Array.from(groundGeo.attributes.position.array)})}
-function record(){state.history.push(snapshot());if(state.history.length>60)state.history.shift();state.future=[];updateHistoryButtons()}
-function updateHistoryButtons(){$('undo').disabled=!state.history.length;$('redo').disabled=!state.future.length}
-function restoreSnapshot(s){const d=JSON.parse(s);for(const o of [...state.objects])removeObject(o,false);d.objects.forEach(createFromData);if(d.terrain&&d.terrain.length===groundGeo.attributes.position.array.length){groundGeo.attributes.position.array.set(d.terrain);groundGeo.attributes.position.needsUpdate=true;groundGeo.computeVertexNormals()}select(null);updateCount()}
-function undo(){if(!state.history.length)return;state.future.push(snapshot());restoreSnapshot(state.history.pop());updateHistoryButtons()}
-function redo(){if(!state.future.length)return;state.history.push(snapshot());restoreSnapshot(state.future.pop());updateHistoryButtons()}
-$('undo').onclick=undo;$('redo').onclick=redo;
-function serialize(o){return {kind:o.userData.kind||'cube',name:o.name,position:o.position.toArray(),rotation:o.rotation.toArray(),scale:o.scale.toArray(),color:o.userData.color||'#9b9b8b',extra:o.userData.extra||{}}}
-function material(color,rough=0.9){return new THREE.MeshStandardMaterial({color,roughness:rough})}
-function mesh(geo,color){const m=new THREE.Mesh(geo,material(color));m.castShadow=true;m.receiveShadow=true;return m}
-function group(kind,name,color){const g=new THREE.Group();g.name=name;g.userData={kind,color};return g}
-function createObject(kind,position){let g,c='#9b9b8b';
- if(kind==='house'){g=group(kind,'Casa base','#b7a58a');const body=mesh(new THREE.BoxGeometry(12,6,10),'#c6b69b');body.position.y=3;g.add(body);const roof=mesh(new THREE.ConeGeometry(8.5,4.5,4),'#754d3d');roof.rotation.y=Math.PI/4;roof.position.y=8.25;roof.scale.z=.9;g.add(roof);const door=mesh(new THREE.BoxGeometry(1.5,3,0.15),'#49372d');door.position.set(0,1.5,5.08);g.add(door);c='#b7a58a'}
- else if(kind==='wall'){g=group(kind,'Muro','#b9b09b');const a=mesh(new THREE.BoxGeometry(8,3,0.5),'#b9b09b');a.position.y=1.5;g.add(a);c='#b9b09b'}
- else if(kind==='floor'){g=group(kind,'Pavimento','#aaa18d');const a=mesh(new THREE.BoxGeometry(10,.25,10),'#aaa18d');a.position.y=.12;g.add(a);c='#aaa18d'}
- else if(kind==='roof'){g=group(kind,'Tetto','#795344');const a=mesh(new THREE.ConeGeometry(7,3.5,4),'#795344');a.rotation.y=Math.PI/4;a.position.y=1.75;g.add(a);c='#795344'}
- else if(kind==='tree'){g=group(kind,'Albero','#47784c');const trunk=mesh(new THREE.CylinderGeometry(.45,.7,5,8),'#73523a');trunk.position.y=2.5;g.add(trunk);const crown=mesh(new THREE.SphereGeometry(3.2,10,8),'#47784c');crown.position.y=6;g.add(crown);c='#47784c'}
- else if(kind==='rock'){g=group(kind,'Roccia','#777d78');const a=mesh(new THREE.DodecahedronGeometry(2.2,1),'#777d78');a.scale.set(1.5,.8,1.1);a.position.y=1;g.add(a);c='#777d78'}
- else if(kind==='road'){g=group(kind,'Strada','#4b4d4a');const a=mesh(new THREE.BoxGeometry(12,.12,100),'#4b4d4a');a.position.y=.06;g.add(a);c='#4b4d4a'}
- else if(kind==='water'){g=group(kind,'Acqua','#4c91b7');const a=new THREE.Mesh(new THREE.BoxGeometry(100,.08,100),new THREE.MeshStandardMaterial({color:'#4c91b7',transparent:true,opacity:.78,roughness:.25}));a.position.y=.05;g.add(a);c='#4c91b7'}
- else if(kind==='lamp'){g=group(kind,'Lampione','#454b48');const pole=mesh(new THREE.CylinderGeometry(.12,.18,5,8),'#454b48');pole.position.y=2.5;g.add(pole);const bulb=mesh(new THREE.SphereGeometry(.35,8,8),'#f5dfa0');bulb.position.y=5.1;g.add(bulb);c='#454b48'}
- else{g=group('cube','Blocco','#9b9b8b');const a=mesh(new THREE.BoxGeometry(5,5,5),c);a.position.y=2.5;g.add(a)}
- g.position.copy(position||new THREE.Vector3());g.userData.color=c;scene.add(g);state.objects.push(g);return g;
-}
-function createFromData(d){const g=createObject(d.kind,new THREE.Vector3(...d.position));g.name=d.name||g.name;g.rotation.fromArray(d.rotation||[0,0,0,'XYZ']);g.scale.fromArray(d.scale||[1,1,1]);g.userData.color=d.color;g.userData.extra=d.extra||{};return g}
-function removeObject(o,doRecord=true){if(!o)return;if(doRecord)record();scene.remove(o);state.objects=state.objects.filter(x=>x!==o);if(state.selected===o)select(null);updateCount()}
-function updateCount(){$('objectCount').textContent=state.objects.length}
-function select(o){state.selected=o;transform.detach();if(o&&state.mode!=='select')transform.attach(o);$('noSelection').classList.toggle('hidden',!!o);$('selectionUI').classList.toggle('hidden',!o);if(o)syncInspector();updateCount()}
-function syncInspector(){const o=state.selected;if(!o)return;$('objname').value=o.name;$('posx').value=o.position.x.toFixed(2);$('posy').value=o.position.y.toFixed(2);$('posz').value=o.position.z.toFixed(2);$('roty').value=THREE.MathUtils.radToDeg(o.rotation.y).toFixed(1);$('scaleall').value=o.scale.x.toFixed(2)}
-function applySnap(){const s=+$('snap').value||0;transform.setTranslationSnap(s||null);transform.setRotationSnap(s?THREE.MathUtils.degToRad(15):null);transform.setScaleSnap(s?0.1:null)}
-function setMode(mode){state.mode=mode;document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));if(mode==='select'){transform.detach()}else if(state.selected){transform.attach(state.selected);transform.setMode(mode==='move'?'translate':mode==='rotate'?'rotate':'scale')}applySnap()}
-document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-document.querySelectorAll('[data-build]').forEach(b=>b.onclick=()=>{record();const p=groundPointFromCenter();const o=createObject(b.dataset.build,p);select(o);setMode('move');toast(o.name+' aggiunto')});
-function groundPointFromCenter(){const dir=new THREE.Vector3();camera.getWorldDirection(dir);const ray=new THREE.Ray(camera.position,dir);const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);const p=new THREE.Vector3();ray.intersectPlane(plane,p);p.x=THREE.MathUtils.clamp(p.x,-WORLD.width/2+20,WORLD.width/2-20);p.z=THREE.MathUtils.clamp(p.z,-WORLD.depth/2+20,WORLD.depth/2-20);return p}
-$('applyTransform').onclick=()=>{const o=state.selected;if(!o)return;record();o.name=$('objname').value||o.name;o.position.set(+$('posx').value,+$('posy').value,+$('posz').value);o.rotation.y=THREE.MathUtils.degToRad(+$('roty').value);const s=Math.max(.1,+$('scaleall').value||1);o.scale.setScalar(s);syncInspector()};
-$('duplicate').onclick=()=>{const o=state.selected;if(!o)return;record();const n=createFromData(serialize(o));n.position.x+=5;n.position.z+=5;select(n);toast('Elemento duplicato')};
-$('delete').onclick=()=>removeObject(state.selected);
-$('clearWorld').onclick=()=>{if(!confirm('Eliminare tutti gli oggetti e riportare il terreno allo stato iniziale?'))return;record();for(const o of [...state.objects])removeObject(o,false);groundGeo.attributes.position.array.forEach((v,i)=>{if(i%3===1)groundGeo.attributes.position.array[i]=0});groundGeo.attributes.position.needsUpdate=true;groundGeo.computeVertexNormals();select(null);toast('Mondo svuotato')};
-$('save').onclick=save;$('export').onclick=exportProject;
-function projectData(){return {format:'vaelmar-world',version:1,world:WORLD,objects:state.objects.map(serialize),terrain:Array.from(groundGeo.attributes.position.array)}}
-function save(){localStorage.setItem('vaelmar-project',JSON.stringify(projectData()));toast('Progetto salvato in questo browser')}
-function exportProject(){const blob=new Blob([JSON.stringify(projectData())],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vaelmar-world.json';a.click();URL.revokeObjectURL(a.href);toast('Esportazione completata')}
-function loadData(d){if(d.format!=='vaelmar-world')throw Error('Formato non riconosciuto');for(const o of [...state.objects])removeObject(o,false);d.objects?.forEach(createFromData);if(d.terrain?.length===groundGeo.attributes.position.array.length){groundGeo.attributes.position.array.set(d.terrain);groundGeo.attributes.position.needsUpdate=true;groundGeo.computeVertexNormals()}state.history=[];state.future=[];select(null);updateCount();updateHistoryButtons()}
-$('gridToggle').onclick=()=>{state.grid=!state.grid;grid.visible=state.grid;$('gridToggle').textContent='Griglia: '+(state.grid?'ON':'OFF')};
-$('focusWorld').onclick=()=>{orbit.target.set(0,0,0);camera.position.set(18000,14500,21000)};
-$('topView').onclick=()=>{orbit.target.set(0,0,0);camera.position.set(0,28000,1)};
-$('snap').onchange=()=>{applySnap();toast($('snap').value==='0'?'Movimento libero':'Aggancio: '+$('snap').value+' m')};
-function onPointerDown(e){if(e.button!==0||transform.dragging)return;if(state.terrainMode){state.painting=true;terrainBefore=Array.from(groundGeo.attributes.position.array);record();paintTerrain(e);return}if(transform.axis)return;pick(e)}
-function pointerRay(e){const r=renderer.domElement.getBoundingClientRect();mouse.x=((e.clientX-r.left)/r.width)*2-1;mouse.y=-((e.clientY-r.top)/r.height)*2+1;raycaster.setFromCamera(mouse,camera)}
-function pick(e){pointerRay(e);const hits=raycaster.intersectObjects(state.objects,true);if(hits.length){let o=hits[0].object;while(o.parent&&o.parent!==scene)o=o.parent;select(o)}else{const g=raycaster.intersectObject(ground)[0];if(g&&state.mode==='select')select(null)}}
-function onPointerMove(e){if(state.painting&&state.terrainMode)paintTerrain(e)}
-function paintTerrain(e){pointerRay(e);const hit=raycaster.intersectObject(ground)[0];if(!hit)return;const p=hit.point,rad=+$('brush').value,str=+$('strength').value*.025,arr=groundGeo.attributes.position;const target=p.y;for(let i=0;i<arr.count;i++){const x=arr.getX(i),z=arr.getZ(i),d=Math.hypot(x-p.x,z-p.z);if(d>rad)continue;const fall=1-d/rad,idx=i;let y=arr.getY(i);if(state.terrainMode==='raise')y+=str*fall*12;else if(state.terrainMode==='lower')y-=str*fall*12;else if(state.terrainMode==='flatten')y+=(0-y)*Math.min(1,str*fall);else{let sum=0,n=0;const cols=161,rows=101,ix=i%cols,iz=Math.floor(i/cols);for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const nx=ix+dx,nz=iz+dz;if(nx<0||nx>=cols||nz<0||nz>=rows)continue;const j=nz*cols+nx;if(Math.hypot(arr.getX(j)-x,arr.getZ(j)-z)<520){sum+=arr.getY(j);n++}}if(n)y+=(sum/n-y)*Math.min(.5,str*fall)}arr.setY(idx,y)}arr.needsUpdate=true;groundGeo.computeVertexNormals()}
-document.querySelectorAll('[data-terrain]').forEach(b=>b.onclick=()=>{state.terrainMode=state.terrainMode===b.dataset.terrain?null:b.dataset.terrain;document.querySelectorAll('[data-terrain]').forEach(x=>x.classList.toggle('active',x===b&&!!state.terrainMode));toast(state.terrainMode?'Pennello: '+b.textContent:'Pennello disattivato')});
-function snapValue(v){const s=+$('snap').value;return s?Math.round(v/s)*s:v}
-addEventListener('keydown',e=>{if(menu.style.display!=='none')return;if(e.target.matches('input,select'))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo();return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();$('duplicate').click();return}if(e.key==='Delete'||e.key==='Backspace')removeObject(state.selected);if(e.key.toLowerCase()==='w')setMode('move');if(e.key.toLowerCase()==='e')setMode('rotate');if(e.key.toLowerCase()==='r')setMode('scale');if(e.key==='Escape'){select(null);state.terrainMode=null;document.querySelectorAll('[data-terrain]').forEach(b=>b.classList.remove('active'))}});
-</script>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark"><span class="material-symbols-rounded">view_in_ar</span></span><span>Editor 3D</span></div>
+      <div class="top-actions">
+        <span class="save-state" id="saveState">Modifiche non salvate</span>
+        <button class="icon-button" id="undoBtn" title="Annulla" aria-label="Annulla"><span class="material-symbols-rounded">undo</span></button>
+        <button class="icon-button" id="redoBtn" title="Ripeti" aria-label="Ripeti"><span class="material-symbols-rounded">redo</span></button>
+        <button class="action-button subtle" id="clearBtn"><span class="material-symbols-rounded">delete_sweep</span> Svuota</button>
+        <button class="action-button primary" id="saveBtn"><span class="material-symbols-rounded">save</span> Salva</button>
+      </div>
+    </header>
+    <section class="workspace">
+      <aside class="tool-panel">
+        <div class="panel-heading"><span>Costruzione</span><span class="material-symbols-rounded">construction</span></div>
+        <div class="tool-group">
+          <div class="group-label">STRUMENTI</div>
+          <button class="tool-button active" data-tool="select"><span class="material-symbols-rounded">near_me</span><span>Seleziona</span><kbd>V</kbd></button>
+          <button class="tool-button" data-tool="wall"><span class="material-symbols-rounded">width</span><span>Muro</span></button>
+          <button class="tool-button" data-tool="floor"><span class="material-symbols-rounded">grid_on</span><span>Pavimento</span></button>
+          <button class="tool-button" data-tool="door"><span class="material-symbols-rounded">door_front</span><span>Porta</span></button>
+          <button class="tool-button" data-tool="window"><span class="material-symbols-rounded">window</span><span>Finestra</span></button>
+        </div>
+        <div class="tool-group">
+          <div class="group-label">OGGETTI</div>
+          <button class="tool-button" data-tool="cube"><span class="material-symbols-rounded">view_in_ar</span><span>Blocco</span></button>
+          <button class="tool-button" data-tool="tree"><span class="material-symbols-rounded">park</span><span>Albero</span></button>
+        </div>
+        <div class="tool-group">
+          <div class="group-label">TRASFORMA</div>
+          <button class="tool-button" id="moveBtn"><span class="material-symbols-rounded">open_with</span><span>Sposta</span></button>
+          <button class="tool-button" id="rotateBtn"><span class="material-symbols-rounded">rotate_right</span><span>Ruota</span></button>
+          <button class="tool-button" id="deleteBtn"><span class="material-symbols-rounded">delete</span><span>Elimina</span></button>
+        </div>
+        <div class="panel-footer"><span class="status-dot"></span><span>Piano vuoto · 40 × 40 m</span></div>
+      </aside>
+      <section class="viewport-wrap">
+        <div id="viewport" aria-label="Area di costruzione 3D"></div>
+        <div class="view-toolbar">
+          <button class="view-button active" id="orbitBtn"><span class="material-symbols-rounded">3d_rotation</span> Orbita</button>
+          <button class="view-button" id="topBtn"><span class="material-symbols-rounded">top_panel_open</span> Dall'alto</button>
+          <span class="toolbar-divider"></span>
+          <button class="view-button" id="gridBtn"><span class="material-symbols-rounded">grid_4x4</span> Griglia</button>
+          <button class="view-button" id="snapBtn"><span class="material-symbols-rounded">magnet</span> Snap attivo</button>
+        </div>
+        <div class="hint-card" id="hintCard"><span class="material-symbols-rounded">mouse</span><span>Seleziona un elemento o scegli uno strumento per iniziare a costruire.</span></div>
+        <div class="axis-cube"><span class="axis-y">Y</span><span class="axis-x">X</span><span class="axis-z">Z</span></div>
+        <div class="zoom-controls"><button id="zoomIn" aria-label="Zoom avanti"><span class="material-symbols-rounded">add</span></button><button id="zoomOut" aria-label="Zoom indietro"><span class="material-symbols-rounded">remove</span></button><button id="homeView" aria-label="Centra vista"><span class="material-symbols-rounded">center_focus_strong</span></button></div>
+      </section>
+      <aside class="inspector">
+        <div class="panel-heading"><span>Proprietà</span><span class="material-symbols-rounded">tune</span></div>
+        <div id="emptyInspector" class="empty-inspector"><span class="material-symbols-rounded">touch_app</span><strong>Nessuna selezione</strong><p>Seleziona un elemento nel piano per modificarne le proprietà.</p></div>
+        <div id="objectInspector" class="object-inspector hidden">
+          <div class="selected-object"><span class="material-symbols-rounded" id="objectIcon">view_in_ar</span><div><strong id="objectName">Blocco</strong><small id="objectType">Oggetto</small></div></div>
+          <label>Posizione</label>
+          <div class="input-row"><span>X</span><input id="posX" type="number" step="0.5"><span>Z</span><input id="posZ" type="number" step="0.5"></div>
+          <label>Dimensioni</label>
+          <div class="input-row"><span>L</span><input id="sizeX" type="number" min="0.1" step="0.5"><span>H</span><input id="sizeY" type="number" min="0.1" step="0.5"><span>P</span><input id="sizeZ" type="number" min="0.1" step="0.5"></div>
+          <label>Rotazione</label>
+          <div class="input-row"><input id="rotation" type="number" step="15"><span>°</span></div>
+          <button class="action-button full-width" id="duplicateBtn"><span class="material-symbols-rounded">content_copy</span> Duplica elemento</button>
+        </div>
+        <div class="inspector-bottom"><span>UNITÀ</span><strong>Metri (m)</strong></div>
+      </aside>
+    </section>
+    <footer class="bottom-bar"><span id="objectCount">0 elementi</span><span class="footer-separator"></span><span>Griglia 0,5 m</span><span class="footer-spacer"></span><span class="keyboard-help"><kbd>V</kbd> Seleziona <kbd>Del</kbd> Elimina <kbd>Esc</kbd> Annulla strumento</span></footer>
+  </main>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
