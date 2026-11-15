@@ -22,7 +22,7 @@ except ImportError:
 APP_DIR = Path(__file__).resolve().parent
 COLORS = {"wall":"#d7d0c5","floor":"#b6a995","door":"#9b7653","window":"#91b9ca","cube":"#9da8b7","tree":"#6e9a72","model":"#b7bdc5"}
 LABELS = {"wall":"Muro","floor":"Pavimento","door":"Porta","window":"Finestra","cube":"Blocco","tree":"Albero","model":"Modello 3D"}
-DEFAULTS = {"wall":(3,2.8,.18),"floor":(3,.12,3),"door":(.95,2.1,.12),"window":(1.4,1.1,.12),"cube":(1,1,1),"tree":(1.2,3,1.2)}
+DEFAULTS = {"wall":(3,2.8,.18),"floor":(3,.12,3),"door":(.95,2.1,.12),"window":(1.4,1.1,.12),"cube":(1,1,1),"tree":(1.6,2.9,1.6)}
 PALETTE = ["#f1eee7","#c8b9a6","#8e7866","#555b63","#b94f45","#d88b52","#d8bd72","#8b9b70","#4f806e","#6d91b8","#7774a5","#c17e9b","#8a5747","#c5c8ca","#34383d","#ffffff"]
 TEXTURES = ["Nessuna","Legno","Piastrelle","Marmo","Cemento","Mattoni","Tessuto","Metallo","Vetro"]
 
@@ -399,7 +399,7 @@ class MainWindow(QMainWindow):
             kind=kind_to_web.get(o.get("kind"),"cube")
             size=o.get("size",[1,1,1])
             if isinstance(size,dict): size=[size.get("x",1),size.get("y",1),size.get("z",1)]
-            item={"kind":kind,"x":float(o.get("x",0)),"z":float(o.get("z",0)),"rotation":math.radians(float(o.get("rotation",0))),"size":{"x":size[0],"y":size[1],"z":size[2]},"color":o.get("color","#b7bdc5"),"texture":tex_to_web.get(o.get("texture","Nessuna"),("custom-"+o.get("texture")) if o.get("texture") in self.textures else o.get("texture","none")),"finish":finish_to_web.get(o.get("finish","Opaco"),o.get("finish","matte"))}
+            item={"kind":kind,"x":float(o.get("x",0)),"z":float(o.get("z",0)),"rotation":math.radians(float(o.get("rotation",0)))%(2*math.pi),"size":{"x":size[0],"y":size[1],"z":size[2]},"color":o.get("color","#b7bdc5"),"texture":tex_to_web.get(o.get("texture","Nessuna"),("custom-"+o.get("texture")) if o.get("texture") in self.textures else o.get("texture","none")),"finish":finish_to_web.get(o.get("finish","Opaco"),o.get("finish","matte"))}
             if kind=="model": item["assetId"]=o.get("asset_id",o.get("id"))
             items.append(item)
         models=[]
