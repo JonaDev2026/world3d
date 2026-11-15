@@ -331,9 +331,9 @@ class MainWindow(QMainWindow):
         super().__init__(); self.setWindowTitle("Editor 3D · World3D"); self.resize(1480,940)
         self.setMinimumSize(1120,720)
         font_dir=APP_DIR/"assets"/"fonts"
-        for font_path in (font_dir/"GoogleSans-Regular.ttf",font_dir/"GoogleSans-Medium.ttf",font_dir/"MaterialSymbolsRounded.ttf"):
+        for font_path in (font_dir/"GoogleSans-Regular.ttf",font_dir/"GoogleSans-Medium.ttf",font_dir/"MaterialIconsRound-Regular.otf"):
             if font_path.exists(): QFontDatabase.addApplicationFont(str(font_path))
-        self.icon_font=QFont("Material Symbols Rounded",18)
+        self.icon_font=QFont("Material Icons Round",18)
         self.settings_store=QSettings("JonaDev2026","World3D")
         self.language_preference=self.settings_store.value("language","auto")
         self.hidden_models=set()
@@ -342,10 +342,10 @@ class MainWindow(QMainWindow):
         topbar=QFrame(); topbar.setObjectName("topbar"); top=QHBoxLayout(topbar); top.setContentsMargins(18,10,18,10); top.setSpacing(8)
         brand=QLabel("◈  Editor 3D"); brand.setObjectName("brand"); brand.setFont(QFont("Google Sans",16,QFont.DemiBold)); top.addWidget(brand); top.addStretch()
         self.save_state=QLabel("Progetto in modifica"); self.save_state.setObjectName("saveState"); top.addWidget(self.save_state)
-        def top_button(label,fn,primary=False):
-            b=QPushButton(label); b.setProperty("primary",primary); b.clicked.connect(fn); top.addWidget(b); return b
-        top_button("save  Salva",self.save_project,True); top_button("folder_open  Apri",self.open_project)
-        top_button("file_download  Esporta",self.export_project); top_button("settings  Impostazioni",self.settings)
+        def top_button(icon,label,fn,primary=False):
+            b=self.icon_button(icon,label); b.setProperty("primary",primary); b.clicked.connect(fn); top.addWidget(b); return b
+        top_button("save","Salva",self.save_project,True); top_button("folder_open","Apri",self.open_project)
+        top_button("file_download","Esporta",self.export_project); top_button("settings","Impostazioni",self.settings)
         self.undo_btn=QPushButton("undo"); self.undo_btn.setFont(self.icon_font); self.undo_btn.setToolTip("Annulla"); self.undo_btn.clicked.connect(self.undo); top.addWidget(self.undo_btn)
         self.redo_btn=QPushButton("redo"); self.redo_btn.setFont(self.icon_font); self.redo_btn.setToolTip("Ripeti"); self.redo_btn.clicked.connect(self.redo); top.addWidget(self.redo_btn)
         top_button("delete_sweep  Svuota",self.clear); layout.addWidget(topbar)
@@ -353,8 +353,8 @@ class MainWindow(QMainWindow):
         self.viewport=Viewport(); self.viewport.selectedChanged.connect(self.selection_changed); self.viewport.changed.connect(self.push_history)
         center=QWidget(); center.setObjectName("viewportPanel"); center_layout=QVBoxLayout(center); center_layout.setContentsMargins(0,0,0,0); center_layout.setSpacing(0)
         viewbar=QFrame(); viewbar.setObjectName("viewbar"); view_layout=QHBoxLayout(viewbar); view_layout.setContentsMargins(12,7,12,7); view_layout.setSpacing(5)
-        for label,fn in [("3d_rotation  Orbita",self.viewport.reset_view),("top_panel_open  Dall'alto",self.viewport.set_top),("grid_4x4  Griglia",self.viewport.toggle_grid),("magnet  Snap 0,1 m",self.viewport.toggle_snap),("remove",lambda:self.viewport.zoom(1.15)),("add",lambda:self.viewport.zoom(.87)),("center_focus_strong  Centra",self.viewport.reset_view)]:
-            b=QPushButton(label); b.clicked.connect(fn); view_layout.addWidget(b)
+        for icon,label,fn in [("3d_rotation","Orbita",self.viewport.reset_view),("top_panel_open","Dall'alto",self.viewport.set_top),("grid_4x4","Griglia",self.viewport.toggle_grid),("magnet","Snap 0,1 m",self.viewport.toggle_snap),("remove","",lambda:self.viewport.zoom(1.15)),("add","",lambda:self.viewport.zoom(.87)),("center_focus_strong","Centra",self.viewport.reset_view)]:
+            b=self.icon_button(icon,label); b.clicked.connect(fn); view_layout.addWidget(b)
         view_layout.addStretch(); center_layout.addWidget(viewbar); center_layout.addWidget(self.viewport,1)
         split.addWidget(self.build_sidebar()); split.addWidget(center); split.addWidget(self.build_inspector()); split.setSizes([235,970,275]); split.setCollapsible(0,False); split.setCollapsible(2,False)
         layout.addWidget(split,1)
@@ -367,6 +367,16 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Piano vuoto · 40 × 40 m")
         self.push_history()
         self.set_shortcuts()
+    def icon_button(self,icon,label,checkable=False):
+        b=QPushButton(); b.setCheckable(checkable)
+        row=QHBoxLayout(b); row.setContentsMargins(10,0,10,0); row.setSpacing(7)
+        glyph=QLabel(icon); glyph.setFont(self.icon_font); glyph.setStyleSheet("background:transparent;border:0;color:#aebed5")
+        row.addWidget(glyph)
+        if label:
+            caption=QLabel(label); caption.setStyleSheet("background:transparent;border:0")
+            row.addWidget(caption)
+        row.addStretch()
+        return b
     def styles(self):
         return """QMainWindow,QWidget{background:#17191d;color:#e8eaed;font-family:'Google Sans','Noto Sans',sans-serif;font-size:13px}
         QFrame#topbar,QFrame#footer{background:#202329;border:0}
@@ -414,14 +424,14 @@ class MainWindow(QMainWindow):
         for label,kind,icon in [("Blocco","cube","view_in_ar"),("Albero","tree","park")]: tool(label,kind,icon)
         section("Risorse")
         for label,fn,icon in [("Importa cartella",self.import_folder,"folder_open"),("Importa texture",self.import_textures,"texture"),("Importa modello 3D",self.import_models,"deployed_code")]:
-            b=QPushButton(icon+"   "+label); b.setObjectName("toolButton"); b.clicked.connect(fn); box.addWidget(b)
+            b=self.icon_button(icon,label); b.setObjectName("toolButton"); b.clicked.connect(fn); box.addWidget(b)
         self.asset_toggle=QToolButton(); self.asset_toggle.setText("expand_more   Oggetti importati"); self.asset_toggle.setCheckable(True); self.asset_toggle.setChecked(True); box.addWidget(self.asset_toggle)
         asset_panel=QWidget(); self.asset_list=QVBoxLayout(asset_panel); self.asset_list.setContentsMargins(5,2,5,5); self.asset_list.setSpacing(4); box.addWidget(asset_panel)
         self.asset_toggle.toggled.connect(lambda shown:(asset_panel.setVisible(shown),self.asset_toggle.setText(("expand_more" if shown else "chevron_right")+"   Oggetti importati")))
         section("Trasforma")
         transform=QGroupBox(); tb=QVBoxLayout(transform); tb.setContentsMargins(7,9,7,7)
         for label,fn,icon in [("Sposta",lambda:self.viewport.set_transform("translate"),"open_with"),("Ruota",lambda:self.viewport.set_transform("rotate"),"rotate_right"),("Duplica",self.duplicate_selected,"content_copy"),("Elimina",self.delete_selected,"delete")]:
-            b=QPushButton(icon+"   "+label); b.setObjectName("toolButton"); b.clicked.connect(fn); tb.addWidget(b)
+            b=self.icon_button(icon,label); b.setObjectName("toolButton"); b.clicked.connect(fn); tb.addWidget(b)
         box.addWidget(transform); box.addStretch()
         return panel
     def build_inspector(self):
