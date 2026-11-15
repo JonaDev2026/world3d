@@ -36,7 +36,14 @@ Editor 3D di costruzione su un piano vuoto, con flusso di lavoro ispirato alla m
 - Verificare compatibilità e caricamento dei font Google Sans nel browser.
 
 ## Impostazioni e lingue
-- Finestra Impostazioni con larghezza e profondità del piano configurabili da 1 a 500 m, con precisione di 0,1 m.
+- Finestra Impostazioni con larghezza e profondità del piano configurabili senza limite massimo, con minimo 0,1 m e precisione di 0,1 m.
 - Ridimensionamento del piano senza eliminare gli oggetti già posizionati.
 - Lingue italiano, inglese, francese e spagnolo in file separati.
 - Rilevamento automatico della lingua del sistema al primo avvio; scelta manuale persistente nelle preferenze del browser.
+
+## Scala reale delle texture e piani estesi
+- Le texture sono dimensionate in metri: piastrelle da 10 cm (10 ripetizioni per metro), mattoni con modulo da circa 50 cm e altre superfici con modulo base da 1 m.
+- Le ripetizioni sono calcolate sulle dimensioni fisiche dell'oggetto, non sull'intera superficie come immagine unica.
+- Rimosso il limite massimo di 500 m per larghezza e profondità del piano.
+- La griglia visualizzata diventa progressivamente meno fitta sui piani molto grandi per contenere il carico grafico; lo snap di posizionamento resta a 0,1 m.
+- Distanza massima della camera e piano di clipping ampliate per consentire la navigazione su superfici di scala chilometrica.
