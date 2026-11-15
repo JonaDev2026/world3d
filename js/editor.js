@@ -175,6 +175,7 @@ export class BuildEditor {
     const type=texture||"none";
     const custom=this.customTextures.get(type);
     const source=custom?new THREE.TextureLoader().load(custom.data):makeTexture(type);
+    if(custom&&source)source.colorSpace=THREE.SRGBColorSpace;
     const map=source?source.clone():null;
     if(map){
       // The tile canvas contains 4x4 tiles: 2.5 texture repeats per metre
