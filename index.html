@@ -20,6 +20,7 @@
       <div class="brand"><span class="brand-mark"><span class="material-symbols-rounded">view_in_ar</span></span><span>Editor 3D</span></div>
       <div class="top-actions">
         <span class="save-state" id="saveState">Modifiche non salvate</span>
+        <button class="action-button subtle" id="settingsBtn"><span class="material-symbols-rounded">settings</span> Impostazioni</button>
         <button class="icon-button" id="undoBtn" title="Annulla" aria-label="Annulla"><span class="material-symbols-rounded">undo</span></button>
         <button class="icon-button" id="redoBtn" title="Ripeti" aria-label="Ripeti"><span class="material-symbols-rounded">redo</span></button>
         <button class="action-button subtle" id="clearBtn"><span class="material-symbols-rounded">delete_sweep</span> Svuota</button>
@@ -120,6 +121,26 @@
         <div class="inspector-bottom"><span>UNITÀ</span><strong>Metri (m)</strong></div>
       </aside>
     </section>
+    <div class="modal-backdrop hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <section class="settings-dialog">
+        <header class="settings-header"><h2 id="settingsTitle">Impostazioni</h2><button class="icon-button" id="closeSettings" aria-label="Chiudi"><span class="material-symbols-rounded">close</span></button></header>
+        <div class="settings-content">
+          <h3>Dimensioni del piano</h3>
+          <p>Scegli larghezza e profondità del piano di costruzione. Valori in metri, incrementi di 0,1 m.</p>
+          <div class="settings-fields">
+            <label>Larghezza (X)<input id="planeWidth" type="number" min="1" max="500" step="0.1" value="40"></label>
+            <label>Profondità (Z)<input id="planeDepth" type="number" min="1" max="500" step="0.1" value="40"></label>
+          </div>
+          <h3>Lingua</h3>
+          <p>Automatico usa la lingua del sistema. Puoi anche scegliere manualmente.</p>
+          <select id="languageSelect">
+            <option value="auto">Automatico (sistema)</option>
+            <option value="it">Italiano</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option>
+          </select>
+        </div>
+        <footer class="settings-footer"><button class="action-button subtle" id="cancelSettings">Annulla</button><button class="action-button primary" id="applySettings">Applica</button></footer>
+      </section>
+    </div>
     <footer class="bottom-bar"><span id="objectCount">0 elementi</span><span class="footer-separator"></span><span>Griglia 0,1 m</span><span class="footer-spacer"></span><span class="keyboard-help"><kbd>V</kbd> Seleziona <kbd>Del</kbd> Elimina <kbd>Esc</kbd> Annulla strumento</span></footer>
   </main>
   <script type="module" src="./js/main.js"></script>
