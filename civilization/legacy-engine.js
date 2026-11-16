@@ -419,7 +419,17 @@ function daily(s){
   if(tech.includes("Calendario"))output*=1.025;
   if(tech.includes("Vetro"))output*=1.015;
   const geography=s.geography||{width:128,height:88,terrain:[]};
-  const sx=Math.round(st.x),sy=Math.round(st.y),nearWater=(()=>{let best=99;for(let yy=-3;yy<=3;yy++)for(let xx=-3;xx<=3;xx++){const code=terrain?.[(sy+yy)*geography.width+sx+xx];if(code===5||code===6)best=Math.min(best,Math.hypot(xx,yy));}return best;})();
+  const sx=clamp(Math.round(st.x),0,geography.width-1),sy=clamp(Math.round(st.y),0,geography.height-1);
+  const nearWater=(()=>{
+   let best=99;
+   for(let yy=-3;yy<=3;yy++)for(let xx=-3;xx<=3;xx++){
+    const nx=sx+xx,ny=sy+yy;
+    if(nx<0||ny<0||nx>=geography.width||ny>=geography.height)continue;
+    const code=terrain?.[ny*geography.width+nx];
+    if(code===5||code===6)best=Math.min(best,Math.hypot(xx,yy));
+   }
+   return best;
+  })();
   const fertility=land===2?1.24:land===1?1.12:land===6?1.18:land===3?1.02:land===7?.72:land===4?.58:1;
   const waterAccess=nearWater<=1?1.18:nearWater<=3?1.09:nearWater<=5?1.03:.88;
   const farmShare=role("agricoltore")*.45;
