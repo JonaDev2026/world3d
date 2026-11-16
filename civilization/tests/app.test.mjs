@@ -19,10 +19,10 @@ test("civilization page exposes every DOM control referenced by its controller",
   const {readFile}=await import("node:fs/promises");
   const page=await readFile(new URL("../index.html",import.meta.url),"utf8");
   const controller=await readFile(new URL("../app.js",import.meta.url),"utf8");
-  const ids=new Set([...page.matchAll(/\\bid="([^"]+)"/g)].map(match=>match[1]));
-  const references=[...controller.matchAll(/\\$\\("([^"]+)"\\)/g)].map(match=>match[1]);
+  const ids=new Set([...page.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
+  const references=[...controller.matchAll(/\$\("([^"]+)"\)/g)].map(match=>match[1]);
   const missing=[...new Set(references.filter(id=>!ids.has(id)))];
   assert.deepEqual(missing,[]);
-  assert.match(page,/src="\\.\/app\\.js"/);
-  assert.match(page,/href="\\.\\.\/index\\.html"/);
+  assert.match(page,/src="\.\/app\.js"/);
+  assert.match(page,/href="\.\.\/index\.html"/);
 });
