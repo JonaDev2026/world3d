@@ -3,7 +3,7 @@ const STORE_NAME = "state";
 export function calculateOfflineCatchUp(world,now=Date.now()) {
   const pending = Math.max(0,Number(world?.pendingDays)||0);
   if (!world || world.paused) return {days:0,pendingDays:pending};
-  const speed = Math.max(1,Math.min(365,Number(world.speed)||1));
+  const speed = Math.max(1,Math.min(60,Number(world.speed)||1));
   const last = Number(world.lastWallTime)||now;
   const elapsedSeconds = Math.max(0,now-last)/1000;
   const total = pending+elapsedSeconds*speed;

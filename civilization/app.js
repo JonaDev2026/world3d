@@ -517,11 +517,12 @@ function startApp() {
     const saved = await loadWorld();
     const world = saved || createWorld();
     const catchUp = calculateOfflineCatchUp(world,Date.now());
-    const allowedSpeeds = [1,10,60,365];
+    const allowedSpeeds = [1,10,60];
     state.speed = allowedSpeeds.includes(Number(world.speed)) ? Number(world.speed) : 1;
+    world.speed = state.speed;
+    const catchUp = calculateOfflineCatchUp(world,Date.now());
     state.paused = Boolean(world.paused);
     state.pendingDays = catchUp.pendingDays;
-    world.speed = state.speed;
     world.paused = state.paused;
     world.pendingDays = catchUp.pendingDays;
 
@@ -567,7 +568,7 @@ function startApp() {
         await tick();
         absorbElapsed();
         const value = Number($("speedSelect").value);
-        state.speed = [1,10,60,365].includes(value) ? value : 1;
+        state.speed = [1,10,60].includes(value) ? value : 1;
         state.lastTick = Date.now();
         await saveCheckpoint();
       } catch (error) {

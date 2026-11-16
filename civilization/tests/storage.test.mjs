@@ -19,3 +19,7 @@ test("clock rollback never advances the world",()=>{
   assert.equal(result.days,0);
   assert.equal(result.pendingDays,.4);
 });
+test("offline recovery clamps extreme saved speeds to a bounded maximum",()=>{
+  const result=calculateOfflineCatchUp({paused:false,speed:365,pendingDays:0,lastWallTime:1000},2000);
+  assert.equal(result.days,60);
+});

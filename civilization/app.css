@@ -53,7 +53,7 @@ button,select,input{font:inherit}
 .panel-heading h1,.panel-heading h2{margin:0;font-size:15px;font-weight:650;letter-spacing:.1px}
 .panel-heading p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.45}
 .muted{color:var(--muted);font-size:10px;white-space:nowrap}
-.map-panel{grid-row:span 2}
+.map-panel{grid-row:auto}
 .map-wrap{overflow:hidden;border:1px solid #46545f;border-radius:9px;background:#101820}
 #worldMap{display:block;width:100%;height:auto;max-height:690px;object-fit:contain}
 .map-legend{display:flex;gap:16px;flex-wrap:wrap;padding:11px 2px 14px;color:var(--muted);font-size:10px}
