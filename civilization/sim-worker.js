@@ -23,7 +23,7 @@ self.onmessage = async event => {
     if (type==="save") {
       Object.assign(world,meta||{},{lastWallTime:Date.now()});
       await saveWorld(world);
-      self.postMessage({id,saved:true,world,summary:summary(world)});
+      self.postMessage({id,saved:true,summary:summary(world)});
       return;
     }
     if (type==="history") {
