@@ -280,12 +280,15 @@ function updateMaterialResources(world) {
     const productivity = .65+.35*workRatio;
     const gatherers = roles("raccoglitore"), farmers = roles("agricoltore"), builders = roles("costruttore"), artisans = roles("artigiano");
     const width = world.geography?.width || 128;
+    const height = world.geography?.height || 88;
     const terrain = world.geography?.terrain || [];
-    const x = Math.round(site.x), y = Math.round(site.y);
-    const land = terrain[y*width+x] ?? 1;
+    const x = clamp(Math.round(site.x),0,width-1);
+    const y = clamp(Math.round(site.y),0,height-1);
     let nearWater = 99, nearOre = false;
     for (let dy=-4;dy<=4;dy++) for (let dx=-4;dx<=4;dx++) {
-      const code = terrain[(y+dy)*width+x+dx];
+      const nx=x+dx, ny=y+dy;
+      if (nx<0 || ny<0 || nx>=width || ny>=height) continue;
+      const code = terrain[ny*width+nx];
       if (code===5 || code===6) nearWater=Math.min(nearWater,Math.hypot(dx,dy));
       if (code===3 || code===4) nearOre=true;
     }

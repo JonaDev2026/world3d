@@ -438,3 +438,38 @@ test("shared beliefs can produce a new spiritual tradition",()=>{
   assert.equal(world.religion,"Culto degli antenati");
   assert.ok(world.events.some(event=>event.type==="culture"&&event.title==="Cambia la tradizione spirituale"));
 });
+
+
+test("simulation results do not depend on how elapsed days are batched", () => {
+  const uninterrupted = createWorld({seed:20261116});
+  const batched = createWorld({seed:20261116});
+  advance(uninterrupted,3650);
+  for (const days of [1,29,335,365,730,1095,1095]) advance(batched,days);
+  const comparable = state => {
+    const copy = structuredClone(state);
+    delete copy.lastWallTime;
+    delete copy._dailyPersonIndex;
+    return copy;
+  };
+  assert.deepEqual(comparable(batched),comparable(uninterrupted));
+});
+
+test("resource surveys never wrap across the west map boundary", () => {
+  const withDistantWater = createWorld({seed:20261117});
+  const withoutDistantWater = structuredClone(withDistantWater);
+  const {width} = withDistantWater.geography;
+  const site = withDistantWater.settlements[0];
+  site.x = 0;
+  site.y = 40;
+  withoutDistantWater.settlements[0].x = 0;
+  withoutDistantWater.settlements[0].y = 40;
+  withDistantWater.geography.terrain.fill(1);
+  withoutDistantWater.geography.terrain.fill(1);
+  withDistantWater.geography.terrain[(site.y-1)*width+(width-1)] = 5;
+  advance(withDistantWater,1);
+  advance(withoutDistantWater,1);
+  assert.equal(
+    withDistantWater.resourceFlows.produced.water,
+    withoutDistantWater.resourceFlows.produced.water
+  );
+});
