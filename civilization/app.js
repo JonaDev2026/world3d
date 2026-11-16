@@ -516,7 +516,6 @@ function startApp() {
 
     const saved = await loadWorld();
     const world = saved || createWorld();
-    const catchUp = calculateOfflineCatchUp(world,Date.now());
     const allowedSpeeds = [1,10,60];
     state.speed = allowedSpeeds.includes(Number(world.speed)) ? Number(world.speed) : 1;
     world.speed = state.speed;
