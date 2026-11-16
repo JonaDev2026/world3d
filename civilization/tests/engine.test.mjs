@@ -181,7 +181,7 @@ test("inhabitants invent the first settlement name after the founding period",()
 test("version one saves migrate to the generated geography without losing population",()=>{
  const world=createWorld();world.version=1;delete world.geography;delete world.language;
  validateWorld(world);
- assert.equal(world.version,3);assert.equal(world.population.length,24);assert.ok(world.geography.terrain.length>0);
+ assert.equal(world.version,4);assert.equal(world.population.length,24);assert.ok(world.geography.terrain.length>0);
 });
 
 test("advanced technologies materially increase local food production",()=>{
@@ -356,7 +356,8 @@ test("historical event archive remains searchable after the recent-event window 
   for (let index=0;index<520;index++) {
     recordHistoricalEvent(world,{title:"Evento "+index,description:"Memoria consultabile",type:"test",cause:{kind:"test"},consequences:["registrato"]});
   }
-  assert.equal(world.eventArchive.length,20);
+  assert.equal(world.eventArchive.length,21);
+  assert.ok(world.eventArchive.some(item=>item.title==="La comunità si stabilisce"));
   assert.ok(searchHistory(world,{query:"Evento 0",limit:250}).some(item=>item.title==="Evento 0"));
 });
 
