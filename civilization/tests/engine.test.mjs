@@ -382,3 +382,59 @@ test("diplomacy can dissolve an alliance after hostility rises", () => {
   assert.equal(neighbor.allied,false);
   assert.ok(world.events.some(item=>item.title==="Si scioglie un patto"));
 });
+
+test("pregnancy produces a newborn with both parent links and a zero-year age",()=>{
+  let found=null;
+  for(let seed=1;seed<=128&&!found;seed++){
+    const world=createWorld({seed});
+    const mother=world.population.find(person=>person.sex==="F");
+    const father=world.population.find(person=>person.sex==="M");
+    if(!mother||!father)continue;
+    mother.age=25;mother.health=100;mother.pregnancyDays=1;mother.partner=father.id;
+    father.age=25;father.health=100;father.partner=mother.id;
+    const fatherAge=father.age;
+    advance(world,1);
+    const child=world.population.find(person=>
+      person.parents?.includes(mother.id)&&person.parents?.includes(father.id)
+    );
+    if(child)found={world,mother,father,child,fatherAge};
+  }
+  assert.ok(found,"almeno uno dei semi deterministici deve produrre una nascita");
+  assert.equal(found.child.age,0);
+  assert.ok(found.mother.children.includes(found.child.id));
+  assert.ok(found.father.children.includes(found.child.id));
+  assert.ok(Math.abs(found.father.age-found.fatherAge-1/365)<1e-9);
+});
+
+test("family ties become reciprocal social relationships",()=>{
+  const world=createWorld({seed:31415});
+  const parent=world.population[0];
+  const child=world.population[1];
+  parent.children=[child.id];
+  child.parents=[parent.id];
+  child.family=parent.family;
+  advance(world,30);
+  assert.ok(parent.relationships.some(link=>link.personId===child.id&&link.type==="famiglia"));
+  assert.ok(child.relationships.some(link=>link.personId===parent.id&&link.type==="famiglia"));
+});
+
+test("shared beliefs can produce a new spiritual tradition",()=>{
+  const world=createWorld({seed:2718});
+  const founders=world.population.slice();
+  for(let i=0;i<30;i++){
+    const source=founders[i%founders.length];
+    world.population.push({
+      ...source,id:25+i,age:30,alive:true,health:100,parents:[],children:[],
+      traits:{...source.traits},relationships:[],partner:null,beliefs:{ancestors:.9,nature:.03,seasons:.03,community:.04}
+    });
+  }
+  world.nextPersonId=55;
+  for(const person of world.population)person.beliefs={ancestors:.9,nature:.03,seasons:.03,community:.04};
+  world.year=8;
+  world.day=365;
+  world.culture.lastUpdatedYear=-1;
+  world.culture.lastReligionYear=-8;
+  advance(world,1);
+  assert.equal(world.religion,"Culto degli antenati");
+  assert.ok(world.events.some(event=>event.type==="culture"&&event.title==="Cambia la tradizione spirituale"));
+});
