@@ -150,8 +150,15 @@ export function createWorld(start={}){
  addEvent(s,"La comunità si stabilisce","Ventiquattro persone scelgono un luogo vicino all’acqua. Il territorio non ha ancora un nome condiviso.","society");
  return s;
 }
-function addEvent(s,title,description,type="society"){
- const e={id:s.nextEventId++,year:s.year,day:s.day,title,description,type,cause:null,consequences:[],actors:[],locationId:null,relatedEventIds:[]};
+function addEvent(s,title,description,type="society",details={}){
+ const e={
+  id:s.nextEventId++,year:s.year,day:s.day,title,description,type,
+  cause:details.cause??null,
+  consequences:Array.isArray(details.consequences)?details.consequences:[],
+  actors:Array.isArray(details.actors)?details.actors:[],
+  locationId:details.locationId??null,
+  relatedEventIds:Array.isArray(details.relatedEventIds)?details.relatedEventIds:[]
+ };
  s.events.push(e);
  if(s.events.length>500){
   if(!Array.isArray(s.eventArchive))s.eventArchive=[];
@@ -533,32 +540,66 @@ function daily(s){
     s.knowledge+=1+g.technology*.025;g.technology+=.025;g.hostility=clamp(g.hostility-(g.allied?2:1),0,100);
     addEvent(s,g.allied?"Scambio tra alleati":"Si apre una rotta commerciale",g.name+" e la comunità scambiano conoscenze e beni"+(shipment?" per "+Math.abs(shipment)+" unità di provviste":"")+". I contatti rendono più familiari usi e tecniche differenti.","diplomacy");
    }
-   if(!g.atWar&&!g.allied&&s.year>=(g.truceUntil||0)&&n>70&&g.population>25&&g.hostility>45&&territorialPressure>.12&&random(s)<0.00016*proximity*territorialPressure){g.atWar=true;g.warDays=0;s.stats.wars++;addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war");}
+   if(!g.atWar&&!g.allied&&s.year>=(g.truceUntil||0)&&n>70&&g.population>25&&g.hostility>45&&territorialPressure>.12&&random(s)<0.00016*proximity*territorialPressure){
+    const hostility=g.hostility;
+    g.atWar=true;g.warDays=0;s.stats.wars++;
+    addEvent(s,"Conflitto con "+g.name,"Le tensioni per territorio e risorse degenerano in guerra aperta. La comunità mobilita i propri difensori.","war",{
+     cause:{kind:"escalation_diplomatica",hostility,population:n,neighborPopulation:g.population,territorialPressure,distance:routeDistance},
+     consequences:["Le relazioni tra le due comunità passano allo stato di guerra","La comunità mobilita difese e risorse per il conflitto"],
+     locationId:frontier.id
+    });
+   }
    if(g.atWar){g.warDays++;if(g.warDays%30===0){
     const ownPower=n*0.32+s.order*0.35+s.technology.length*5,enemyPower=g.population*0.42+g.technology*2;
-    if(g.warDays===30&&enemyPower>ownPower*1.2){const raid=Math.round(n*1.5);frontier.stores=Math.max(0,frontier.stores-raid);s.food=Math.max(0,s.food-raid);s.cohesion=clamp(s.cohesion-3,0,100);addEvent(s,"Incursione nella valle",g.name+" supera le difese di confine e saccheggia parte delle riserve. La popolazione si rifugia nell’insediamento principale.","war");}
+    if(g.warDays===30&&enemyPower>ownPower*1.2){const raid=Math.round(n*1.5);frontier.stores=Math.max(0,frontier.stores-raid);s.food=Math.max(0,s.food-raid);s.cohesion=clamp(s.cohesion-3,0,100);addEvent(s,"Incursione nella valle",g.name+" supera le difese di confine e saccheggia parte delle riserve. La popolazione si rifugia nell’insediamento principale.","war",{
+       cause:{kind:"superiorita_militare_avversaria",ownPower,enemyPower,warDays:g.warDays,communityPopulation:n},
+       consequences:[raid+" unità di provviste vengono sottratte alle riserve","La sicurezza dell'insediamento principale peggiora"],
+       locationId:frontier.id
+      });}
     const ownLoss=Math.max(1,Math.round((random(s)*3+1)*(enemyPower/Math.max(1,ownPower))));
     const enemyLoss=Math.max(1,Math.round((random(s)*3+1)*(ownPower/Math.max(1,enemyPower))));
     for(let k=0;k<ownLoss;k++){const victim=pick(s,living(s));if(victim){killPerson(s,victim);s.stats.deaths++;}}
     g.population=Math.max(3,g.population-enemyLoss);frontier.stores=Math.max(0,frontier.stores-ownLoss*2);s.food=Math.max(0,s.food-ownLoss*2);s.cohesion=clamp(s.cohesion-1.2,0,100);
-    addEvent(s,"Scontro armato","Uno scontro con "+g.name+" provoca "+ownLoss+" perdite nella comunità e "+enemyLoss+" tra gli avversari.","war");
+    addEvent(s,"Scontro armato","Uno scontro con "+g.name+" provoca "+ownLoss+" perdite nella comunità e "+enemyLoss+" tra gli avversari.","war",{
+      cause:{kind:"confronto_tra_forze",ownPower,enemyPower,warDays:g.warDays},
+      consequences:[ownLoss+" persone della comunità muoiono nello scontro",enemyLoss+" persone della comunità avversaria vengono perse","Le riserve locali diminuiscono per sostenere il conflitto"],
+      locationId:frontier.id
+     });
     const invasionRoll=random(s);
     if(ownPower>enemyPower*1.2&&invasionRoll<.10){
+     const enemyPopulationBefore=g.population;
      const captured=Math.max(1,Math.round(g.population*.08));
      g.population=Math.max(3,g.population-captured);
      const supplies=Math.min(35,Math.round(captured*.7));
      const received=Math.min(supplies,Math.max(0,Math.max(240,living(s).length*45)-s.food));s.food+=received;frontier.stores+=received;
      frontier.knownArea+=2;
-     addEvent(s,"Avanzata oltre il confine","Le forze della valle penetrano nel territorio di "+g.name+". Vengono occupate aree di pascolo e raccolta e recuperate alcune provviste.","war");
+     addEvent(s,"Avanzata oltre il confine","Le forze della valle penetrano nel territorio di "+g.name+". Vengono occupate aree di pascolo e raccolta e recuperate alcune provviste.","war",{
+      cause:{kind:"superiorita_militare",ownPower,enemyPower,warDays:g.warDays,enemyPopulationBefore,captured},
+      consequences:["L'area conosciuta oltre il confine aumenta di due unità","Vengono recuperate "+received+" unità di provviste","La popolazione avversaria perde "+captured+" persone"],
+      locationId:frontier.id
+     });
     }else if(enemyPower>ownPower*1.2&&invasionRoll<.16){
-     const damage=Math.max(1,Math.round(living(s).length*.012));
+     const defendingPopulation=living(s).length;
+      const damage=Math.max(1,Math.round(defendingPopulation*.012));
      for(let k=0;k<damage;k++){const defenders=living(s);if(!defenders.length)break;const victim=pick(s,defenders);killPerson(s,victim);s.stats.deaths++;}
      frontier.stores=Math.max(0,frontier.stores-damage*2);s.food=Math.max(0,s.food-damage*2);
      s.cohesion=clamp(s.cohesion-2.5,0,100);
-     addEvent(s,"Incursione nel territorio","Un'incursione di "+g.name+" supera le difese periferiche. Vengono sottratte provviste e la comunità deve riorganizzare la protezione del territorio.","war");
+     addEvent(s,"Incursione nel territorio","Un'incursione di "+g.name+" supera le difese periferiche. Vengono sottratte provviste e la comunità deve riorganizzare la protezione del territorio.","war",{
+       cause:{kind:"superiorita_militare_avversaria",ownPower,enemyPower,warDays:g.warDays,defendingPopulation},
+       consequences:[damage+" difensori muoiono nell'incursione","Le riserve alimentari diminuiscono di "+(damage*2)+" unità","La coesione della comunità diminuisce"],
+       locationId:frontier.id
+      });
     }
    }
-   if(g.warDays>150||g.population<=4){g.atWar=false;g.hostility=25;g.truceUntil=s.year+12;g.allied=false;addEvent(s,"Cessazione delle ostilità","Il conflitto con "+g.name+" termina dopo mesi di scontri. Le perdite e le tensioni restano nella memoria collettiva.","war");}
+   if(g.warDays>150||g.population<=4){
+     const warDays=g.warDays;
+     g.atWar=false;g.hostility=25;g.truceUntil=s.year+12;g.allied=false;
+     addEvent(s,"Cessazione delle ostilità","Il conflitto con "+g.name+" termina dopo mesi di scontri. Le perdite e le tensioni restano nella memoria collettiva.","war",{
+      cause:{kind:"esaurimento_conflitto",warDays,neighborPopulation:g.population},
+      consequences:["Le ostilità cessano","Viene stabilita una tregua fino all'anno "+g.truceUntil,"Le perdite restano nella memoria storica"],
+      locationId:frontier.id
+     });
+    }
    }
   }
  }
@@ -613,8 +654,15 @@ function daily(s){
     const id=s.nextSettlementId++,geo=nearbyCoordinates(origin,site.x,site.y),transfer=Math.min(origin.stores*.28,migrantCount*9);
     const newSite={id,name:null,x:site.x,y:site.y,latitude:geo.latitude,longitude:geo.longitude,kind:"accampamento",homes:8,fields:tech.includes("Agricoltura")?Math.max(2,Math.round(migrantCount*.16)):0,stores:transfer,water:400,knownArea:4,population:0,foundingYear:s.year,nationId:s.nationName?1:null,originId:origin.id};
     origin.stores-=transfer;s.settlements.push(newSite);
-    for(let i=0;i<migrantCount;i++){const migrant=pick(s,candidates);migrant.settlementId=id;candidates.splice(candidates.indexOf(migrant),1);}
-    s.stats.migrations++;addEvent(s,"Un gruppo parte per nuove terre","Famiglie e lavoratori lasciano "+(origin.name||"l'insediamento")+" e fondano una comunità autonoma in un territorio con acqua e risorse proprie.","migration");
+    const migrantIds=[];
+    for(let i=0;i<migrantCount;i++){const migrant=pick(s,candidates);migrant.settlementId=id;migrantIds.push(migrant.id);candidates.splice(candidates.indexOf(migrant),1);}
+    s.stats.migrations++;
+    addEvent(s,"Un gruppo parte per nuove terre","Famiglie e lavoratori lasciano "+(origin.name||"l'insediamento")+" e fondano una comunità autonoma in un territorio con acqua e risorse proprie.","migration",{
+     cause:{kind:"surplus_demografico_e_risorse",population:n,originId:origin.id,destinationId:id,migrantCount,foodAvailable:s.food,storedFood:transfer},
+     consequences:[migrantCount+" persone si trasferiscono nel nuovo insediamento","Vengono trasferite "+transfer+" unità di provviste","La comunità di origine e quella nuova diventano insediamenti distinti"],
+     actors:migrantIds,
+     locationId:id
+    });
    }
   }
  }
