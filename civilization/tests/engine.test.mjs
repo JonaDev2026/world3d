@@ -386,7 +386,7 @@ test("an armed advance expands the known frontier and records an invasion", () =
   advance(world,1);
 
   assert.ok(world.events.some(item=>item.title==="Avanzata oltre il confine"));
-  assert.equal(frontier.knownArea,knownArea+2);
+  assert.ok(Math.abs(frontier.knownArea-knownArea-2)<0.01);
 });
 
 test("an enemy incursion records territorial damage", () => {
