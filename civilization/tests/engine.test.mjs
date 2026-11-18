@@ -388,6 +388,8 @@ test("an armed advance expands the known frontier and records an invasion", () =
   const event = world.events.find(item=>item.title==="Avanzata oltre il confine");
   assert.ok(event);
   assert.equal(event.cause.kind,"superiorita_militare");
+  assert.ok(event.description.includes("esplorate"));
+  assert.ok(!event.description.includes("occupate"));
   assert.ok(event.consequences.length>=2);
   assert.ok(Math.abs(frontier.knownArea-knownArea-2)<0.01);
 });
@@ -454,6 +456,8 @@ test("a sustained population surplus creates a settlement through migration", ()
   assert.equal(event.actors.length,event.cause.migrantCount);
   assert.ok(event.consequences.length>=2);
   assert.equal(event.locationId,founded.id);
+  assert.ok(event.description.includes("nuovo insediamento"));
+  assert.ok(!event.description.includes("comunità autonoma"));
   assert.equal(world.settlements.reduce((sum,site)=>sum+site.population,0),world.population.filter(person=>person.alive).length);
 });
 
