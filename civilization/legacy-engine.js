@@ -573,7 +573,7 @@ function daily(s){
      const supplies=Math.min(35,Math.round(captured*.7));
      const received=Math.min(supplies,Math.max(0,Math.max(240,living(s).length*45)-s.food));s.food+=received;frontier.stores+=received;
      frontier.knownArea+=2;
-     addEvent(s,"Avanzata oltre il confine","Le forze della valle penetrano nel territorio di "+g.name+". Vengono occupate aree di pascolo e raccolta e recuperate alcune provviste.","war",{
+     addEvent(s,"Avanzata oltre il confine","Le forze della valle penetrano nel territorio di "+g.name+". Vengono esplorate aree di pascolo e raccolta e recuperate alcune provviste.","war",{
       cause:{kind:"superiorita_militare",ownPower,enemyPower,warDays:g.warDays,enemyPopulationBefore,captured},
       consequences:["L'area conosciuta oltre il confine aumenta di due unità","Vengono recuperate "+received+" unità di provviste","La popolazione avversaria perde "+captured+" persone"],
       locationId:frontier.id
@@ -657,7 +657,7 @@ function daily(s){
     const migrantIds=[];
     for(let i=0;i<migrantCount;i++){const migrant=pick(s,candidates);migrant.settlementId=id;migrantIds.push(migrant.id);candidates.splice(candidates.indexOf(migrant),1);}
     s.stats.migrations++;
-    addEvent(s,"Un gruppo parte per nuove terre","Famiglie e lavoratori lasciano "+(origin.name||"l'insediamento")+" e fondano una comunità autonoma in un territorio con acqua e risorse proprie.","migration",{
+    addEvent(s,"Un gruppo parte per nuove terre","Famiglie e lavoratori lasciano "+(origin.name||"l'insediamento")+" e fondano un nuovo insediamento in un territorio con acqua e risorse proprie.","migration",{
      cause:{kind:"surplus_demografico_e_risorse",population:n,originId:origin.id,destinationId:id,migrantCount,foodAvailable:s.food,storedFood:transfer},
      consequences:[migrantCount+" persone si trasferiscono nel nuovo insediamento","Vengono trasferite "+transfer+" unità di provviste","La comunità di origine e quella nuova diventano insediamenti distinti"],
      actors:migrantIds,
