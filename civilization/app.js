@@ -29,7 +29,7 @@ const SYSTEM_COVERAGE = [
   {name:"Malattie ed epidemie",level:"tested",status:"Test automatici",detail:"Diffusione locale e immunità dei sopravvissuti sono verificate."},
   {name:"Diplomazia, guerre e migrazioni",level:"partial",status:"Copertura parziale",detail:"Contatti, alleanze, avanzate armate, incursioni nemiche e fondazione di insediamenti tramite migrazione hanno test deterministici; restano da verificare gli esiti territoriali complessi e gli spostamenti forzati."},
   {name:"Ricerca e invenzioni",level:"tested",status:"Test automatici",detail:"Prerequisiti, consumo di materiali e sblocco delle tecnologie sono verificati."},
-  {name:"Memoria storica",level:"tested",status:"Test automatici",detail:"Archivio degli eventi, cause, conseguenze e ricerca dopo l'archiviazione hanno test."},
+  {name:"Memoria storica",level:"partial",status:"Copertura parziale",detail:"Ricerca e archiviazione degli eventi sono testate; cause e conseguenze strutturate sono verificate per guerra e migrazione, ma non tutti gli eventi legacy hanno ancora una causalità completa."},
   {name:"Salvataggio e recupero offline",level:"partial",status:"Verifica browser necessaria",detail:"Round-trip JSON e calcolo del tempo trascorso sono testati; IndexedDB, worker e riapertura reale non hanno ancora un test end-to-end in browser."}
 ];
 
