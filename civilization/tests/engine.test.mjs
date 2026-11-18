@@ -372,6 +372,78 @@ test("war resolution records a real armed engagement", () => {
   assert.ok(world.events.some(item=>item.title==="Scontro armato"));
 });
 
+test("an armed advance expands the known frontier and records an invasion", () => {
+  const world = createWorld({seed:18});
+  const neighbor = world.neighbors[0];
+  neighbor.discovered = true;
+  neighbor.atWar = true;
+  neighbor.warDays = 29;
+  neighbor.population = 3;
+  neighbor.technology = 0;
+  const frontier = world.settlements[0];
+  const knownArea = frontier.knownArea;
+
+  advance(world,1);
+
+  assert.ok(world.events.some(item=>item.title==="Avanzata oltre il confine"));
+  assert.equal(frontier.knownArea,knownArea+2);
+});
+
+test("an enemy incursion records territorial damage", () => {
+  const world = createWorld({seed:1});
+  const neighbor = world.neighbors[0];
+  neighbor.discovered = true;
+  neighbor.atWar = true;
+  neighbor.warDays = 29;
+  neighbor.population = 500;
+  neighbor.technology = 0;
+  const cohesion = world.cohesion;
+
+  advance(world,1);
+
+  assert.ok(world.events.some(item=>item.title==="Incursione nel territorio"));
+  assert.ok(world.cohesion<cohesion);
+});
+
+test("a sustained population surplus creates a settlement through migration", () => {
+  const world = createWorld({seed:20261118});
+  const template = world.population[0];
+  for (let index=24;index<200;index++) {
+    const person = JSON.parse(JSON.stringify(template));
+    person.id = index+1;
+    person.name = template.name+"-"+index;
+    person.age = 30;
+    person.alive = true;
+    person.health = 100;
+    person.partner = null;
+    person.parents = [];
+    person.children = [];
+    person.relationships = [];
+    person.family = "Famiglia "+index;
+    person.familyId = "famiglia-"+index;
+    person.settlementId = 1;
+    world.population.push(person);
+  }
+  world.nextPersonId = 201;
+  const origin = world.settlements[0];
+  origin.population = 200;
+  origin.stores = 100000;
+  origin.water = 100000;
+  world.food = 100000;
+
+  const result = advance(world,3650);
+
+  assert.equal(result.advanced,3650);
+  assert.equal(world.stats.migrations,1);
+  assert.equal(world.settlements.length,2);
+  const founded = world.settlements[1];
+  assert.equal(founded.originId,origin.id);
+  assert.ok(founded.population>=8);
+  assert.ok(founded.stores>0);
+  assert.ok(world.events.some(item=>item.type==="migration"));
+  assert.equal(world.settlements.reduce((sum,site)=>sum+site.population,0),world.population.filter(person=>person.alive).length);
+});
+
 test("diplomacy can dissolve an alliance after hostility rises", () => {
   const world = createWorld({seed:97});
   const neighbor = world.neighbors[0];
