@@ -27,7 +27,7 @@ const SYSTEM_COVERAGE = [
   {name:"Istituzioni e giustizia",level:"tested",status:"Test automatici",detail:"Leadership, procedimenti e risoluzione di controversie hanno test; la copertura delle singole leggi resta parziale."},
   {name:"Culture e religioni",level:"partial",status:"Copertura parziale",detail:"Trasmissione delle credenze, usi e riti sono implementati; l'emergere delle religioni non ha ancora un test dedicato completo."},
   {name:"Malattie ed epidemie",level:"tested",status:"Test automatici",detail:"Diffusione locale e immunità dei sopravvissuti sono verificate."},
-  {name:"Diplomazia, guerre e migrazioni",level:"partial",status:"Copertura parziale",detail:"Contatti, alleanze, ostilità e scontri hanno test; invasioni e migrazioni richiedono ulteriori verifiche dedicate."},
+  {name:"Diplomazia, guerre e migrazioni",level:"partial",status:"Copertura parziale",detail:"Contatti, alleanze, avanzate armate, incursioni nemiche e fondazione di insediamenti tramite migrazione hanno test deterministici; restano da verificare gli esiti territoriali complessi e gli spostamenti forzati."},
   {name:"Ricerca e invenzioni",level:"tested",status:"Test automatici",detail:"Prerequisiti, consumo di materiali e sblocco delle tecnologie sono verificati."},
   {name:"Memoria storica",level:"tested",status:"Test automatici",detail:"Archivio degli eventi, cause, conseguenze e ricerca dopo l'archiviazione hanno test."},
   {name:"Salvataggio e recupero offline",level:"partial",status:"Verifica browser necessaria",detail:"Round-trip JSON e calcolo del tempo trascorso sono testati; IndexedDB, worker e riapertura reale non hanno ancora un test end-to-end in browser."}
