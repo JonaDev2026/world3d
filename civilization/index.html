@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171b20">
+  <meta name="description" content="Simulazione autonoma e persistente di una civiltà, con memoria storica consultabile.">
+  <title>Simulazione di civiltà · World3D</title>
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html" aria-label="Torna all'editor World3D">
+      <span class="brand-mark">W</span>
+      <span><strong>World3D</strong><small>Simulazione di civiltà</small></span>
+    </a>
+    <div class="top-controls">
+      <span id="saveState" class="save-state" role="status" aria-live="polite">Inizializzazione…</span>
+      <strong id="calendarValue" class="calendar">Anno 0 · Giorno 1</strong>
+      <label class="speed-control">Velocità
+        <select id="speedSelect" disabled>
+          <option value="1">1 giorno / secondo</option>
+          <option value="10">10 giorni / secondo</option>
+          <option value="60">60 giorni / secondo</option>
+        </select>
+      </label>
+      <button id="pauseBtn" class="control-button" type="button" disabled>Pausa</button>
+      <button id="saveBtn" class="control-button" type="button" disabled>Salva ora</button>
+      <button id="exportBtn" class="control-button secondary" type="button" disabled>Esporta stato</button>
+      <a class="back-link" href="../index.html">Editor 3D</a>
+    </div>
+  </header>
+
+  <section id="errorPanel" class="error-panel" hidden role="alert">
+    <strong>Simulazione non avviata</strong>
+    <p id="errorText"></p>
+    <p>Lo stato salvato non viene cancellato né sostituito automaticamente.</p>
+  </section>
+
+  <main class="dashboard">
+    <section class="panel map-panel">
+      <div class="panel-heading">
+        <div><h1>Territorio conosciuto</h1><p>Geografia generata dal motore e posizioni degli insediamenti</p></div>
+        <span id="mapMeta" class="muted">Mappa in caricamento</span>
+      </div>
+      <div class="map-wrap">
+        <canvas id="worldMap" width="1280" height="880" aria-label="Mappa geografica bidimensionale della simulazione"></canvas>
+      </div>
+      <div class="map-legend" aria-label="Legenda della mappa">
+        <span><i class="legend-dot settlement"></i> Insediamento</span>
+        <span><i class="legend-dot contact"></i> Comunità conosciuta</span>
+        <span><i class="legend-dot river"></i> Acqua e fiumi</span>
+        <span><i class="legend-dot mountain"></i> Rilievi</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric"><span>Popolazione</span><strong id="populationValue">—</strong></div>
+        <div class="metric"><span>Lavoratori</span><strong id="workersValue">—</strong></div>
+        <div class="metric"><span>Insediamenti</span><strong id="settlementsValue">—</strong></div>
+        <div class="metric"><span>Deceduti</span><strong id="deadValue">—</strong></div>
+        <div class="metric"><span>Nascite cumulative</span><strong id="birthsValue">—</strong></div>
+        <div class="metric"><span>Decessi cumulativi</span><strong id="deathsValue">—</strong></div>
+        <div class="metric"><span>Salute collettiva</span><strong id="healthValue">—</strong></div>
+        <div class="metric"><span>Coesione</span><strong id="cohesionValue">—</strong></div>
+      </div>
+    </section>
+
+    <aside class="side-grid">
+      <section class="panel">
+        <div class="panel-heading"><div><h2>Risorse e produzione</h2><p>Scorte aggregate degli insediamenti</p></div></div>
+        <div id="resourceList" class="resource-list"><p class="empty-row">In attesa del motore.</p></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading"><div><h2>Società e istituzioni</h2><p>Organizzazione effettivamente registrata</p></div></div>
+        <dl class="facts">
+          <div><dt>Forma politica</dt><dd id="polityValue">—</dd></div>
+          <div><dt>Norme</dt><dd id="lawValue">—</dd></div>
+          <div><dt>Economia</dt><dd id="economyValue">—</dd></div>
+          <div><dt>Tradizione spirituale</dt><dd id="religionValue">—</dd></div>
+          <div><dt>Giustizia</dt><dd id="justiceValue">—</dd></div>
+        </dl>
+        <h3 class="subheading">Istituzioni</h3>
+        <ul id="institutionList" class="plain-list"><li class="empty-row">Nessuna istituzione registrata.</li></ul>
+        <h3 class="subheading">Cultura e credenze</h3>
+        <p id="cultureValue" class="body-copy">In attesa dei dati culturali.</p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading"><div><h2>Salute e ambiente</h2><p>Condizioni epidemiologiche e climatiche</p></div></div>
+        <dl class="facts">
+          <div><dt>Malattie</dt><dd id="diseaseValue">—</dd></div>
+          <div><dt>Clima</dt><dd id="climateValue">—</dd></div>
+        </dl>
+        <h3 class="subheading">Relazioni esterne <small id="relationsMeta"></small></h3>
+        <ul id="relationsList" class="plain-list"><li class="empty-row">Nessun contatto documentato.</li></ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading"><div><h2>Conoscenza e tecnologia</h2><p>Ricerca, prerequisiti e invenzioni</p></div></div>
+        <h3 class="subheading">Tecnologie acquisite</h3>
+        <ul id="technologyList" class="plain-list"><li class="empty-row">Nessuna tecnologia registrata.</li></ul>
+        <p id="researchValue" class="body-copy">Ricerca non ancora avviata.</p>
+      </section>
+    </aside>
+
+    <section class="panel population-panel">
+      <div class="panel-heading">
+        <div><h2>Individui</h2><p>Età, famiglia, ruolo, salute e decisione corrente</p></div>
+        <span id="populationMeta" class="muted">—</span>
+      </div>
+      <ul id="populationList" class="people-list"><li class="empty-row">In attesa della popolazione.</li></ul>
+    </section>
+
+    <section class="panel timeline-panel">
+      <div class="panel-heading">
+        <div><h2>Memoria storica</h2><p>Eventi, cause, conseguenze e bilanci annuali archiviati</p></div>
+        <label class="search-control">Cerca nella storia
+          <input id="historyQuery" type="search" placeholder="Evento, causa, anno…">
+        </label>
+      </div>
+      <div id="historyList" class="history-list"><p class="empty-row">Cronologia in caricamento.</p></div>
+    </section>
+
+    <section class="panel coverage-panel">
+      <div class="panel-heading"><div><h2>Stato dei sistemi</h2><p>La copertura dichiarata distingue test automatici e verifiche ancora mancanti</p></div></div>
+      <ul id="systemCoverage" class="coverage-list"></ul>
+      <p class="verification-note">Il motore usa regole locali deterministiche e non richiede chiamate continue a modelli AI. La presenza di una funzione nel motore non equivale a una verifica completa: IndexedDB, Web Worker e riapertura del browser richiedono ancora un test end-to-end reale.</p>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
