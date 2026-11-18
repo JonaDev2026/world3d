@@ -385,7 +385,10 @@ test("an armed advance expands the known frontier and records an invasion", () =
 
   advance(world,1);
 
-  assert.ok(world.events.some(item=>item.title==="Avanzata oltre il confine"));
+  const event = world.events.find(item=>item.title==="Avanzata oltre il confine");
+  assert.ok(event);
+  assert.equal(event.cause.kind,"superiorita_militare");
+  assert.ok(event.consequences.length>=2);
   assert.ok(Math.abs(frontier.knownArea-knownArea-2)<0.01);
 });
 
@@ -401,7 +404,10 @@ test("an enemy incursion records territorial damage", () => {
 
   advance(world,1);
 
-  assert.ok(world.events.some(item=>item.title==="Incursione nel territorio"));
+  const event = world.events.find(item=>item.title==="Incursione nel territorio");
+  assert.ok(event);
+  assert.equal(event.cause.kind,"superiorita_militare_avversaria");
+  assert.ok(event.consequences.length>=2);
   assert.ok(world.cohesion<cohesion);
 });
 
@@ -440,7 +446,14 @@ test("a sustained population surplus creates a settlement through migration", ()
   assert.equal(founded.originId,origin.id);
   assert.ok(founded.population>=8);
   assert.ok(founded.stores>0);
-  assert.ok(world.events.some(item=>item.type==="migration"));
+  const event = world.events.find(item=>item.type==="migration");
+  assert.ok(event);
+  assert.equal(event.cause.kind,"surplus_demografico_e_risorse");
+  assert.equal(event.cause.originId,origin.id);
+  assert.equal(event.cause.destinationId,founded.id);
+  assert.equal(event.actors.length,event.cause.migrantCount);
+  assert.ok(event.consequences.length>=2);
+  assert.equal(event.locationId,founded.id);
   assert.equal(world.settlements.reduce((sum,site)=>sum+site.population,0),world.population.filter(person=>person.alive).length);
 });
 
