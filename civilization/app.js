@@ -38,6 +38,20 @@ function formatNumber(value) {
   return Number.isFinite(number) ? new Intl.NumberFormat("it-IT",{maximumFractionDigits:1}).format(number) : "0";
 }
 
+export function stopWorkerRuntime(state,pending,intervalId,error,clearTimer=clearTimeout,clearTicker=clearInterval) {
+  state.ready = false;
+  if (intervalId !== null) clearTicker(intervalId);
+  if (state.worker) {
+    state.worker.terminate();
+    state.worker = null;
+  }
+  for (const task of pending.values()) {
+    clearTimer(task.timer);
+    task.reject(error);
+  }
+  pending.clear();
+}
+
 function startApp() {
   const $ = id => document.getElementById(id);
   const state = {
@@ -64,6 +78,12 @@ function startApp() {
   }
 
   function showError(error) {
+    stopWorkerRuntime(state,pending,intervalId,error,window.clearTimeout,window.clearInterval);
+    intervalId = null;
+    if (historyTimer !== null) {
+      window.clearTimeout(historyTimer);
+      historyTimer = null;
+    }
     $("errorPanel").hidden = false;
     $("errorText").textContent = error && error.message ? error.message : String(error);
     $("pauseBtn").disabled = true;
@@ -465,9 +485,7 @@ function startApp() {
         }
         if (Date.now()-state.lastSaveAt>=10000) await saveCheckpoint(false);
       } catch (error) {
-        state.pendingDays += remaining;
-        absorbElapsed();
-        setStatus("Errore del motore: "+error.message,true);
+        showError(error);
         throw error;
       }
     })();
@@ -505,13 +523,10 @@ function startApp() {
       else task.resolve(message);
     });
     state.worker.addEventListener("error",event=>{
-      const error = new Error(event.message || "Errore nel Web Worker.");
-      for (const task of pending.values()) {
-        window.clearTimeout(task.timer);
-        task.reject(error);
-      }
-      pending.clear();
-      setStatus(error.message,true);
+      showError(new Error(event.message || "Errore nel Web Worker."));
+    });
+    state.worker.addEventListener("messageerror",()=>{
+      showError(new Error("Il browser non è riuscito a decodificare un messaggio del Web Worker."));
     });
 
     const saved = await loadWorld();
