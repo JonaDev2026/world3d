@@ -88,11 +88,17 @@ jobs:
               return document.querySelector("#errorPanel")?.hidden&&(s.includes("Nuova simulazione inizializzata")||s.includes("Stato ripristinato e salvato"));
             },null,{timeout:30000});
             await sleep(250);
+            const initialCalendar=await page.locator("#calendarValue").textContent();
             await page.locator("#speedSelect").selectOption("60");
             await page.waitForFunction(()=>document.querySelector("#saveState")?.textContent.includes("Salvataggio completato"));
-            await sleep(1600);
+            const speedSaved=await checkpoint(page);
+            await page.waitForFunction(initial=>document.querySelector("#calendarValue")?.textContent!==initial,initialCalendar,{timeout:15000});
             await page.locator("#saveBtn").click();
-            await page.waitForFunction(()=>document.querySelector("#saveState")?.textContent.includes("Salvataggio completato"));
+            await page.waitForFunction(previous=>new Promise(resolve=>{
+              const open=indexedDB.open("anno-zero-civilization",1);
+              open.onerror=()=>resolve(false);
+              open.onsuccess=()=>{const db=open.result,get=db.transaction("state","readonly").objectStore("state").get("world");get.onsuccess=()=>{const time=get.result?.lastWallTime||0;db.close();resolve(time>previous);};get.onerror=()=>{db.close();resolve(false);};};
+            }),speedSaved.lastWallTime,{timeout:15000});
             const before=await checkpoint(page);
             assert.ok(before&&before.population>0&&before.lastWallTime>0,"IndexedDB checkpoint missing");
             assert.equal(before.speed,60);
