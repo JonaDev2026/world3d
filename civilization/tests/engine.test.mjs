@@ -507,6 +507,27 @@ test("family ties become reciprocal social relationships",()=>{
   assert.ok(child.relationships.some(link=>link.personId===parent.id&&link.type==="famiglia"));
 });
 
+test("aging, death and inheritance update individual and community records",()=>{
+  const world=createWorld({seed:31416});
+  const elder=world.population[0];
+  const heir=world.population[1];
+  const survivor=world.population[2];
+  elder.age=130;
+  elder.health=.01;
+  elder.wealth=100;
+  elder.children=[heir.id];
+  heir.wealth=0;
+  const survivorAge=survivor.age;
+  const deaths=world.stats.deaths;
+  advance(world,1);
+  assert.equal(elder.alive,false);
+  assert.equal(elder.deathYear,0);
+  assert.equal(world.stats.deaths,deaths+1);
+  assert.equal(elder.wealth,0);
+  assert.ok(heir.wealth>0);
+  assert.ok(Math.abs(survivor.age-survivorAge-1/365)<1e-9);
+});
+
 test("shared beliefs can produce a new spiritual tradition",()=>{
   const world=createWorld({seed:2718});
   const founders=world.population.slice();
