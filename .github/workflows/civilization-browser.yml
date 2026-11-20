@@ -33,12 +33,13 @@ jobs:
         run: npm install --no-save playwright@1.65.1
         working-directory: civilization
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-        working-directory: civilization
+      - name: Verify system Chromium
+        run: google-chrome --version
 
       - name: Test Web Worker, IndexedDB and offline recovery
         working-directory: civilization
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
         run: |
           node --input-type=module <<'NODE'
           import assert from "node:assert/strict";
@@ -76,7 +77,7 @@ jobs:
           await new Promise((resolve,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",resolve);});
           let browser;
           try{
-            browser=await chromium.launch({headless:true});
+            browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN});
             const context=await browser.newContext(),url="http://127.0.0.1:"+server.address().port+"/civilization/index.html",errors=[];
             let page=await context.newPage();
             page.on("pageerror",e=>errors.push(e.message));
