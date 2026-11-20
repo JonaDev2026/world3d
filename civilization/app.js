@@ -21,7 +21,7 @@ export function splitDays(days,maxChunk=3650) {
 
 const SYSTEM_COVERAGE = [
   {name:"Calendario e determinismo",level:"tested",status:"Test automatici",detail:"Anno 0, seme riproducibile e avanzamento giornaliero confrontato tra mondi indipendenti."},
-  {name:"Popolazione e famiglie",level:"partial",status:"Copertura parziale",detail:"Età, nascite, mortalità, legami, discendenza ed eredità sono nel motore; non tutte le combinazioni familiari hanno test dedicati."},
+  {name:"Popolazione e famiglie",level:"partial",status:"Copertura parziale",detail:"Età, nascite, mortalità, legami tra genitori, figli e fratelli, eredità a partner e figli sono testati; restano parziali altre combinazioni familiari e la gestione della tutela dei minori."},
   {name:"Risorse, produzione e agricoltura",level:"tested",status:"Test automatici",detail:"Produzione, scorte non negative, specializzazione agricola e impatto delle tecnologie hanno test."},
   {name:"Economia e stratificazione",level:"tested",status:"Test automatici",detail:"Ricchezza individuale, disuguaglianza e classi sociali sono verificate."},
   {name:"Istituzioni e giustizia",level:"partial",status:"Copertura parziale",detail:"Leadership, procedimenti e mediazione sono testati; le norme comunitarie codificate condizionano la restituzione e vengono registrate nelle sentenze. Il catalogo e l'applicazione delle altre leggi restano parziali."},

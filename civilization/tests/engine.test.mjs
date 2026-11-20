@@ -566,6 +566,48 @@ test("aging, death and inheritance update individual and community records",()=>
   assert.ok(Math.abs(survivor.age-survivorAge-1/365)<1e-9);
 });
 
+test("siblings sharing a parent form reciprocal family relationships",()=>{
+  const world=createWorld({seed:31417});
+  const parent=world.population[0];
+  const first=world.population[1];
+  const second=world.population[2];
+  parent.alive=false;
+  parent.children=[first.id,second.id];
+  first.parents=[parent.id];
+  second.parents=[parent.id];
+
+  advance(world,30);
+
+  assert.ok(first.relationships.some(link=>link.personId===second.id&&link.type==="famiglia"));
+  assert.ok(second.relationships.some(link=>link.personId===first.id&&link.type==="famiglia"));
+});
+
+test("inheritance is shared once among a living partner and children, excluding deceased heirs",()=>{
+  const world=createWorld({seed:31418});
+  const deceased=world.population[0];
+  const firstChild=world.population[1];
+  const secondChild=world.population[2];
+  const partner=world.population[3];
+  const deceasedChild=world.population[4];
+  deceased.age=130;
+  deceased.health=.01;
+  deceased.wealth=120;
+  deceased.children=[firstChild.id,secondChild.id,deceasedChild.id];
+  deceased.partner=partner.id;
+  deceasedChild.alive=false;
+  for(const heir of [firstChild,secondChild,partner,deceasedChild])heir.wealth=0;
+
+  advance(world,1);
+
+  assert.equal(deceased.alive,false);
+  assert.equal(deceased.wealth,0);
+  assert.ok(Math.abs(firstChild.wealth-40)<1e-9);
+  assert.ok(Math.abs(secondChild.wealth-40)<1e-9);
+  assert.ok(Math.abs(partner.wealth-40)<1e-9);
+  assert.equal(deceasedChild.wealth,0);
+  assert.ok(Math.abs(firstChild.wealth+secondChild.wealth+partner.wealth-120)<1e-9);
+});
+
 test("shared beliefs can produce a new spiritual tradition",()=>{
   const world=createWorld({seed:2718});
   const founders=world.population.slice();

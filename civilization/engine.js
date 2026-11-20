@@ -238,7 +238,13 @@ function updateRelationships(world) {
     if (partner?.alive) link(person,partner,"partner",92);
     for (const id of person.parents||[]) {
       const parent = byId.get(id);
-      if (parent) link(person,parent,"famiglia",86);
+      if (parent) {
+        link(person,parent,"famiglia",86);
+        for (const siblingId of parent.children || []) {
+          const sibling = byId.get(siblingId);
+          if (sibling?.alive) link(person,sibling,"famiglia",82);
+        }
+      }
     }
     for (const id of person.children||[]) {
       const child = byId.get(id);
