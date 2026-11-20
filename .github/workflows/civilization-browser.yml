@@ -87,6 +87,7 @@ jobs:
               const s=document.querySelector("#saveState")?.textContent||"";
               return document.querySelector("#errorPanel")?.hidden&&(s.includes("Nuova simulazione inizializzata")||s.includes("Stato ripristinato e salvato"));
             },null,{timeout:30000});
+            await sleep(250);
             await page.locator("#speedSelect").selectOption("60");
             await page.waitForFunction(()=>document.querySelector("#saveState")?.textContent.includes("Salvataggio completato"));
             await sleep(1600);
