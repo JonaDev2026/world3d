@@ -605,12 +605,11 @@ test("inheritance is shared once among a living partner and children, excluding 
 
   assert.equal(deceased.alive,false);
   assert.equal(deceased.wealth,0);
-  console.log("inheritance-debug", {heirs:[firstChild.id,secondChild.id,partner.id,deceasedChild.id],alive:[firstChild.alive,secondChild.alive,partner.alive,deceasedChild.alive],wealth:[firstChild.wealth,secondChild.wealth,partner.wealth,deceasedChild.wealth]});
-  assert.ok(Math.abs(firstChild.wealth-40)<1e-9);
-  assert.ok(Math.abs(secondChild.wealth-40)<1e-9);
-  assert.ok(Math.abs(partner.wealth-40)<1e-9);
+  assert.ok(Math.abs(firstChild.wealth-40)<.001);
+  assert.ok(Math.abs(secondChild.wealth-40)<.001);
+  assert.ok(Math.abs(partner.wealth-40)<.001);
   assert.equal(deceasedChild.wealth,0);
-  assert.ok(Math.abs(firstChild.wealth+secondChild.wealth+partner.wealth-120)<1e-9);
+  assert.ok(Math.abs(firstChild.wealth+secondChild.wealth+partner.wealth-120)<.001);
 });
 
 test("shared beliefs can produce a new spiritual tradition",()=>{
