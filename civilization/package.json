@@ -1,8 +1,0 @@
-{
-  "name": "world3d-civilization",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "node --check engine.js && node --check legacy-engine.js && node --check storage.js && node --check sim-worker.js && node --check app.js && node --test"
-  }
-}
