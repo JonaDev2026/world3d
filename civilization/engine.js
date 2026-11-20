@@ -434,7 +434,8 @@ function updateJustice(world) {
     const victim = people.find(person=>person.id!==accused.id&&person.settlementId===accused.settlementId) || people.find(person=>person.id!==accused.id);
     const cause = world.food<people.length*2 ? "scarsità alimentare" : (world.social?.inequality||0)>.35 ? "disuguaglianza materiale" : "conflitto interpersonale";
     const evidence = clamp(.32+(accused.traits?.aggression||.5)*.38+(1-(accused.traits?.cooperation||.5))*.15+(world.social?.inequality||0)*.15,0,1);
-    const item = {id:world.justice.nextCaseId++,year:world.year,day:world.day,kind:"appropriazione di risorse",accusedId:accused.id,victimId:victim.id,cause,evidence,status:"pendente",outcome:null};
+    const applicableLaw = ["Prime norme comunitarie","Norme contro gli abusi di ricchezza"].includes(world.laws) ? world.laws : null;
+    const item = {id:world.justice.nextCaseId++,year:world.year,day:world.day,kind:"appropriazione di risorse",accusedId:accused.id,victimId:victim.id,cause,evidence,applicableLaw,status:"pendente",outcome:null};
     world.justice.cases.push(item);
     recordHistoricalEvent(world,{
       title:"Apertura di un procedimento comunitario",
@@ -460,7 +461,8 @@ function updateJustice(world) {
     for (const item of world.justice.cases.filter(entry=>entry.status==="pendente")) {
       const accused = world.population.find(person=>person.id===item.accusedId);
       const victim = world.population.find(person=>person.id===item.victimId);
-      const responsible = item.evidence>=.56;
+      const evidenceThreshold = .56;
+      const responsible = Boolean(item.applicableLaw) && item.evidence>=evidenceThreshold;
       let outcome = "mediazione";
       if (responsible && accused?.alive) {
         const restitution = Math.min(Number(accused.wealth)||0,2+item.evidence*4);
@@ -474,14 +476,14 @@ function updateJustice(world) {
       item.outcome = outcome;
       item.resolvedYear = world.year;
       item.resolvedDay = world.day;
-      world.justice.sentences.push({caseId:item.id,year:world.year,day:world.day,outcome,accusedId:item.accusedId,victimId:item.victimId});
+      world.justice.sentences.push({caseId:item.id,year:world.year,day:world.day,outcome,accusedId:item.accusedId,victimId:item.victimId,law:item.applicableLaw,evidence:item.evidence,finding:responsible?"responsabile":"non_accertato"});
       recordHistoricalEvent(world,{
         title:"Decisione su una controversia",
         description:"Il procedimento "+item.id+" si conclude con: "+outcome+".",
         type:"justice",
-        cause:{kind:"procedimento",caseId:item.id,evidence:item.evidence},
+        cause:{kind:"procedimento",caseId:item.id,evidence:item.evidence,evidenceThreshold,law:item.applicableLaw,finding:responsible?"responsabile":"non_accertato"},
         actors:[item.accusedId,item.victimId],
-        consequences:[outcome,"La decisione viene conservata nella memoria storica"]
+        consequences:[outcome,item.applicableLaw ? "Decisione applicata secondo "+item.applicableLaw : "Nessuna norma codificata applicabile: decisione mediata","La decisione viene conservata nella memoria storica"]
       });
     }
   }

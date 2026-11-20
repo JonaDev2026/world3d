@@ -329,8 +329,46 @@ test("community justice records and resolves a case", () => {
   advance(world,30);
   assert.equal(world.justice.cases.length,1);
   assert.equal(world.justice.cases[0].status,"risolto");
+  assert.equal(world.justice.cases[0].applicableLaw,null);
+  assert.equal(world.justice.cases[0].outcome,"mediazione");
   assert.equal(world.justice.sentences.length,1);
+  assert.equal(world.justice.sentences[0].law,null);
   assert.ok(world.events.some(item=>item.type==="justice"));
+
+test("codified community norms determine restitution and remain in the historical judgment", () => {
+  const world = createWorld({seed:921});
+  world.institutions.push("Consiglio degli anziani");
+  world.laws = "Prime norme comunitarie";
+  world.day = 30;
+  for (const person of world.population) {
+    person.age = 30;
+    person.traits.aggression = .1;
+    person.traits.cooperation = .8;
+  }
+  const accused = world.population[0];
+  const victim = world.population[1];
+  accused.traits.aggression = 1;
+  accused.traits.cooperation = 0;
+  accused.wealth = 80;
+  victim.wealth = 0;
+  world.stats.crimes = 1;
+  world.justice.lastCrimeCount = 0;
+
+  advance(world,1);
+
+  const item = world.justice.cases[0];
+  const sentence = world.justice.sentences[0];
+  const event = world.events.find(entry => entry.type === "justice" && entry.cause?.caseId === item.id && entry.title === "Decisione su una controversia");
+  assert.equal(item.applicableLaw,"Prime norme comunitarie");
+  assert.equal(item.status,"risolto");
+  assert.equal(item.outcome,"restituzione e servizio comunitario");
+  assert.ok(victim.wealth>0);
+  assert.equal(sentence.law,"Prime norme comunitarie");
+  assert.equal(sentence.finding,"responsabile");
+  assert.equal(event.cause.law,"Prime norme comunitarie");
+  assert.equal(event.cause.evidenceThreshold,.56);
+  assert.ok(event.consequences.includes("Decisione applicata secondo Prime norme comunitarie"));
+});
 });
 
 test("culture develops customs from population traits and social conditions", () => {
