@@ -595,7 +595,11 @@ test("inheritance is shared once among a living partner and children, excluding 
   deceased.children=[firstChild.id,secondChild.id,deceasedChild.id];
   deceased.partner=partner.id;
   deceasedChild.alive=false;
-  for(const heir of [firstChild,secondChild,partner,deceasedChild])heir.wealth=0;
+  for(const heir of [firstChild,secondChild,partner,deceasedChild]) {
+    heir.wealth=0;
+    heir.age=10;
+    heir.role="bambino";
+  }
 
   advance(world,1);
 
