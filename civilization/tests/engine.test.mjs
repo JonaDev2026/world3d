@@ -334,6 +334,7 @@ test("community justice records and resolves a case", () => {
   assert.equal(world.justice.sentences.length,1);
   assert.equal(world.justice.sentences[0].law,null);
   assert.ok(world.events.some(item=>item.type==="justice"));
+});
 
 test("codified community norms determine restitution and remain in the historical judgment", () => {
   const world = createWorld({seed:921});
@@ -368,7 +369,6 @@ test("codified community norms determine restitution and remain in the historica
   assert.equal(event.cause.law,"Prime norme comunitarie");
   assert.equal(event.cause.evidenceThreshold,.56);
   assert.ok(event.consequences.includes("Decisione applicata secondo Prime norme comunitarie"));
-});
 });
 
 test("culture develops customs from population traits and social conditions", () => {
