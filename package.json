@@ -1,0 +1,8 @@
+{
+  "name": "world3d-civilization-simulation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test simulation/tests/*.test.mjs"
+  }
+}
