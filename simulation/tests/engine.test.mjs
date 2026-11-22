@@ -142,8 +142,12 @@ test("il consiglio rimuove i membri deceduti senza perdere quelli vivi", () => {
 test("le capacità dichiarate distinguono i sistemi parziali o non implementati", () => {
   assert.equal(SIMULATION_CAPABILITIES.deterministicRandomness, true);
   assert.equal(SIMULATION_CAPABILITIES.yearZeroCalendar, true);
-  assert.equal(SIMULATION_CAPABILITIES.institutionsAndJustice, "partial");
+  assert.equal(SIMULATION_CAPABILITIES.resourceProductionAndConsumption, "basic");
+  assert.equal(SIMULATION_CAPABILITIES.economyAndTrade, "partial");
+  assert.equal(SIMULATION_CAPABILITIES.institutions, "partial");
+  assert.equal(SIMULATION_CAPABILITIES.lawsAndJustice, "not_implemented");
   assert.equal(SIMULATION_CAPABILITIES.emergentCultureAndReligion, "not_implemented");
+  assert.equal(SIMULATION_CAPABILITIES.settlements, "single_settlement");
   assert.equal(SIMULATION_CAPABILITIES.diplomacyWarAndMigration, "not_implemented");
   assert.equal(SIMULATION_CAPABILITIES.browserPersistenceAndOfflineCatchup, "not_implemented");
 });
