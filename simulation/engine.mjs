@@ -386,7 +386,7 @@ function advanceHealth(world, settlement, residents) {
   }
 
   for (const pathogen of world.pathogens) {
-    const infectedCount = infectedByPathogen.get(pathogen.id) ?? 0;
+    const infectedCount = residents.filter((person) => person.alive && person.infection?.pathogenId === pathogen.id).length;
     if (infectedCount === 0) continue;
     const susceptible = residents.filter((person) => person.alive && !person.infection && !person.immunity.includes(pathogen.id));
     const probability = clamp(pathogen.transmissibility * infectedCount / Math.max(1, residents.length) * 1.8, 0, 0.35);

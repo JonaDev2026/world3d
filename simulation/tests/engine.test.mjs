@@ -209,3 +209,21 @@ test("le invarianti rifiutano focolai duplicati o riferiti a patogeni inesistent
   active.splice(0, active.length, "patogeno_inesistente");
   assert.throws(() => assertWorldInvariants(world), /Patogeno sconosciuto/);
 });
+
+
+test("un individuo guarito non trasmette nel giorno in cui termina l'infezione", () => {
+  const world = createWorld({ seed: "recovery-day", population: 24 });
+  const settlement = world.settlements[0];
+  const pathogen = world.pathogens[0];
+  pathogen.transmissibility = 1;
+  pathogen.duration = 1;
+  const patient = world.people[0];
+  patient.infection = { pathogenId: pathogen.id, remainingDays: 1, severity: 0.01 };
+
+  advanceDays(world, 1);
+  assert.equal(patient.infection, null);
+  assert.ok(world.people.every((person) => person.id === patient.id || person.infection === null));
+  assert.deepEqual(settlement.health.activeOutbreaks, []);
+  assert.equal(historySince(world, 0).filter((event) => event.type === "epidemia").length, 1);
+  assert.equal(historySince(world, 0).filter((event) => event.type === "fine_epidemia").length, 1);
+});
