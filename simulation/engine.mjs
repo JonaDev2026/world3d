@@ -1,4 +1,4 @@
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const DAYS_PER_COMMON_YEAR = 365.2425;
 const MONTH_LENGTHS_COMMON = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const MONTH_LENGTHS_LEAP = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -159,6 +159,7 @@ function createSettlement(world, population) {
       tradition: 0.2 + random(world) * 0.5
     },
     religionIds: [],
+    health: { activeOutbreaks: [] },
     statistics: { births: 0, deaths: 0, production: 0, consumed: 0 }
   };
   world.settlements.push(settlement);
@@ -342,15 +343,36 @@ function consumeNeeds(world, settlement, residents) {
 
 function advanceHealth(world, settlement, residents) {
   const infectedByPathogen = new Map();
+  const newCasesByPathogen = new Map();
+  const activeOutbreaks = settlement.health.activeOutbreaks;
+
   for (const person of residents) {
     if (!person.infection) continue;
-    const infection = person.infection;
-    const pathogen = world.pathogens.find((candidate) => candidate.id === infection.pathogenId);
+    const pathogen = world.pathogens.find((candidate) => candidate.id === person.infection.pathogenId);
     if (!pathogen) {
       person.infection = null;
       continue;
     }
     infectedByPathogen.set(pathogen.id, (infectedByPathogen.get(pathogen.id) ?? 0) + 1);
+  }
+
+  for (const pathogen of world.pathogens) {
+    const activeCases = infectedByPathogen.get(pathogen.id) ?? 0;
+    if (activeCases > 0 && !activeOutbreaks.includes(pathogen.id)) {
+      activeOutbreaks.push(pathogen.id);
+      recordEvent(world, "epidemia", `È stato rilevato un focolaio di ${pathogen.id}`,
+        [{ kind: "contagio", pathogenId: pathogen.id, casiIniziali: activeCases }],
+        [{ kind: "focolaio_attivo", pathogenId: pathogen.id, casi: activeCases }],
+        residents.filter((person) => person.infection?.pathogenId === pathogen.id).map((person) => person.id),
+        [settlement.id]);
+    }
+  }
+
+  for (const person of residents) {
+    if (!person.infection) continue;
+    const infection = person.infection;
+    const pathogen = world.pathogens.find((candidate) => candidate.id === infection.pathogenId);
+    if (!pathogen) continue;
     person.health = clamp(person.health - infection.severity * (person.health < 35 ? 1.35 : 1), 0, 100);
     infection.remainingDays -= 1;
     if (infection.remainingDays <= 0 && person.alive) {
@@ -358,13 +380,15 @@ function advanceHealth(world, settlement, residents) {
       if (!person.immunity.includes(pathogen.id)) person.immunity.push(pathogen.id);
       recordEvent(world, "guarigione", `${person.name} è guarito da ${pathogen.id}`,
         [{ kind: "decorso_malattia", pathogenId: pathogen.id }],
-        [{ kind: "immunita_acquisita", personId: person.id, pathogenId: pathogen.id }], [person.id], [settlement.id]);
+        [{ kind: "immunita_acquisita", personId: person.id, pathogenId: pathogen.id }],
+        [person.id], [settlement.id]);
     }
   }
+
   for (const pathogen of world.pathogens) {
     const infectedCount = infectedByPathogen.get(pathogen.id) ?? 0;
     if (infectedCount === 0) continue;
-    const susceptible = residents.filter(person => person.alive && !person.infection && !person.immunity.includes(pathogen.id));
+    const susceptible = residents.filter((person) => person.alive && !person.infection && !person.immunity.includes(pathogen.id));
     const probability = clamp(pathogen.transmissibility * infectedCount / Math.max(1, residents.length) * 1.8, 0, 0.35);
     const newCases = [];
     for (const person of susceptible) {
@@ -373,18 +397,28 @@ function advanceHealth(world, settlement, residents) {
         newCases.push(person.id);
       }
     }
-    if (newCases.length > 0 && infectedCount === 0) {
+    if (newCases.length > 0) newCasesByPathogen.set(pathogen.id, newCases);
+  }
+
+  for (const pathogen of world.pathogens) {
+    const activeCases = residents.filter((person) => person.alive && person.infection?.pathogenId === pathogen.id);
+    const isActive = activeOutbreaks.includes(pathogen.id);
+    if (activeCases.length > 0 && !isActive) {
+      activeOutbreaks.push(pathogen.id);
       recordEvent(world, "epidemia", `È iniziato un focolaio di ${pathogen.id}`,
         [{ kind: "contagio", pathogenId: pathogen.id }],
-        [{ kind: "nuovi_casi", value: newCases.length }], newCases, [settlement.id]);
-    } else if (newCases.length > 0 && world.events.every((event) => !(event.type === "epidemia" && event.settlementIds.includes(settlement.id) && event.causes.some((cause) => cause.pathogenId === pathogen.id)))) {
-      recordEvent(world, "epidemia", `È à stato rilevato un focolaio di ${pathogen.id}`,
-        [{ kind: "contagio", pathogenId: pathogen.id }],
-        [{ kind: "nuovi_casi", value: newCases.length }], newCases, [settlement.id]);
+        [{ kind: "focolaio_attivo", pathogenId: pathogen.id, casi: activeCases.length },
+          { kind: "nuovi_casi", value: newCasesByPathogen.get(pathogen.id)?.length ?? 0 }],
+        activeCases.map((person) => person.id), [settlement.id]);
+    } else if (activeCases.length === 0 && isActive) {
+      const activeIndex = activeOutbreaks.indexOf(pathogen.id);
+      if (activeIndex >= 0) activeOutbreaks.splice(activeIndex, 1);
+      recordEvent(world, "fine_epidemia", `Il focolaio di ${pathogen.id} si è concluso`,
+        [{ kind: "nessun_caso_attivo", pathogenId: pathogen.id }],
+        [{ kind: "focolaio_concluso", pathogenId: pathogen.id }], [], [settlement.id]);
     }
   }
 }
-
 function ageAndMortality(world, person, settlement) {
   person.ageDays += 1;
   const age = person.ageDays / DAYS_PER_COMMON_YEAR;
@@ -507,13 +541,29 @@ export function serializeWorld(world) {
   return JSON.stringify(world);
 }
 
-export function deserializeWorld(serialized) {
-  assert(typeof serialized === "string", "Il salvataggio deve essere una stringa JSON");
-  const world = JSON.parse(serialized);
-  assertWorldInvariants(world);
+function migrateWorld(world) {
+  assert(world && typeof world === "object", "Stato del mondo non valido");
+  if (world.schemaVersion === 1) {
+    for (const settlement of world.settlements ?? []) {
+      const active = (world.people ?? [])
+        .filter((person) => person.alive && person.settlementId === settlement.id && person.infection)
+        .map((person) => person.infection.pathogenId);
+      settlement.health = {
+        ...(settlement.health ?? {}),
+        activeOutbreaks: [...new Set(active)]
+      };
+    }
+    world.schemaVersion = SCHEMA_VERSION;
+  }
   return world;
 }
 
+export function deserializeWorld(serialized) {
+  assert(typeof serialized === "string", "Il salvataggio deve essere una stringa JSON");
+  const world = migrateWorld(JSON.parse(serialized));
+  assertWorldInvariants(world);
+  return world;
+}
 export function worldSummary(world) {
   const living = world.people.filter((person) => person.alive);
   const dead = world.people.length - living.length;
@@ -540,7 +590,7 @@ export function assertWorldInvariants(world) {
   assert(world.schemaVersion === SCHEMA_VERSION, "Versione dello schema non supportata");
   assert(Number.isSafeInteger(world.day) && world.day >= 0, "Giorno del mondo non valido");
   assert(Number.isInteger(world.rngState) && world.rngState >= 0 && world.rngState <= 0xffffffff, "Stato del generatore casuale non valido");
-  assert(Array.isArray(world.people) && Array.isArray(world.settlements) && Array.isArray(world.events), "Collezioni del mondo mancanti");
+  assert(Array.isArray(world.people) && Array.isArray(world.settlements) && Array.isArray(world.events) && Array.isArray(world.pathogens), "Collezioni del mondo mancanti");
   const personIds = new Set(world.people.map((person) => person.id));
   const settlementIds = new Set(world.settlements.map((settlement) => settlement.id));
   const eventIds = new Set(world.events.map((event) => event.id));
@@ -570,6 +620,9 @@ export function assertWorldInvariants(world) {
     }
     assert(Number.isFinite(settlement.knowledge) && settlement.knowledge >= 0, `Conoscenza non valida nell'insediamento ${settlement.id}`);
     assert(settlement.governance.councilMemberIds.every((id) => personIds.has(id)), `Consigliere inesistente nell'insediamento ${settlement.id}`);
+    assert(settlement.health && Array.isArray(settlement.health.activeOutbreaks), `Stato epidemico mancante nell'insediamento ${settlement.id}`);
+    assert(new Set(settlement.health.activeOutbreaks).size === settlement.health.activeOutbreaks.length, `Focolai duplicati nell'insediamento ${settlement.id}`);
+    assert(settlement.health.activeOutbreaks.every((id) => world.pathogens.some((pathogen) => pathogen.id === id)), `Patogeno sconosciuto nell'insediamento ${settlement.id}`);
   }
   for (const event of world.events) {
     assert(Number.isSafeInteger(event.day) && event.day <= world.day, `Data evento non valida per l'evento ${event.id}`);
@@ -593,6 +646,7 @@ export const SIMULATION_CAPABILITIES = Object.freeze({
   agriculture: "basic",
   economyAndTrade: "partial",
   diseaseTransmission: true,
+  outbreakLifecycle: true,
   researchAndTechnology: true,
   structuredHistoricalEvents: true,
   jsonSnapshot: true,

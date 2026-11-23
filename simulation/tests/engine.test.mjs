@@ -141,6 +141,7 @@ test("il consiglio rimuove i membri deceduti senza perdere quelli vivi", () => {
 
 test("le capacità dichiarate distinguono i sistemi parziali o non implementati", () => {
   assert.equal(SIMULATION_CAPABILITIES.deterministicRandomness, true);
+  assert.equal(SIMULATION_CAPABILITIES.outbreakLifecycle, true);
   assert.equal(SIMULATION_CAPABILITIES.yearZeroCalendar, true);
   assert.equal(SIMULATION_CAPABILITIES.resourceProductionAndConsumption, "basic");
   assert.equal(SIMULATION_CAPABILITIES.economyAndTrade, "partial");
@@ -158,4 +159,53 @@ test("le invarianti rifiutano una relazione di coppia incoerente", () => {
   assert.ok(paired);
   paired.partnerId = null;
   assert.throws(() => assertWorldInvariants(world), /non reciproca/);
+});
+
+
+test("un focolaio viene registrato una volta, concluso e poi rilevato di nuovo", () => {
+  const world = createWorld({ seed: "outbreak-lifecycle", population: 20 });
+  const settlement = world.settlements[0];
+  const pathogen = world.pathogens[0];
+  pathogen.transmissibility = 0;
+  pathogen.duration = 2;
+  const patient = world.people[0];
+
+  patient.infection = { pathogenId: pathogen.id, remainingDays: 2, severity: 0.01 };
+  advanceDays(world, 2);
+  assert.deepEqual(settlement.health.activeOutbreaks, []);
+  assert.equal(historySince(world, 0).filter((event) => event.type === "epidemia").length, 1);
+  assert.equal(historySince(world, 0).filter((event) => event.type === "fine_epidemia").length, 1);
+
+  patient.immunity = [];
+  patient.infection = { pathogenId: pathogen.id, remainingDays: 2, severity: 0.01 };
+  advanceDays(world, 2);
+  assert.deepEqual(settlement.health.activeOutbreaks, []);
+  assert.equal(historySince(world, 0).filter((event) => event.type === "epidemia").length, 2);
+  assert.equal(historySince(world, 0).filter((event) => event.type === "fine_epidemia").length, 2);
+  assertWorldInvariants(world);
+});
+
+test("la migrazione dello snapshot v1 conserva i focolai già attivi senza duplicare eventi", () => {
+  const world = createWorld({ seed: "legacy-health", population: 16 });
+  const patient = world.people[0];
+  patient.infection = { pathogenId: world.pathogens[0].id, remainingDays: 8, severity: 0.01 };
+
+  const legacy = JSON.parse(serializeWorld(world));
+  legacy.schemaVersion = 1;
+  for (const settlement of legacy.settlements) delete settlement.health;
+
+  const restored = deserializeWorld(JSON.stringify(legacy));
+  assert.equal(restored.schemaVersion, 2);
+  assert.deepEqual(restored.settlements[0].health.activeOutbreaks, [world.pathogens[0].id]);
+  advanceDays(restored, 1);
+  assert.equal(historySince(restored, 0).filter((event) => event.type === "epidemia").length, 0);
+});
+
+test("le invarianti rifiutano focolai duplicati o riferiti a patogeni inesistenti", () => {
+  const world = createWorld({ seed: "health-invariants", population: 12 });
+  const active = world.settlements[0].health.activeOutbreaks;
+  active.push(world.pathogens[0].id, world.pathogens[0].id);
+  assert.throws(() => assertWorldInvariants(world), /Focolai duplicati/);
+  active.splice(0, active.length, "patogeno_inesistente");
+  assert.throws(() => assertWorldInvariants(world), /Patogeno sconosciuto/);
 });
