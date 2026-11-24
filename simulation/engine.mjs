@@ -1,4 +1,4 @@
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const DAYS_PER_COMMON_YEAR = 365.2425;
 const MONTH_LENGTHS_COMMON = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const MONTH_LENGTHS_LEAP = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -117,6 +117,14 @@ function createPerson(world, settlementId, ageDays, sex, parentIds = []) {
       research: random(world) * 0.35,
       leadership: random(world) * 0.6
     },
+    culture: {
+      cooperation: 0.2 + random(world) * 0.8,
+      curiosity: 0.2 + random(world) * 0.8,
+      spirituality: random(world),
+      tradition: random(world),
+      beliefVector: [random(world), random(world), random(world)]
+    },
+    religionId: null,
     wealth: random(world) * 2,
     health: 75 + random(world) * 25,
     infection: null,
@@ -206,9 +214,10 @@ export function createWorld({ seed = "world3d", population = 48 } = {}) {
     seed: String(seed),
     rngState: hashSeed(seed),
     day: 0,
-    nextIds: { person: 1, settlement: 1, event: 1 },
+    nextIds: { person: 1, settlement: 1, event: 1, religion: 1 },
     people: [],
     settlements: [],
+    religions: [],
     pathogens: PATHOGENS.map((pathogen) => ({ ...pathogen })),
     events: [],
     createdAt: null,
@@ -247,10 +256,11 @@ function seasonFactor(dayOfYear) {
 function chooseDecision(world, person, settlement, population, season) {
   const foodDays = settlement.resources.food / Math.max(1, population);
   const waterDays = settlement.resources.water / Math.max(1, population);
-  if (person.needs.food > 48 || foodDays < 3.5) {
+  if (foodDays < 5 && waterDays < 5) return (person.id + world.day) % 2 === 0 ? "raccolta" : "acqua";
+  if (person.needs.food > 48 || foodDays < 5) {
     return settlement.technologies.includes("agricoltura") && season > 0.7 ? "agricoltura" : "raccolta";
   }
-  if (person.needs.water > 48 || waterDays < 3.5) return "acqua";
+  if (person.needs.water > 48 || waterDays < 5) return "acqua";
   if (settlement.resources.wood < population * 2.2) return "legname";
   if (settlement.resources.stone < population * 1.2) return "estrazione";
   if (settlement.resources.tools < population * 0.18 && settlement.resources.wood > 4 && settlement.resources.stone > 2) return "artigianato";
@@ -265,9 +275,9 @@ function workOutput(person, decision, settlement, season) {
     case "agricoltura":
       return { food: (1.2 + skill.farming * 1.5) * settlement.fertility * season, skill: "farming" };
     case "raccolta":
-      return { food: 0.75 + skill.gathering * 0.95, skill: "gathering" };
+      return { food: 1.45 + skill.gathering * 1.15, skill: "gathering" };
     case "acqua":
-      return { water: 0.9 + skill.gathering * 0.9, skill: "gathering" };
+      return { water: 1.4 + skill.gathering * 1.1, skill: "gathering" };
     case "legname":
       return { wood: 0.7 + skill.building * 0.9, skill: "building" };
     case "estrazione":
@@ -425,6 +435,16 @@ function ageAndMortality(world, person, settlement) {
   const senescence = Math.max(0, age - 52) * 0.0000007 + Math.max(0, age - 72) * 0.000009;
   const deprivation = person.needs.food > 90 || person.needs.water > 90 ? 0.0002 : 0;
   if (person.health <= 0 || random(world) < 0.000002 + senescence + deprivation) {
+    const healthBeforeDeath = person.health;
+    const needsBeforeDeath = { ...person.needs };
+    const infectionBeforeDeath = person.infection ? { ...person.infection } : null;
+    const deathCause = needsBeforeDeath.food > 90
+      ? "carenza_alimentare"
+      : needsBeforeDeath.water > 90
+        ? "carenza_idrica"
+        : healthBeforeDeath <= 0
+          ? infectionBeforeDeath ? "malattia" : "salute_critica"
+          : "mortalita_naturale";
     person.alive = false;
     person.diedDay = world.day;
     person.health = 0;
@@ -435,7 +455,9 @@ function ageAndMortality(world, person, settlement) {
     }
     settlement.statistics.deaths += 1;
     recordEvent(world, "morte", `${person.name} è morto all'età di ${Math.floor(age)} anni`,
-      [{ kind: person.health <= 0 ? "malattia_o_carenza" : "mortalita_naturale", ageYears: Math.floor(age) }],
+      [{ kind: deathCause, ageYears: Math.floor(age), healthBeforeDeath,
+        foodNeed: needsBeforeDeath.food, waterNeed: needsBeforeDeath.water,
+        pathogenId: infectionBeforeDeath?.pathogenId ?? null }],
       [{ kind: "popolazione_ridotta", value: 1 }], [person.id], [settlement.id]);
     return true;
   }
@@ -456,6 +478,12 @@ function maybeBirth(world, settlement, residents) {
     if (mother.health < 60 || father.health < 55 || mother.needs.social > 75) continue;
     if (random(world) >= 0.00024) continue;
     const child = createPerson(world, settlement.id, 0, random(world) < 0.5 ? "F" : "M", [mother.id, father.id]);
+    for (const key of ["cooperation", "curiosity", "spirituality", "tradition"]) {
+      child.culture[key] = clamp((mother.culture[key] + father.culture[key]) / 2 + (random(world) - 0.5) * 0.06, 0, 1);
+    }
+    child.culture.beliefVector = mother.culture.beliefVector.map((value, index) =>
+      clamp((value + father.culture.beliefVector[index]) / 2 + (random(world) - 0.5) * 0.05, 0, 1));
+    child.religionId = mother.religionId !== null && mother.religionId === father.religionId ? mother.religionId : null;
     child.needs.food = 0;
     child.needs.water = 0;
     mother.childIds.push(child.id);
@@ -464,7 +492,7 @@ function maybeBirth(world, settlement, residents) {
     father.lastBirthDay = world.day;
     world.people.push(child);
     settlement.statistics.births += 1;
-    recordEvent(world, "nascita", `È è nato ${child.name} nella famiglia di ${mother.name} e ${father.name}`,
+    recordEvent(world, "nascita", `È nato ${child.name} nella famiglia di ${mother.name} e ${father.name}`,
       [{ kind: "relazione_familiare", parentIds: [mother.id, father.id] }],
       [{ kind: "popolazione_aumentata", value: 1 }], [mother.id, father.id, child.id], [settlement.id]);
   }
@@ -500,6 +528,157 @@ function updateGovernance(settlement, residents) {
   settlement.governance.legitimacy = clamp(settlement.governance.legitimacy + (settlement.governance.publicOrder - 0.55) * 0.0005, 0, 1);
 }
 
+
+const CULTURAL_TRAITS = ["cooperation", "curiosity", "spirituality", "tradition"];
+const RELIGION_NAMES = ["Tradizione della natura", "Tradizione degli antenati", "Tradizione celeste"];
+
+function beliefDistance(a, b) {
+  return Math.sqrt(a.reduce((sum, value, index) => sum + (value - b[index]) ** 2, 0));
+}
+
+function transmitCulture(world, residents) {
+  if (residents.length < 2) return;
+  const byId = new Map(residents.map((person) => [person.id, person]));
+  const snapshot = new Map(residents.map((person) => [person.id, {
+    traits: Object.fromEntries(CULTURAL_TRAITS.map((key) => [key, person.culture[key]])),
+    beliefVector: [...person.culture.beliefVector]
+  }]));
+  for (const person of residents) {
+    let contact = person.partnerId === null ? null : byId.get(person.partnerId) ?? null;
+    if (!contact) {
+      for (const relativeId of [...person.parentIds, ...person.childIds]) {
+        const relative = byId.get(relativeId);
+        if (relative && relative.id !== person.id) { contact = relative; break; }
+      }
+    }
+    if (!contact) {
+      const index = randomInt(world, 0, residents.length - 1);
+      contact = residents[index].id === person.id ? residents[(index + 1) % residents.length] : residents[index];
+    }
+    if (!contact || contact.id === person.id) continue;
+    const influence = person.religionId !== null && person.religionId === contact.religionId ? 0.00012 : 0.00004;
+    const source = snapshot.get(contact.id);
+    for (const key of CULTURAL_TRAITS) {
+      person.culture[key] = clamp(person.culture[key] + (source.traits[key] - person.culture[key]) * influence, 0, 1);
+    }
+    person.culture.beliefVector = person.culture.beliefVector.map((value, index) =>
+      clamp(value + (source.beliefVector[index] - value) * influence, 0, 1));
+  }
+}
+
+function createReligion(world, settlement, members) {
+  const id = nextId(world, "religion");
+  const vector = [0, 1, 2].map((index) =>
+    members.reduce((sum, person) => sum + person.culture.beliefVector[index], 0) / members.length);
+  const dominant = vector.indexOf(Math.max(...vector));
+  const religion = {
+    id,
+    settlementId: settlement.id,
+    name: RELIGION_NAMES[dominant] + " " + id,
+    foundedDay: world.day,
+    extinctDay: null,
+    founderIds: members.map((person) => person.id),
+    tenets: { nature: vector[0], ancestors: vector[1], celestial: vector[2] },
+    lastAdherentCount: members.length
+  };
+  world.religions.push(religion);
+  settlement.religionIds.push(id);
+  for (const person of members) person.religionId = id;
+  recordEvent(world, "religione_emersa", "È emersa " + religion.name + " a " + settlement.name,
+    [{ kind: "convergenza_culturale", dimensioneGruppo: members.length,
+      spiritualitaMedia: members.reduce((sum, person) => sum + person.culture.spirituality, 0) / members.length,
+      raggioConvergenza: 0.28 }],
+    [{ kind: "tradizione_religiosa_fondata", religionId: id, aderentiIniziali: members.length,
+      tenets: { ...religion.tenets } }],
+    members.map((person) => person.id), [settlement.id]);
+  return religion;
+}
+
+function updateCulture(world, settlement, residents) {
+  if (residents.length === 0) return;
+  const previous = Object.fromEntries(CULTURAL_TRAITS.map((key) => [key, settlement.culture[key]]));
+  for (const key of CULTURAL_TRAITS) {
+    settlement.culture[key] = residents.reduce((sum, person) => sum + person.culture[key], 0) / residents.length;
+  }
+  const largestShift = Math.max(...CULTURAL_TRAITS.map((key) => Math.abs(settlement.culture[key] - previous[key])));
+  if (largestShift >= 0.035) {
+    recordEvent(world, "trasformazione_culturale", "La cultura di " + settlement.name + " sta cambiando",
+      [{ kind: "trasmissione_intergenerazionale_e_sociale", variazioneMassima: largestShift }],
+      [{ kind: "valori_culturali_aggiornati", valori: Object.fromEntries(CULTURAL_TRAITS.map((key) => [key, settlement.culture[key]])) }],
+      [], [settlement.id]);
+  }
+
+  const localReligions = world.religions.filter((religion) => religion.settlementId === settlement.id && religion.extinctDay === null);
+  const newlyAffiliated = [];
+  for (const person of residents) {
+    if (person.religionId !== null || person.culture.spirituality < 0.5) continue;
+    const closest = localReligions
+      .map((religion) => ({
+        religion,
+        distance: beliefDistance(person.culture.beliefVector, [
+          religion.tenets.nature, religion.tenets.ancestors, religion.tenets.celestial
+        ])
+      }))
+      .sort((a, b) => a.distance - b.distance || a.religion.id - b.religion.id)[0];
+    if (closest && closest.distance <= 0.24) {
+      person.religionId = closest.religion.id;
+      newlyAffiliated.push(person.id);
+    }
+  }
+  if (newlyAffiliated.length > 0) {
+    recordEvent(world, "adesione_religiosa", newlyAffiliated.length + " persone hanno aderito a una tradizione religiosa",
+      [{ kind: "affinita_di_credenze" }],
+      [{ kind: "nuovi_aderenti", personIds: newlyAffiliated }],
+      newlyAffiliated, [settlement.id]);
+  }
+
+  const candidates = residents.filter((person) => person.religionId === null
+    && person.culture.spirituality >= 0.65 && person.culture.tradition >= 0.35);
+  const claimed = new Set();
+  const minimumGroup = Math.max(4, Math.ceil(residents.length * 0.1));
+  for (const seed of candidates) {
+    if (claimed.has(seed.id)) continue;
+    const cluster = candidates.filter((person) => !claimed.has(person.id)
+      && beliefDistance(seed.culture.beliefVector, person.culture.beliefVector) <= 0.28);
+    if (cluster.length < minimumGroup) continue;
+    for (const person of cluster) claimed.add(person.id);
+    createReligion(world, settlement, cluster);
+  }
+
+  for (const religion of world.religions.filter((item) => item.settlementId === settlement.id)) {
+    const adherents = residents.filter((person) => person.religionId === religion.id);
+    if (adherents.length === 0 && religion.extinctDay === null) {
+      religion.extinctDay = world.day;
+      religion.lastAdherentCount = 0;
+      recordEvent(world, "religione_estinta", "La tradizione " + religion.name + " non ha più aderenti",
+        [{ kind: "assenza_di_aderenti" }],
+        [{ kind: "tradizione_cessata", religionId: religion.id }],
+        [], [settlement.id]);
+      continue;
+    }
+    if (adherents.length > 0) {
+      const mean = [0, 1, 2].map((index) =>
+        adherents.reduce((sum, person) => sum + person.culture.beliefVector[index], 0) / adherents.length);
+      const oldTenets = { ...religion.tenets };
+      religion.tenets.nature += (mean[0] - religion.tenets.nature) * 0.02;
+      religion.tenets.ancestors += (mean[1] - religion.tenets.ancestors) * 0.02;
+      religion.tenets.celestial += (mean[2] - religion.tenets.celestial) * 0.02;
+      religion.lastAdherentCount = adherents.length;
+      const doctrinalShift = Math.max(
+        Math.abs(religion.tenets.nature - oldTenets.nature),
+        Math.abs(religion.tenets.ancestors - oldTenets.ancestors),
+        Math.abs(religion.tenets.celestial - oldTenets.celestial)
+      );
+      if (doctrinalShift >= 0.035) {
+        recordEvent(world, "evoluzione_religiosa", "La tradizione " + religion.name + " ha modificato i propri orientamenti",
+          [{ kind: "trasmissione_delle_credenze", variazioneMassima: doctrinalShift }],
+          [{ kind: "dottrina_aggiornata", religionId: religion.id, tenets: { ...religion.tenets } }],
+          adherents.map((person) => person.id), [settlement.id]);
+      }
+    }
+  }
+}
+
 function advanceSettlement(world, settlement) {
   const residents = livingInSettlement(world, settlement.id);
   if (residents.length === 0) return;
@@ -515,8 +694,11 @@ function advanceSettlement(world, settlement) {
   for (const person of [...residents]) ageAndMortality(world, person, settlement);
   const living = livingInSettlement(world, settlement.id);
   maybeBirth(world, settlement, living);
+  const currentResidents = livingInSettlement(world, settlement.id);
+  transmitCulture(world, currentResidents);
   developTechnology(world, settlement);
-  updateGovernance(settlement, livingInSettlement(world, settlement.id));
+  updateGovernance(settlement, currentResidents);
+  if (date.dayOfYear === 0 && date.year > 0) updateCulture(world, settlement, currentResidents);
   if (date.dayOfYear === 0 && date.year > 0) {
     recordEvent(world, "anniversario", `È trascorso un anno a ${settlement.name}`,
       [{ kind: "calendario", year: date.year }],
@@ -541,6 +723,10 @@ export function serializeWorld(world) {
   return JSON.stringify(world);
 }
 
+function migratedUnit(key) {
+  return hashSeed(key) / 0xffffffff;
+}
+
 function migrateWorld(world) {
   assert(world && typeof world === "object", "Stato del mondo non valido");
   if (world.schemaVersion === 1) {
@@ -553,7 +739,33 @@ function migrateWorld(world) {
         activeOutbreaks: [...new Set(active)]
       };
     }
-    world.schemaVersion = SCHEMA_VERSION;
+    world.schemaVersion = 2;
+  }
+  if (world.schemaVersion === 2) {
+    world.religions ??= [];
+    world.nextIds ??= {};
+    const maxReligionId = world.religions.reduce((maximum, religion) => Math.max(maximum, religion.id ?? 0), 0);
+    world.nextIds.religion = Math.max(world.nextIds.religion ?? 1, maxReligionId + 1);
+    const settlementsById = new Map((world.settlements ?? []).map((settlement) => [settlement.id, settlement]));
+    for (const settlement of world.settlements ?? []) settlement.religionIds ??= [];
+    for (const person of world.people ?? []) {
+      if (!person.culture) {
+        const base = settlementsById.get(person.settlementId)?.culture ?? {
+          cooperation: 0.5, curiosity: 0.5, spirituality: 0.5, tradition: 0.5
+        };
+        const trait = (key) => clamp((base[key] ?? 0.5)
+          + (migratedUnit(world.seed + ":" + person.id + ":" + key) - 0.5) * 0.08, 0, 1);
+        person.culture = {
+          cooperation: trait("cooperation"),
+          curiosity: trait("curiosity"),
+          spirituality: trait("spirituality"),
+          tradition: trait("tradition"),
+          beliefVector: [0, 1, 2].map((index) => migratedUnit(world.seed + ":" + person.id + ":belief:" + index))
+        };
+      }
+      person.religionId ??= null;
+    }
+    world.schemaVersion = 3;
   }
   return world;
 }
@@ -573,6 +785,7 @@ export function worldSummary(world) {
     population: living.length,
     deaths: dead,
     settlements: world.settlements.length,
+    religions: world.religions.filter((religion) => religion.extinctDay === null).length,
     events: world.events.length,
     infected: living.filter((person) => person.infection).length,
     technologies: world.settlements.reduce((sum, settlement) => sum + settlement.technologies.length, 0)
@@ -590,7 +803,8 @@ export function assertWorldInvariants(world) {
   assert(world.schemaVersion === SCHEMA_VERSION, "Versione dello schema non supportata");
   assert(Number.isSafeInteger(world.day) && world.day >= 0, "Giorno del mondo non valido");
   assert(Number.isInteger(world.rngState) && world.rngState >= 0 && world.rngState <= 0xffffffff, "Stato del generatore casuale non valido");
-  assert(Array.isArray(world.people) && Array.isArray(world.settlements) && Array.isArray(world.events) && Array.isArray(world.pathogens), "Collezioni del mondo mancanti");
+  assert(Array.isArray(world.people) && Array.isArray(world.settlements) && Array.isArray(world.events)
+    && Array.isArray(world.pathogens) && Array.isArray(world.religions), "Collezioni del mondo mancanti");
   const personIds = new Set(world.people.map((person) => person.id));
   const settlementIds = new Set(world.settlements.map((settlement) => settlement.id));
   const eventIds = new Set(world.events.map((event) => event.id));
@@ -604,8 +818,30 @@ export function assertWorldInvariants(world) {
     assert(person.bornDay === null || (Number.isSafeInteger(person.bornDay) && person.bornDay >= 0 && person.bornDay <= world.day), `Data di nascita non valida per la persona ${person.id}`);
     assert(typeof person.alive === "boolean", `Stato vitale non valido per la persona ${person.id}`);
     assert(person.alive ? person.diedDay === null : Number.isSafeInteger(person.diedDay), `Data di morte incoerente per la persona ${person.id}`);
+    assert(Array.isArray(person.parentIds) && new Set(person.parentIds).size === person.parentIds.length
+      && !person.parentIds.includes(person.id), `Genitori non validi per la persona ${person.id}`);
+    assert(Array.isArray(person.childIds) && new Set(person.childIds).size === person.childIds.length
+      && !person.childIds.includes(person.id), `Figli non validi per la persona ${person.id}`);
     assert(person.parentIds.every((id) => personIds.has(id)), `Genitore inesistente per la persona ${person.id}`);
     assert(person.childIds.every((id) => personIds.has(id)), `Figlio inesistente per la persona ${person.id}`);
+    for (const parentId of person.parentIds) {
+      const parent = world.people.find((candidate) => candidate.id === parentId);
+      assert(parent.childIds.includes(person.id), `Relazione genitore-figlio non reciproca per la persona ${person.id}`);
+    }
+    for (const childId of person.childIds) {
+      const child = world.people.find((candidate) => candidate.id === childId);
+      assert(child.parentIds.includes(person.id), `Relazione figlio-genitore non reciproca per la persona ${person.id}`);
+    }
+    assert(person.culture && CULTURAL_TRAITS.every((key) => Number.isFinite(person.culture[key])
+      && person.culture[key] >= 0 && person.culture[key] <= 1), `Profilo culturale non valido per la persona ${person.id}`);
+    assert(Array.isArray(person.culture.beliefVector) && person.culture.beliefVector.length === 3
+      && person.culture.beliefVector.every((value) => Number.isFinite(value) && value >= 0 && value <= 1),
+      `Credenze non valide per la persona ${person.id}`);
+    if (person.religionId !== null) {
+      const religion = world.religions.find((candidate) => candidate.id === person.religionId);
+      assert(religion && religion.settlementId === person.settlementId,
+        `Tradizione religiosa incoerente per la persona ${person.id}`);
+    }
     if (person.partnerId !== null) {
       const partner = world.people.find((candidate) => candidate.id === person.partnerId);
       assert(partner && partner.partnerId === person.id, `Relazione di coppia non reciproca per la persona ${person.id}`);
@@ -620,6 +856,10 @@ export function assertWorldInvariants(world) {
     }
     assert(Number.isFinite(settlement.knowledge) && settlement.knowledge >= 0, `Conoscenza non valida nell'insediamento ${settlement.id}`);
     assert(settlement.governance.councilMemberIds.every((id) => personIds.has(id)), `Consigliere inesistente nell'insediamento ${settlement.id}`);
+    assert(Array.isArray(settlement.religionIds) && new Set(settlement.religionIds).size === settlement.religionIds.length,
+      `Elenco religioso non valido nell'insediamento ${settlement.id}`);
+    assert(settlement.religionIds.every((id) => world.religions.some((religion) => religion.id === id && religion.settlementId === settlement.id)),
+      `Tradizione religiosa mancante nell'insediamento ${settlement.id}`);
     assert(settlement.health && Array.isArray(settlement.health.activeOutbreaks), `Stato epidemico mancante nell'insediamento ${settlement.id}`);
     assert(new Set(settlement.health.activeOutbreaks).size === settlement.health.activeOutbreaks.length, `Focolai duplicati nell'insediamento ${settlement.id}`);
     assert(settlement.health.activeOutbreaks.every((id) => world.pathogens.some((pathogen) => pathogen.id === id)), `Patogeno sconosciuto nell'insediamento ${settlement.id}`);
@@ -628,6 +868,22 @@ export function assertWorldInvariants(world) {
     assert(Number.isSafeInteger(event.day) && event.day <= world.day, `Data evento non valida per l'evento ${event.id}`);
     assert(event.personIds.every((id) => personIds.has(id)), `Persona storica inesistente nell'evento ${event.id}`);
     assert(event.settlementIds.every((id) => settlementIds.has(id)), `Insediamento storico inesistente nell'evento ${event.id}`);
+  }
+  const religionIds = new Set(world.religions.map((religion) => religion.id));
+  assert(religionIds.size === world.religions.length, "Identificativi religiosi duplicati");
+  for (const religion of world.religions) {
+    assert(settlementIds.has(religion.settlementId), `Insediamento mancante per la tradizione ${religion.id}`);
+    assert(Number.isSafeInteger(religion.foundedDay) && religion.foundedDay >= 0 && religion.foundedDay <= world.day,
+      `Data di fondazione religiosa non valida per la tradizione ${religion.id}`);
+    assert(religion.extinctDay === null || (Number.isSafeInteger(religion.extinctDay)
+      && religion.extinctDay >= religion.foundedDay && religion.extinctDay <= world.day),
+      `Data di estinzione religiosa non valida per la tradizione ${religion.id}`);
+    assert(religion.founderIds.every((id) => personIds.has(id)), `Fondatore inesistente per la tradizione ${religion.id}`);
+    assert(Object.values(religion.tenets).length === 3
+      && Object.values(religion.tenets).every((value) => Number.isFinite(value) && value >= 0 && value <= 1),
+      `Orientamenti religiosi non validi per la tradizione ${religion.id}`);
+    assert(world.settlements.find((settlement) => settlement.id === religion.settlementId).religionIds.includes(religion.id),
+      `Tradizione non registrata nell'insediamento ${religion.id}`);
   }
   for (const [kind, next] of Object.entries(world.nextIds)) {
     assert(Number.isSafeInteger(next) && next > 0, `Contatore ${kind} non valido`);
@@ -652,7 +908,7 @@ export const SIMULATION_CAPABILITIES = Object.freeze({
   jsonSnapshot: true,
   institutions: "partial",
   lawsAndJustice: "not_implemented",
-  emergentCultureAndReligion: "not_implemented",
+  emergentCultureAndReligion: "basic",
   settlements: "single_settlement",
   diplomacyWarAndMigration: "not_implemented",
   browserPersistenceAndOfflineCatchup: "not_implemented"

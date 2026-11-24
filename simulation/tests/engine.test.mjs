@@ -147,7 +147,7 @@ test("le capacità dichiarate distinguono i sistemi parziali o non implementati"
   assert.equal(SIMULATION_CAPABILITIES.economyAndTrade, "partial");
   assert.equal(SIMULATION_CAPABILITIES.institutions, "partial");
   assert.equal(SIMULATION_CAPABILITIES.lawsAndJustice, "not_implemented");
-  assert.equal(SIMULATION_CAPABILITIES.emergentCultureAndReligion, "not_implemented");
+  assert.equal(SIMULATION_CAPABILITIES.emergentCultureAndReligion, "basic");
   assert.equal(SIMULATION_CAPABILITIES.settlements, "single_settlement");
   assert.equal(SIMULATION_CAPABILITIES.diplomacyWarAndMigration, "not_implemented");
   assert.equal(SIMULATION_CAPABILITIES.browserPersistenceAndOfflineCatchup, "not_implemented");
@@ -192,10 +192,19 @@ test("la migrazione dello snapshot v1 conserva i focolai già attivi senza dupli
 
   const legacy = JSON.parse(serializeWorld(world));
   legacy.schemaVersion = 1;
-  for (const settlement of legacy.settlements) delete settlement.health;
+  delete legacy.religions;
+  delete legacy.nextIds.religion;
+  for (const person of legacy.people) {
+    delete person.culture;
+    delete person.religionId;
+  }
+  for (const settlement of legacy.settlements) {
+    delete settlement.health;
+    delete settlement.religionIds;
+  }
 
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 2);
+  assert.equal(restored.schemaVersion, 3);
   assert.deepEqual(restored.settlements[0].health.activeOutbreaks, [world.pathogens[0].id]);
   advanceDays(restored, 1);
   assert.equal(historySince(restored, 0).filter((event) => event.type === "epidemia").length, 0);
@@ -226,4 +235,84 @@ test("un individuo guarito non trasmette nel giorno in cui termina l'infezione",
   assert.deepEqual(settlement.health.activeOutbreaks, []);
   assert.equal(historySince(world, 0).filter((event) => event.type === "epidemia").length, 1);
   assert.equal(historySince(world, 0).filter((event) => event.type === "fine_epidemia").length, 1);
+});
+
+
+test("la popolazione mantiene l'accesso a cibo e acqua durante il primo anno", () => {
+  const world = createWorld({ seed: "resource-balance", population: 40 });
+  advanceDays(world, 367);
+  const settlement = world.settlements[0];
+  assert.ok(world.people.filter((person) => person.alive).length >= 30);
+  assert.ok(settlement.resources.food > 0);
+  assert.ok(settlement.resources.water > 0);
+});
+
+test("culture convergenti possono generare tradizioni religiose distinte", () => {
+  const world = createWorld({ seed: "plural-traditions", population: 40 });
+  const settlement = world.settlements[0];
+  for (let index = 0; index < world.people.length; index += 1) {
+    const person = world.people[index];
+    person.culture.spirituality = 0.9;
+    person.culture.tradition = 0.8;
+    person.culture.beliefVector = index < 20 ? [0.08, 0.1, 0.12] : [0.9, 0.92, 0.94];
+    person.religionId = null;
+  }
+  advanceDays(world, 367);
+  const traditions = world.religions.filter((religion) => religion.settlementId === settlement.id && religion.extinctDay === null);
+  assert.equal(traditions.length, 2);
+  for (const tradition of traditions) {
+    const adherents = world.people.filter((person) => person.alive && person.religionId === tradition.id);
+    assert.equal(adherents.length, 20);
+  }
+  assert.equal(historySince(world, 0).filter((event) => event.type === "religione_emersa").length, 2);
+  assert.equal(worldSummary(world).religions, 2);
+  assertWorldInvariants(world);
+});
+
+test("le credenze e le tradizioni restano deterministiche dopo un checkpoint", () => {
+  const whole = createWorld({ seed: "culture-checkpoint", population: 40 });
+  const split = createWorld({ seed: "culture-checkpoint", population: 40 });
+  advanceDays(whole, 900);
+  advanceDays(split, 410);
+  const restored = deserializeWorld(serializeWorld(split));
+  advanceDays(restored, 490);
+  assert.equal(serializeWorld(restored), serializeWorld(whole));
+});
+
+test("uno snapshot v2 senza profili culturali viene migrato allo schema corrente", () => {
+  const world = createWorld({ seed: "culture-migration", population: 16 });
+  const legacy = JSON.parse(serializeWorld(world));
+  legacy.schemaVersion = 2;
+  delete legacy.religions;
+  delete legacy.nextIds.religion;
+  for (const person of legacy.people) {
+    delete person.culture;
+    delete person.religionId;
+  }
+  for (const settlement of legacy.settlements) delete settlement.religionIds;
+  const restored = deserializeWorld(JSON.stringify(legacy));
+  assert.equal(restored.schemaVersion, 3);
+  assert.equal(restored.religions.length, 0);
+  assert.ok(restored.people.every((person) => person.culture && person.culture.beliefVector.length === 3));
+  assertWorldInvariants(restored);
+});
+
+test("la cronologia distingue mortalità naturale e morte per salute critica", () => {
+  const natural = createWorld({ seed: "natural-death-cause", population: 12 });
+  const old = natural.people[0];
+  old.ageDays = 1_000_000_000;
+  old.needs.food = 0;
+  old.needs.water = 0;
+  advanceDays(natural, 1);
+  const naturalEvent = historySince(natural, 0).find((event) => event.type === "morte" && event.personIds.includes(old.id));
+  assert.equal(naturalEvent.causes[0].kind, "mortalita_naturale");
+  assert.ok(naturalEvent.causes[0].healthBeforeDeath > 0);
+
+  const critical = createWorld({ seed: "critical-death-cause", population: 12 });
+  const patient = critical.people[0];
+  patient.health = 0;
+  advanceDays(critical, 1);
+  const criticalEvent = historySince(critical, 0).find((event) => event.type === "morte" && event.personIds.includes(patient.id));
+  assert.equal(criticalEvent.causes[0].kind, "salute_critica");
+  assert.equal(criticalEvent.causes[0].healthBeforeDeath, 0);
 });
