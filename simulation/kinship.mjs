@@ -4,8 +4,7 @@ export function isAdult(person) {
   return person.ageDays >= ADULT_AGE_DAYS;
 }
 
-function kinshipRank(world, child, candidate) {
-  const people = new Map(world.people.map((person) => [person.id, person]));
+function kinshipRank(world, child, candidate, people) {
   if (child.parentIds.includes(candidate.id)) return 0;
 
   const parents = child.parentIds.map((id) => people.get(id)).filter(Boolean);
@@ -28,12 +27,12 @@ function kinshipRank(world, child, candidate) {
   return Number.POSITIVE_INFINITY;
 }
 
-export function selectGuardian(world, child) {
+export function selectGuardian(world, child, people = new Map(world.people.map((person) => [person.id, person]))) {
   if (!child.alive || isAdult(child)) return null;
   const candidates = [];
   for (const person of world.people) {
     if (!person.alive || person.id === child.id || person.settlementId !== child.settlementId || !isAdult(person)) continue;
-    const rank = kinshipRank(world, child, person);
+    const rank = kinshipRank(world, child, person, people);
     if (Number.isFinite(rank)) candidates.push({ person, rank });
   }
   candidates.sort((a, b) => a.rank - b.rank
@@ -42,15 +41,16 @@ export function selectGuardian(world, child) {
   return candidates[0]?.person.id ?? null;
 }
 
-export function isValidGuardian(world, child, guardianId) {
+export function isValidGuardian(world, child, guardianId, people = new Map(world.people.map((person) => [person.id, person]))) {
   if (guardianId === null || !child.alive || isAdult(child)) return false;
-  const guardian = world.people.find((person) => person.id === guardianId);
+  const guardian = people.get(guardianId);
   return Boolean(guardian && guardian.alive && guardian.id !== child.id
     && guardian.settlementId === child.settlementId && isAdult(guardian)
-    && Number.isFinite(kinshipRank(world, child, guardian)));
+    && Number.isFinite(kinshipRank(world, child, guardian, people)));
 }
 
 export function reassignGuardianships(world, deceasedId) {
+  const people = new Map(world.people.map((person) => [person.id, person]));
   const changes = [];
   for (const child of world.people) {
     if (!child.alive || isAdult(child)) continue;
@@ -58,7 +58,7 @@ export function reassignGuardianships(world, deceasedId) {
     if (child.guardianId !== deceasedId && !lostParent) continue;
 
     const previousGuardianId = child.guardianId ?? null;
-    const guardianId = selectGuardian(world, child);
+    const guardianId = selectGuardian(world, child, people);
     if (guardianId !== previousGuardianId) {
       child.guardianId = guardianId;
       changes.push({
@@ -68,7 +68,7 @@ export function reassignGuardianships(world, deceasedId) {
         orphaned: guardianId === null
       });
     } else if (guardianId === null && lostParent) {
-      const hasLivingParent = child.parentIds.some((id) => world.people.find((person) => person.id === id)?.alive);
+      const hasLivingParent = child.parentIds.some((id) => people.get(id)?.alive);
       if (!hasLivingParent) {
         changes.push({
           childId: child.id,
