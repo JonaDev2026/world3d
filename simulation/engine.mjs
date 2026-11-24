@@ -800,13 +800,14 @@ function migrateWorld(world) {
   }
   if (world.schemaVersion === 3) {
     for (const person of world.people ?? []) person.guardianId ??= null;
+    const people = new Map((world.people ?? []).map((person) => [person.id, person]));
     for (const person of world.people ?? []) {
       if (!person.alive || isAdult(person)) {
         person.guardianId = null;
-      } else if (person.guardianId !== null && !isValidGuardian(world, person, person.guardianId)) {
-        person.guardianId = selectGuardian(world, person);
+      } else if (person.guardianId !== null && !isValidGuardian(world, person, person.guardianId, people)) {
+        person.guardianId = selectGuardian(world, person, people);
       } else if (person.guardianId === null) {
-        person.guardianId = selectGuardian(world, person);
+        person.guardianId = selectGuardian(world, person, people);
       }
     }
     world.schemaVersion = 4;
@@ -850,6 +851,7 @@ export function assertWorldInvariants(world) {
   assert(Array.isArray(world.people) && Array.isArray(world.settlements) && Array.isArray(world.events)
     && Array.isArray(world.pathogens) && Array.isArray(world.religions), "Collezioni del mondo mancanti");
   const personIds = new Set(world.people.map((person) => person.id));
+  const peopleById = new Map(world.people.map((person) => [person.id, person]));
   const settlementIds = new Set(world.settlements.map((settlement) => settlement.id));
   const eventIds = new Set(world.events.map((event) => event.id));
   assert(personIds.size === world.people.length, "Identificativi delle persone duplicati");
@@ -863,10 +865,10 @@ export function assertWorldInvariants(world) {
     assert(typeof person.alive === "boolean", `Stato vitale non valido per la persona ${person.id}`);
     assert(person.alive ? person.diedDay === null : Number.isSafeInteger(person.diedDay), `Data di morte incoerente per la persona ${person.id}`);
     assert(Object.hasOwn(person, "guardianId"), `Tutela mancante per la persona ${person.id}`);
-    assert(person.guardianId === null || isValidGuardian(world, person, person.guardianId),
+    assert(person.guardianId === null || isValidGuardian(world, person, person.guardianId, peopleById),
       `Tutore non valido per la persona ${person.id}`);
     if (person.alive && !isAdult(person) && person.guardianId === null) {
-      assert(selectGuardian(world, person) === null, `Tutore mancante per la persona ${person.id}`);
+      assert(selectGuardian(world, person, peopleById) === null, `Tutore mancante per la persona ${person.id}`);
     }
     assert(Array.isArray(person.parentIds) && new Set(person.parentIds).size === person.parentIds.length
       && !person.parentIds.includes(person.id), `Genitori non validi per la persona ${person.id}`);
@@ -875,11 +877,11 @@ export function assertWorldInvariants(world) {
     assert(person.parentIds.every((id) => personIds.has(id)), `Genitore inesistente per la persona ${person.id}`);
     assert(person.childIds.every((id) => personIds.has(id)), `Figlio inesistente per la persona ${person.id}`);
     for (const parentId of person.parentIds) {
-      const parent = world.people.find((candidate) => candidate.id === parentId);
+      const parent = peopleById.get(parentId);
       assert(parent.childIds.includes(person.id), `Relazione genitore-figlio non reciproca per la persona ${person.id}`);
     }
     for (const childId of person.childIds) {
-      const child = world.people.find((candidate) => candidate.id === childId);
+      const child = peopleById.get(childId);
       assert(child.parentIds.includes(person.id), `Relazione figlio-genitore non reciproca per la persona ${person.id}`);
     }
     assert(person.culture && CULTURAL_TRAITS.every((key) => Number.isFinite(person.culture[key])
