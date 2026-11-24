@@ -4,7 +4,7 @@ export function isAdult(person) {
   return person.ageDays >= ADULT_AGE_DAYS;
 }
 
-function kinshipRank(world, child, candidate, people) {
+function kinshipRank(child, candidate, people) {
   if (child.parentIds.includes(candidate.id)) return 0;
 
   const parents = child.parentIds.map((id) => people.get(id)).filter(Boolean);
@@ -28,11 +28,11 @@ function kinshipRank(world, child, candidate, people) {
 }
 
 export function selectGuardian(world, child, people = new Map(world.people.map((person) => [person.id, person]))) {
-  if (!child.alive || isAdult(child)) return null;
+  if (!child.alive || isAdult(child) || child.parentIds.length === 0) return null;
   const candidates = [];
   for (const person of world.people) {
     if (!person.alive || person.id === child.id || person.settlementId !== child.settlementId || !isAdult(person)) continue;
-    const rank = kinshipRank(world, child, person, people);
+    const rank = kinshipRank(child, person, people);
     if (Number.isFinite(rank)) candidates.push({ person, rank });
   }
   candidates.sort((a, b) => a.rank - b.rank
@@ -46,7 +46,7 @@ export function isValidGuardian(world, child, guardianId, people = new Map(world
   const guardian = people.get(guardianId);
   return Boolean(guardian && guardian.alive && guardian.id !== child.id
     && guardian.settlementId === child.settlementId && isAdult(guardian)
-    && Number.isFinite(kinshipRank(world, child, guardian, people)));
+    && Number.isFinite(kinshipRank(child, guardian, people)));
 }
 
 export function reassignGuardianships(world, deceasedId) {
