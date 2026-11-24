@@ -91,6 +91,7 @@ test("la nascita registra entrambi i genitori e relazioni reciproche", () => {
     const [motherId, fatherId] = child.parentIds;
     assert.ok(world.people.find((person) => person.id === motherId).childIds.includes(child.id));
     assert.ok(world.people.find((person) => person.id === fatherId).childIds.includes(child.id));
+    assert.equal(child.guardianId, motherId);
   }
   assertWorldInvariants(world);
 });
@@ -141,6 +142,7 @@ test("il consiglio rimuove i membri deceduti senza perdere quelli vivi", () => {
 
 test("le capacità dichiarate distinguono i sistemi parziali o non implementati", () => {
   assert.equal(SIMULATION_CAPABILITIES.deterministicRandomness, true);
+  assert.equal(SIMULATION_CAPABILITIES.familyGuardianship, "basic");
   assert.equal(SIMULATION_CAPABILITIES.outbreakLifecycle, true);
   assert.equal(SIMULATION_CAPABILITIES.yearZeroCalendar, true);
   assert.equal(SIMULATION_CAPABILITIES.resourceProductionAndConsumption, "basic");
@@ -204,7 +206,7 @@ test("la migrazione dello snapshot v1 conserva i focolai già attivi senza dupli
   }
 
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 3);
+  assert.equal(restored.schemaVersion, 4);
   assert.deepEqual(restored.settlements[0].health.activeOutbreaks, [world.pathogens[0].id]);
   advanceDays(restored, 1);
   assert.equal(historySince(restored, 0).filter((event) => event.type === "epidemia").length, 0);
@@ -291,7 +293,7 @@ test("uno snapshot v2 senza profili culturali viene migrato allo schema corrente
   }
   for (const settlement of legacy.settlements) delete settlement.religionIds;
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 3);
+  assert.equal(restored.schemaVersion, 4);
   assert.equal(restored.religions.length, 0);
   assert.ok(restored.people.every((person) => person.culture && person.culture.beliefVector.length === 3));
   assertWorldInvariants(restored);
@@ -315,4 +317,91 @@ test("la cronologia distingue mortalità naturale e morte per salute critica", (
   const criticalEvent = historySince(critical, 0).find((event) => event.type === "morte" && event.personIds.includes(patient.id));
   assert.equal(criticalEvent.causes[0].kind, "salute_critica");
   assert.equal(criticalEvent.causes[0].healthBeforeDeath, 0);
+});
+
+
+test("la tutela passa al genitore superstite e poi a un nonno", () => {
+  const world = createWorld({ seed: "guardianship-transfer", population: 12 });
+  const [grandparent, parentA, parentB, child] = world.people;
+  for (const person of world.people) {
+    person.ageDays = 30 * 365;
+    person.health = 100;
+    person.needs.food = 0;
+    person.needs.water = 0;
+    if (person.partnerId !== null) {
+      const partner = world.people.find((candidate) => candidate.id === person.partnerId);
+      if (partner?.partnerId === person.id) partner.partnerId = null;
+      person.partnerId = null;
+    }
+  }
+  grandparent.ageDays = 60 * 365;
+  child.ageDays = 10 * 365;
+  parentA.parentIds = [grandparent.id];
+  grandparent.childIds.push(parentA.id);
+  parentA.childIds.push(child.id);
+  parentB.childIds.push(child.id);
+  child.parentIds = [parentA.id, parentB.id];
+  child.guardianId = parentA.id;
+
+  parentA.health = 0;
+  advanceDays(world, 1);
+  assert.equal(parentA.alive, false);
+  assert.equal(child.guardianId, parentB.id);
+
+  parentB.health = 0;
+  advanceDays(world, 1);
+  assert.equal(parentB.alive, false);
+  assert.equal(child.guardianId, grandparent.id);
+  assert.equal(historySince(world, 0).filter((event) => event.type === "tutela_affidata").length, 2);
+  assertWorldInvariants(world);
+});
+
+test("la tutela termina al raggiungimento della maggiore età", () => {
+  const world = createWorld({ seed: "guardianship-adulthood", population: 8 });
+  const parent = world.people[0];
+  const child = world.people[1];
+  parent.ageDays = 30 * 365;
+  parent.health = 100;
+  child.ageDays = 6574;
+  child.parentIds = [parent.id];
+  parent.childIds.push(child.id);
+  child.guardianId = parent.id;
+
+  advanceDays(world, 1);
+  assert.equal(child.guardianId, null);
+  assert.ok(historySince(world, 0).some((event) => event.type === "tutela_cessata" && event.personIds.includes(child.id)));
+  assertWorldInvariants(world);
+});
+
+test("la migrazione v3 assegna un genitore vivente come tutore dei minori", () => {
+  const world = createWorld({ seed: "guardianship-migration", population: 12 });
+  const parent = world.people[0];
+  const child = world.people[1];
+  parent.ageDays = 30 * 365;
+  child.ageDays = 10 * 365;
+  parent.childIds.push(child.id);
+  child.parentIds = [parent.id];
+  child.guardianId = parent.id;
+
+  const legacy = JSON.parse(serializeWorld(world));
+  legacy.schemaVersion = 3;
+  for (const person of legacy.people) delete person.guardianId;
+  const restored = deserializeWorld(JSON.stringify(legacy));
+  assert.equal(restored.schemaVersion, 4);
+  assert.equal(restored.people.find((person) => person.id === child.id).guardianId, parent.id);
+  assertWorldInvariants(restored);
+});
+
+test("le invarianti rifiutano un tutore adulto non imparentato", () => {
+  const world = createWorld({ seed: "guardianship-invariant", population: 12 });
+  const parent = world.people[0];
+  const child = world.people[1];
+  const unrelated = world.people[2];
+  parent.ageDays = 30 * 365;
+  unrelated.ageDays = 30 * 365;
+  child.ageDays = 10 * 365;
+  parent.childIds.push(child.id);
+  child.parentIds = [parent.id];
+  child.guardianId = unrelated.id;
+  assert.throws(() => assertWorldInvariants(world), /Tutore non valido/);
 });
