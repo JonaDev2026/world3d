@@ -1,4 +1,6 @@
-const SCHEMA_VERSION = 3;
+import { isAdult, isValidGuardian, reassignGuardianships, selectGuardian } from "./kinship.mjs";
+
+const SCHEMA_VERSION = 4;
 const DAYS_PER_COMMON_YEAR = 365.2425;
 const MONTH_LENGTHS_COMMON = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const MONTH_LENGTHS_LEAP = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -125,6 +127,7 @@ function createPerson(world, settlementId, ageDays, sex, parentIds = []) {
       beliefVector: [random(world), random(world), random(world)]
     },
     religionId: null,
+    guardianId: null,
     wealth: random(world) * 2,
     health: 75 + random(world) * 25,
     infection: null,
@@ -431,6 +434,14 @@ function advanceHealth(world, settlement, residents) {
 }
 function ageAndMortality(world, person, settlement) {
   person.ageDays += 1;
+  if (person.guardianId !== null && isAdult(person)) {
+    const formerGuardianId = person.guardianId;
+    person.guardianId = null;
+    recordEvent(world, "tutela_cessata", person.name + " ha raggiunto la maggiore età",
+      [{ kind: "maggiore_eta", formerGuardianId }],
+      [{ kind: "tutela_terminata", guardianId: formerGuardianId }],
+      [person.id, formerGuardianId], [settlement.id]);
+  }
   const age = person.ageDays / DAYS_PER_COMMON_YEAR;
   const senescence = Math.max(0, age - 52) * 0.0000007 + Math.max(0, age - 72) * 0.000009;
   const deprivation = person.needs.food > 90 || person.needs.water > 90 ? 0.0002 : 0;
@@ -448,6 +459,7 @@ function ageAndMortality(world, person, settlement) {
     person.alive = false;
     person.diedDay = world.day;
     person.health = 0;
+    person.guardianId = null;
     if (person.partnerId !== null) {
       const partner = world.people.find((candidate) => candidate.id === person.partnerId);
       if (partner?.partnerId === person.id) partner.partnerId = null;
@@ -459,6 +471,24 @@ function ageAndMortality(world, person, settlement) {
         foodNeed: needsBeforeDeath.food, waterNeed: needsBeforeDeath.water,
         pathogenId: infectionBeforeDeath?.pathogenId ?? null }],
       [{ kind: "popolazione_ridotta", value: 1 }], [person.id], [settlement.id]);
+    for (const change of reassignGuardianships(world, person.id)) {
+      const child = world.people.find((candidate) => candidate.id === change.childId);
+      if (!child) continue;
+      if (change.guardianId !== null) {
+        const guardian = world.people.find((candidate) => candidate.id === change.guardianId);
+        recordEvent(world, "tutela_affidata", "La tutela di " + child.name + " è passata a " + guardian.name,
+          [{ kind: "perdita_del_genitore_o_tutore", deceasedPersonId: person.id,
+            previousGuardianId: change.previousGuardianId }],
+          [{ kind: "tutela_assegnata", guardianId: guardian.id }],
+          [person.id, child.id, guardian.id], [settlement.id]);
+      } else if (change.orphaned) {
+        recordEvent(world, "minore_senza_tutore", child.name + " non ha un tutore familiare disponibile",
+          [{ kind: "perdita_del_genitore_o_tutore", deceasedPersonId: person.id,
+            previousGuardianId: change.previousGuardianId }],
+          [{ kind: "tutela_non_disponibile" }],
+          [person.id, child.id], [settlement.id]);
+      }
+    }
     return true;
   }
   return false;
@@ -478,6 +508,7 @@ function maybeBirth(world, settlement, residents) {
     if (mother.health < 60 || father.health < 55 || mother.needs.social > 75) continue;
     if (random(world) >= 0.00024) continue;
     const child = createPerson(world, settlement.id, 0, random(world) < 0.5 ? "F" : "M", [mother.id, father.id]);
+    child.guardianId = mother.id;
     for (const key of ["cooperation", "curiosity", "spirituality", "tradition"]) {
       child.culture[key] = clamp((mother.culture[key] + father.culture[key]) / 2 + (random(world) - 0.5) * 0.06, 0, 1);
     }
@@ -767,6 +798,19 @@ function migrateWorld(world) {
     }
     world.schemaVersion = 3;
   }
+  if (world.schemaVersion === 3) {
+    for (const person of world.people ?? []) person.guardianId ??= null;
+    for (const person of world.people ?? []) {
+      if (!person.alive || isAdult(person)) {
+        person.guardianId = null;
+      } else if (person.guardianId !== null && !isValidGuardian(world, person, person.guardianId)) {
+        person.guardianId = selectGuardian(world, person);
+      } else if (person.guardianId === null) {
+        person.guardianId = selectGuardian(world, person);
+      }
+    }
+    world.schemaVersion = 4;
+  }
   return world;
 }
 
@@ -818,6 +862,9 @@ export function assertWorldInvariants(world) {
     assert(person.bornDay === null || (Number.isSafeInteger(person.bornDay) && person.bornDay >= 0 && person.bornDay <= world.day), `Data di nascita non valida per la persona ${person.id}`);
     assert(typeof person.alive === "boolean", `Stato vitale non valido per la persona ${person.id}`);
     assert(person.alive ? person.diedDay === null : Number.isSafeInteger(person.diedDay), `Data di morte incoerente per la persona ${person.id}`);
+    assert(Object.hasOwn(person, "guardianId"), `Tutela mancante per la persona ${person.id}`);
+    assert(person.guardianId === null || isValidGuardian(world, person, person.guardianId),
+      `Tutore non valido per la persona ${person.id}`);
     assert(Array.isArray(person.parentIds) && new Set(person.parentIds).size === person.parentIds.length
       && !person.parentIds.includes(person.id), `Genitori non validi per la persona ${person.id}`);
     assert(Array.isArray(person.childIds) && new Set(person.childIds).size === person.childIds.length
@@ -897,6 +944,7 @@ export const SIMULATION_CAPABILITIES = Object.freeze({
   individualAging: true,
   birthAndDeath: true,
   reciprocalPartnerships: true,
+  familyGuardianship: "basic",
   basicNeedsAndWorkDecisions: true,
   resourceProductionAndConsumption: "basic",
   agriculture: "basic",
