@@ -405,3 +405,42 @@ test("le invarianti rifiutano un tutore adulto non imparentato", () => {
   child.guardianId = unrelated.id;
   assert.throws(() => assertWorldInvariants(world), /Tutore non valido/);
 });
+
+
+test("un minore senza parenti adulti disponibili resta senza tutela ed è registrato", () => {
+  const world = createWorld({ seed: "guardianship-orphan", population: 8 });
+  const parent = world.people[0];
+  const child = world.people[1];
+  for (const person of world.people) {
+    person.ageDays = 30 * 365;
+    person.health = 100;
+    if (person.partnerId !== null) {
+      const partner = world.people.find((candidate) => candidate.id === person.partnerId);
+      if (partner?.partnerId === person.id) partner.partnerId = null;
+      person.partnerId = null;
+    }
+  }
+  parent.ageDays = 30 * 365;
+  child.ageDays = 10 * 365;
+  parent.childIds.push(child.id);
+  child.parentIds = [parent.id];
+  child.guardianId = parent.id;
+  parent.health = 0;
+
+  advanceDays(world, 1);
+  assert.equal(child.guardianId, null);
+  assert.ok(historySince(world, 0).some((event) => event.type === "minore_senza_tutore" && event.personIds.includes(child.id)));
+  assertWorldInvariants(world);
+});
+
+test("le invarianti rifiutano un minore con un genitore idoneo ma senza tutore", () => {
+  const world = createWorld({ seed: "guardianship-missing", population: 8 });
+  const parent = world.people[0];
+  const child = world.people[1];
+  parent.ageDays = 30 * 365;
+  child.ageDays = 10 * 365;
+  parent.childIds.push(child.id);
+  child.parentIds = [parent.id];
+  child.guardianId = null;
+  assert.throws(() => assertWorldInvariants(world), /Tutore mancante/);
+});
