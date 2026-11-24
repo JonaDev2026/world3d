@@ -865,6 +865,9 @@ export function assertWorldInvariants(world) {
     assert(Object.hasOwn(person, "guardianId"), `Tutela mancante per la persona ${person.id}`);
     assert(person.guardianId === null || isValidGuardian(world, person, person.guardianId),
       `Tutore non valido per la persona ${person.id}`);
+    if (person.alive && !isAdult(person) && person.guardianId === null) {
+      assert(selectGuardian(world, person) === null, `Tutore mancante per la persona ${person.id}`);
+    }
     assert(Array.isArray(person.parentIds) && new Set(person.parentIds).size === person.parentIds.length
       && !person.parentIds.includes(person.id), `Genitori non validi per la persona ${person.id}`);
     assert(Array.isArray(person.childIds) && new Set(person.childIds).size === person.childIds.length
