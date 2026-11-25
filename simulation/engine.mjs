@@ -642,15 +642,51 @@ function updateCulture(world, settlement, residents) {
   const localReligions = world.religions.filter((religion) => religion.settlementId === settlement.id && religion.extinctDay === null);
   const newlyAffiliated = [];
   for (const person of residents) {
-    if (person.religionId !== null || person.culture.spirituality < 0.5) continue;
-    const closest = localReligions
+    const belief = person.culture.beliefVector;
+    const rankedReligions = localReligions
       .map((religion) => ({
         religion,
-        distance: beliefDistance(person.culture.beliefVector, [
+        distance: beliefDistance(belief, [
           religion.tenets.nature, religion.tenets.ancestors, religion.tenets.celestial
         ])
       }))
-      .sort((a, b) => a.distance - b.distance || a.religion.id - b.religion.id)[0];
+      .sort((a, b) => a.distance - b.distance || a.religion.id - b.religion.id);
+    const closest = rankedReligions[0] ?? null;
+    const current = localReligions.find((religion) => religion.id === person.religionId) ?? null;
+
+    if (current) {
+      const currentDistance = beliefDistance(belief, [
+        current.tenets.nature, current.tenets.ancestors, current.tenets.celestial
+      ]);
+      if (person.culture.spirituality < 0.35) {
+        person.religionId = null;
+        recordEvent(world, "abbandono_religioso", person.name + " ha abbandonato " + current.name,
+          [{ kind: "spiritualita_in_calo", valore: person.culture.spirituality }],
+          [{ kind: "affiliazione_rimossa", religionId: current.id }],
+          [person.id], [settlement.id]);
+        continue;
+      }
+
+      const alternative = rankedReligions.find((entry) => entry.religion.id !== current.id);
+      if (alternative && alternative.distance <= 0.24 && alternative.distance + 0.08 < currentDistance) {
+        person.religionId = alternative.religion.id;
+        recordEvent(world, "conversione_religiosa", person.name + " ha aderito a " + alternative.religion.name,
+          [{ kind: "affinita_superiore_delle_credenze", religionePrecedente: current.id,
+            distanzaPrecedente: currentDistance, nuovaDistanza: alternative.distance }],
+          [{ kind: "affiliazione_trasferita", religionePrecedente: current.id,
+            nuovaReligione: alternative.religion.id }],
+          [person.id], [settlement.id]);
+      } else if (currentDistance > 0.55) {
+        person.religionId = null;
+        recordEvent(world, "abbandono_religioso", person.name + " si è allontanato da " + current.name,
+          [{ kind: "divergenza_delle_credenze", distanza: currentDistance }],
+          [{ kind: "affiliazione_rimossa", religionId: current.id }],
+          [person.id], [settlement.id]);
+      }
+      continue;
+    }
+
+    if (person.culture.spirituality < 0.5) continue;
     if (closest && closest.distance <= 0.24) {
       person.religionId = closest.religion.id;
       newlyAffiliated.push(person.id);
@@ -962,6 +998,7 @@ export const SIMULATION_CAPABILITIES = Object.freeze({
   institutions: "partial",
   lawsAndJustice: "not_implemented",
   emergentCultureAndReligion: "basic",
+  religiousAffiliationChanges: true,
   settlements: "single_settlement",
   diplomacyWarAndMigration: "not_implemented",
   browserPersistenceAndOfflineCatchup: "not_implemented"
