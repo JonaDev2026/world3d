@@ -150,6 +150,7 @@ test("le capacità dichiarate distinguono i sistemi parziali o non implementati"
   assert.equal(SIMULATION_CAPABILITIES.institutions, "partial");
   assert.equal(SIMULATION_CAPABILITIES.lawsAndJustice, "not_implemented");
   assert.equal(SIMULATION_CAPABILITIES.emergentCultureAndReligion, "basic");
+  assert.equal(SIMULATION_CAPABILITIES.religiousAffiliationChanges, true);
   assert.equal(SIMULATION_CAPABILITIES.settlements, "single_settlement");
   assert.equal(SIMULATION_CAPABILITIES.diplomacyWarAndMigration, "not_implemented");
   assert.equal(SIMULATION_CAPABILITIES.browserPersistenceAndOfflineCatchup, "not_implemented");
@@ -443,4 +444,61 @@ test("le invarianti rifiutano un minore con un genitore idoneo ma senza tutore",
   child.parentIds = [parent.id];
   child.guardianId = null;
   assert.throws(() => assertWorldInvariants(world), /Tutore mancante/);
+});
+
+
+test("una persona può abbandonare una tradizione quando cala la spiritualità", () => {
+  const world = createWorld({ seed: "religion-disaffiliation", population: 40 });
+  for (let index = 0; index < world.people.length; index += 1) {
+    const person = world.people[index];
+    person.culture.spirituality = 0.9;
+    person.culture.tradition = 0.8;
+    person.culture.beliefVector = index < 20 ? [0.08, 0.1, 0.12] : [0.9, 0.92, 0.94];
+    person.religionId = null;
+  }
+
+  advanceDays(world, 367);
+  const member = world.people.find((person) => person.religionId !== null);
+  assert.ok(member);
+  const formerReligionId = member.religionId;
+  member.culture.spirituality = 0.1;
+  advanceDays(world, 365);
+
+  assert.equal(member.religionId, null);
+  const event = historySince(world, 0).find((entry) =>
+    entry.type === "abbandono_religioso" && entry.personIds.includes(member.id));
+  assert.ok(event);
+  assert.equal(event.causes[0].kind, "spiritualita_in_calo");
+  assert.equal(event.effects[0].religionId, formerReligionId);
+  assertWorldInvariants(world);
+});
+
+test("una persona può convertirsi quando le sue credenze convergono verso un'altra tradizione", () => {
+  const world = createWorld({ seed: "religion-conversion", population: 40 });
+  for (let index = 0; index < world.people.length; index += 1) {
+    const person = world.people[index];
+    person.culture.spirituality = 0.9;
+    person.culture.tradition = 0.8;
+    person.culture.beliefVector = index < 20 ? [0.05, 0.07, 0.09] : [0.91, 0.93, 0.95];
+    person.religionId = null;
+  }
+
+  advanceDays(world, 367);
+  const religions = world.religions.filter((religion) => religion.extinctDay === null);
+  assert.equal(religions.length, 2);
+  const member = world.people.find((person) => person.religionId === religions[0].id);
+  assert.ok(member);
+  const previousReligionId = member.religionId;
+  const target = religions[1];
+  member.culture.beliefVector = [target.tenets.nature, target.tenets.ancestors, target.tenets.celestial];
+  member.culture.spirituality = 0.9;
+
+  advanceDays(world, 365);
+  assert.equal(member.religionId, target.id);
+  const event = historySince(world, 0).find((entry) =>
+    entry.type === "conversione_religiosa" && entry.personIds.includes(member.id));
+  assert.ok(event);
+  assert.equal(event.causes[0].religionePrecedente, previousReligionId);
+  assert.equal(event.effects[0].nuovaReligione, target.id);
+  assertWorldInvariants(world);
 });
