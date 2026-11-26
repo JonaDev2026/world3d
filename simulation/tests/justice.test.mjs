@@ -11,6 +11,16 @@ import {
   worldSummary
 } from "../engine.mjs";
 
+function makePair(world, firstId = 1, secondId = 2) {
+  const first = world.people.find((person) => person.id === firstId);
+  const second = world.people.find((person) => person.id === secondId);
+  if (first.partnerId !== null) world.people.find((person) => person.id === first.partnerId).partnerId = null;
+  if (second.partnerId !== null) world.people.find((person) => person.id === second.partnerId).partnerId = null;
+  first.partnerId = second.id;
+  second.partnerId = first.id;
+  return [first, second];
+}
+
 function supportSuccessionLaw(world) {
   const settlement = world.settlements[0];
   for (const id of settlement.governance.councilMemberIds) {
@@ -43,9 +53,7 @@ test("la successione distribuisce il patrimonio agli eredi accertati", () => {
   const world = createWorld({ seed: "inheritance-distribution", population: 16 });
   const settlement = world.settlements[0];
   supportSuccessionLaw(world);
-  const deceased = world.people.find((person) => person.partnerId !== null);
-  assert.ok(deceased);
-  const partner = world.people.find((person) => person.id === deceased.partnerId);
+  const [deceased, partner] = makePair(world);
   const previousWealth = partner.wealth;
   world.day = 366;
   advanceDays(world, 1);
@@ -69,8 +77,7 @@ test("le cause successorie restano sospese e vengono definite dopo l'approvazion
   const world = createWorld({ seed: "pending-inheritance", population: 16 });
   const settlement = world.settlements[0];
   supportSuccessionLaw(world);
-  const deceased = world.people.find((person) => person.partnerId !== null);
-  assert.ok(deceased);
+  const [deceased] = makePair(world);
   deceased.wealth = 9;
   deceased.health = 0;
   advanceDays(world, 1);
@@ -95,10 +102,14 @@ test("senza eredi la sentenza trasferisce il patrimonio al fondo comunitario", (
   world.day = 366;
   advanceDays(world, 1);
 
-  const deceased = world.people.find((person) => person.partnerId === null && person.childIds.length === 0);
-  assert.ok(deceased);
+  const deceased = world.people[0];
+  if (deceased.partnerId !== null) {
+    world.people.find((person) => person.id === deceased.partnerId).partnerId = null;
+    deceased.partnerId = null;
+  }
+  assert.equal(deceased.childIds.length, 0);
   const treasuryBefore = settlement.resources.treasury;
-  deceased.wealth = 7;
+  deceased.wealth = 6.988;
   deceased.health = 0;
   advanceDays(world, 1);
 
