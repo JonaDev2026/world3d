@@ -208,7 +208,7 @@ test("la migrazione dello snapshot v1 conserva i focolai già attivi senza dupli
   }
 
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 4);
+  assert.equal(restored.schemaVersion, 5);
   assert.deepEqual(restored.settlements[0].health.activeOutbreaks, [world.pathogens[0].id]);
   advanceDays(restored, 1);
   assert.equal(historySince(restored, 0).filter((event) => event.type === "epidemia").length, 0);
@@ -295,7 +295,7 @@ test("uno snapshot v2 senza profili culturali viene migrato allo schema corrente
   }
   for (const settlement of legacy.settlements) delete settlement.religionIds;
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 4);
+  assert.equal(restored.schemaVersion, 5);
   assert.equal(restored.religions.length, 0);
   assert.ok(restored.people.every((person) => person.culture && person.culture.beliefVector.length === 3));
   assertWorldInvariants(restored);
@@ -389,7 +389,7 @@ test("la migrazione v3 assegna un genitore vivente come tutore dei minori", () =
   legacy.schemaVersion = 3;
   for (const person of legacy.people) delete person.guardianId;
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 4);
+  assert.equal(restored.schemaVersion, 5);
   assert.equal(restored.people.find((person) => person.id === child.id).guardianId, parent.id);
   assertWorldInvariants(restored);
 });
