@@ -1163,6 +1163,8 @@ export const SIMULATION_CAPABILITIES = Object.freeze({
   institutions: "partial",
   lawsAndJustice: "basic",
   inheritanceAndSuccession: "basic",
+  criminalJustice: "not_implemented",
+  civilDisputes: "not_implemented",
   emergentCultureAndReligion: "basic",
   religiousAffiliationChanges: true,
   settlements: "single_settlement",
