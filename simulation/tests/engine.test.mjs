@@ -148,7 +148,8 @@ test("le capacità dichiarate distinguono i sistemi parziali o non implementati"
   assert.equal(SIMULATION_CAPABILITIES.resourceProductionAndConsumption, "basic");
   assert.equal(SIMULATION_CAPABILITIES.economyAndTrade, "partial");
   assert.equal(SIMULATION_CAPABILITIES.institutions, "partial");
-  assert.equal(SIMULATION_CAPABILITIES.lawsAndJustice, "not_implemented");
+  assert.equal(SIMULATION_CAPABILITIES.lawsAndJustice, "basic");
+  assert.equal(SIMULATION_CAPABILITIES.inheritanceAndSuccession, "basic");
   assert.equal(SIMULATION_CAPABILITIES.emergentCultureAndReligion, "basic");
   assert.equal(SIMULATION_CAPABILITIES.religiousAffiliationChanges, true);
   assert.equal(SIMULATION_CAPABILITIES.settlements, "single_settlement");
