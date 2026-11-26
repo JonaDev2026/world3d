@@ -133,3 +133,41 @@ test("uno snapshot dello schema 4 viene migrato allo schema 5", () => {
   assert.deepEqual(restored.settlements[0].governance.justiceCases, []);
   assertWorldInvariants(restored);
 });
+
+test("una maggioranza contraria impedisce l'approvazione della norma", () => {
+  const world = createWorld({ seed: "law-rejected", population: 16 });
+  const settlement = world.settlements[0];
+  for (const id of settlement.governance.councilMemberIds) {
+    const member = world.people.find((person) => person.id === id);
+    member.culture.cooperation = 0;
+    member.skills.leadership = 0;
+  }
+  settlement.resources.food = 100000;
+  settlement.resources.water = 100000;
+  world.day = 366;
+  advanceDays(world, 1);
+  assert.equal(settlement.governance.laws.length, 0);
+  assert.equal(historySince(world, 366).some((event) => event.type === "legge_approvata"), false);
+  assertWorldInvariants(world);
+});
+
+test("un checkpoint conserva le cause sospese e risolve le stesse successioni", () => {
+  const whole = createWorld({ seed: "justice-checkpoint", population: 16 });
+  const split = createWorld({ seed: "justice-checkpoint", population: 16 });
+  for (const world of [whole, split]) {
+    supportSuccessionLaw(world);
+    const [deceased] = makePair(world);
+    deceased.wealth = 8;
+    deceased.health = 0;
+    advanceDays(world, 1);
+    world.day = 366;
+  }
+
+  const restored = deserializeWorld(serializeWorld(split));
+  advanceDays(whole, 1);
+  advanceDays(restored, 1);
+  assert.equal(serializeWorld(restored), serializeWorld(whole));
+  assert.equal(worldSummary(restored).pendingJusticeCases, 0);
+  assert.equal(worldSummary(restored).resolvedJusticeCases, 1);
+  assertWorldInvariants(restored);
+});
