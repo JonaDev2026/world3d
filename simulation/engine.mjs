@@ -1,6 +1,6 @@
 import { isAdult, isValidGuardian, reassignGuardianships, selectGuardian } from "./kinship.mjs";
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 const DAYS_PER_COMMON_YEAR = 365.2425;
 const MONTH_LENGTHS_COMMON = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const MONTH_LENGTHS_LEAP = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -217,7 +217,7 @@ export function createWorld({ seed = "world3d", population = 48 } = {}) {
     seed: String(seed),
     rngState: hashSeed(seed),
     day: 0,
-    nextIds: { person: 1, settlement: 1, event: 1, religion: 1 },
+    nextIds: { person: 1, settlement: 1, event: 1, religion: 1, case: 1 },
     people: [],
     settlements: [],
     religions: [],
@@ -432,6 +432,71 @@ function advanceHealth(world, settlement, residents) {
     }
   }
 }
+function resolveInheritanceCase(world, settlement, justiceCase) {
+  if (justiceCase.status !== "in_attesa_di_norma") return false;
+  const law = settlement.governance.laws.find((item) => item.code === "successione_familiare" && item.active);
+  if (!law) return false;
+
+  const heirs = justiceCase.heirIds
+    .map((id) => world.people.find((person) => person.id === id))
+    .filter((person) => person?.alive && person.settlementId === settlement.id);
+  const share = heirs.length > 0 ? justiceCase.estate / heirs.length : 0;
+  for (const heir of heirs) heir.wealth += share;
+  if (heirs.length === 0) settlement.resources.treasury += justiceCase.estate;
+
+  justiceCase.status = "risolta";
+  justiceCase.resolvedDay = world.day;
+  justiceCase.resolution = {
+    lawCode: law.code,
+    recipientIds: heirs.map((person) => person.id),
+    amountPerHeir: share,
+    transferredToCommunity: heirs.length === 0 ? justiceCase.estate : 0
+  };
+  recordEvent(world, "sentenza_successoria",
+    "È stata definita la successione di " + world.people.find((person) => person.id === justiceCase.deceasedPersonId).name,
+    [{ kind: "applicazione_della_norma", lawCode: law.code, estate: justiceCase.estate,
+      erediAccertati: heirs.map((person) => person.id) }],
+    [{ kind: "patrimonio_assegnato", destinatari: heirs.map((person) => person.id),
+      quotaIndividuale: share, trasferimentoComunitario: justiceCase.resolution.transferredToCommunity }],
+    [justiceCase.deceasedPersonId, ...heirs.map((person) => person.id)], [settlement.id]);
+  return true;
+}
+
+function openInheritanceCase(world, settlement, deceased, survivingPartnerId) {
+  const estate = Math.max(0, deceased.wealth);
+  deceased.wealth = 0;
+  if (estate <= 0) return null;
+
+  const heirIds = new Set();
+  if (survivingPartnerId !== null) {
+    const partner = world.people.find((person) => person.id === survivingPartnerId);
+    if (partner?.alive && partner.settlementId === settlement.id) heirIds.add(partner.id);
+  }
+  for (const childId of deceased.childIds) {
+    const child = world.people.find((person) => person.id === childId);
+    if (child?.alive && child.settlementId === settlement.id) heirIds.add(child.id);
+  }
+
+  const justiceCase = {
+    id: nextId(world, "case"),
+    kind: "successione",
+    openedDay: world.day,
+    deceasedPersonId: deceased.id,
+    heirIds: [...heirIds].sort((a, b) => a - b),
+    estate,
+    status: "in_attesa_di_norma",
+    resolvedDay: null,
+    resolution: null
+  };
+  settlement.governance.justiceCases.push(justiceCase);
+  recordEvent(world, "causa_successoria_aperta", "È stata aperta la successione di " + deceased.name,
+    [{ kind: "decesso_del_titolare", patrimonio: estate }],
+    [{ kind: "patrimonio_in_attesa_di_una_norma", causaId: justiceCase.id, erediPotenziali: justiceCase.heirIds }],
+    [deceased.id, ...justiceCase.heirIds], [settlement.id]);
+  resolveInheritanceCase(world, settlement, justiceCase);
+  return justiceCase;
+}
+
 function ageAndMortality(world, person, settlement) {
   person.ageDays += 1;
   if (person.guardianId !== null && isAdult(person)) {
@@ -456,6 +521,7 @@ function ageAndMortality(world, person, settlement) {
         : healthBeforeDeath <= 0
           ? infectionBeforeDeath ? "malattia" : "salute_critica"
           : "mortalita_naturale";
+    const survivingPartnerId = person.partnerId;
     person.alive = false;
     person.diedDay = world.day;
     person.health = 0;
@@ -471,6 +537,7 @@ function ageAndMortality(world, person, settlement) {
         foodNeed: needsBeforeDeath.food, waterNeed: needsBeforeDeath.water,
         pathogenId: infectionBeforeDeath?.pathogenId ?? null }],
       [{ kind: "popolazione_ridotta", value: 1 }], [person.id], [settlement.id]);
+    openInheritanceCase(world, settlement, person, survivingPartnerId);
     for (const change of reassignGuardianships(world, person.id)) {
       const child = world.people.find((candidate) => candidate.id === change.childId);
       if (!child) continue;
@@ -540,6 +607,37 @@ function developTechnology(world, settlement) {
     recordEvent(world, "innovazione", `È stata sviluppata la tecnologia ${technology.id}`,
       [{ kind: "ricerca_cumulativa", knowledge: settlement.knowledge }],
       [{ kind: "tecnologia_sbloccata", technologyId: technology.id }], [], [settlement.id]);
+  }
+}
+
+function reviewLegislation(world, settlement, residents) {
+  if (settlement.governance.laws.some((law) => law.code === "successione_familiare" && law.active)) return;
+  const council = settlement.governance.councilMemberIds
+    .map((id) => residents.find((person) => person.id === id && person.alive))
+    .filter(Boolean);
+  if (council.length === 0) return;
+
+  const votes = council.map((person) => {
+    const support = person.culture.cooperation * 0.7 + person.skills.leadership * 0.3;
+    return { personId: person.id, support, inFavor: support >= 0.55 };
+  });
+  const votesInFavor = votes.filter((vote) => vote.inFavor).length;
+  if (votesInFavor < Math.floor(council.length / 2) + 1) return;
+
+  const law = {
+    code: "successione_familiare",
+    enactedDay: world.day,
+    active: true,
+    votes
+  };
+  settlement.governance.laws.push(law);
+  recordEvent(world, "legge_approvata", "Il consiglio ha approvato la norma sulla successione familiare",
+    [{ kind: "deliberazione_del_consiglio", votiFavorevoli: votesInFavor, votiTotali: votes.length }],
+    [{ kind: "norma_attiva", codice: law.code, criterio: "maggioranza_dei_consiglieri" }],
+    votes.map((vote) => vote.personId), [settlement.id]);
+
+  for (const justiceCase of settlement.governance.justiceCases) {
+    resolveInheritanceCase(world, settlement, justiceCase);
   }
 }
 
@@ -765,7 +863,10 @@ function advanceSettlement(world, settlement) {
   transmitCulture(world, currentResidents);
   developTechnology(world, settlement);
   updateGovernance(settlement, currentResidents);
-  if (date.dayOfYear === 0 && date.year > 0) updateCulture(world, settlement, currentResidents);
+  if (date.dayOfYear === 0 && date.year > 0) {
+    reviewLegislation(world, settlement, currentResidents);
+    updateCulture(world, settlement, currentResidents);
+  }
   if (date.dayOfYear === 0 && date.year > 0) {
     recordEvent(world, "anniversario", `È trascorso un anno a ${settlement.name}`,
       [{ kind: "calendario", year: date.year }],
@@ -848,6 +949,21 @@ function migrateWorld(world) {
     }
     world.schemaVersion = 4;
   }
+  if (world.schemaVersion === 4) {
+    world.nextIds ??= {};
+    const settlements = world.settlements ?? [];
+    let maximumCaseId = 0;
+    for (const settlement of settlements) {
+      settlement.governance ??= {};
+      settlement.governance.laws ??= [];
+      settlement.governance.justiceCases ??= [];
+      for (const justiceCase of settlement.governance.justiceCases) {
+        maximumCaseId = Math.max(maximumCaseId, justiceCase.id ?? 0);
+      }
+    }
+    world.nextIds.case = Math.max(world.nextIds.case ?? 1, maximumCaseId + 1);
+    world.schemaVersion = 5;
+  }
   return world;
 }
 
@@ -869,7 +985,11 @@ export function worldSummary(world) {
     religions: world.religions.filter((religion) => religion.extinctDay === null).length,
     events: world.events.length,
     infected: living.filter((person) => person.infection).length,
-    technologies: world.settlements.reduce((sum, settlement) => sum + settlement.technologies.length, 0)
+    technologies: world.settlements.reduce((sum, settlement) => sum + settlement.technologies.length, 0),
+    pendingJusticeCases: world.settlements.reduce((sum, settlement) =>
+      sum + settlement.governance.justiceCases.filter((item) => item.status === "in_attesa_di_norma").length, 0),
+    resolvedJusticeCases: world.settlements.reduce((sum, settlement) =>
+      sum + settlement.governance.justiceCases.filter((item) => item.status === "risolta").length, 0)
   };
 }
 
@@ -938,7 +1058,51 @@ export function assertWorldInvariants(world) {
       assert(Number.isFinite(value), `Valore numerico non valido per la persona ${person.id}`);
     }
   }
+  let maximumCaseId = 0;
+  const justiceCaseIds = new Set();
   for (const settlement of world.settlements) {
+    assert(Array.isArray(settlement.governance.laws) && Array.isArray(settlement.governance.justiceCases),
+      `Registro normativo o giudiziario mancante nell'insediamento ${settlement.id}`);
+    const lawCodes = settlement.governance.laws.map((law) => law.code);
+    assert(new Set(lawCodes).size === lawCodes.length, `Norme duplicate nell'insediamento ${settlement.id}`);
+    for (const law of settlement.governance.laws) {
+      assert(law.code === "successione_familiare" && typeof law.active === "boolean"
+        && Number.isSafeInteger(law.enactedDay) && law.enactedDay >= 0 && law.enactedDay <= world.day,
+        `Norma non valida nell'insediamento ${settlement.id}`);
+      assert(Array.isArray(law.votes) && law.votes.every((vote) => personIds.has(vote.personId)
+        && Number.isFinite(vote.support) && vote.support >= 0 && vote.support <= 1
+        && typeof vote.inFavor === "boolean"), `Votazione non valida nell'insediamento ${settlement.id}`);
+    }
+    for (const justiceCase of settlement.governance.justiceCases) {
+      maximumCaseId = Math.max(maximumCaseId, justiceCase.id);
+      assert(Number.isSafeInteger(justiceCase.id) && !justiceCaseIds.has(justiceCase.id),
+        `Identificativo giudiziario duplicato o non valido: ${justiceCase.id}`);
+      justiceCaseIds.add(justiceCase.id);
+      assert(justiceCase.kind === "successione" && personIds.has(justiceCase.deceasedPersonId)
+        && Array.isArray(justiceCase.heirIds) && new Set(justiceCase.heirIds).size === justiceCase.heirIds.length
+        && justiceCase.heirIds.every((id) => personIds.has(id))
+        && Number.isFinite(justiceCase.estate) && justiceCase.estate > 0,
+        `Causa successoria non valida: ${justiceCase.id}`);
+      assert(Number.isSafeInteger(justiceCase.openedDay) && justiceCase.openedDay >= 0
+        && justiceCase.openedDay <= world.day, `Data di apertura non valida per la causa ${justiceCase.id}`);
+      assert(["in_attesa_di_norma", "risolta"].includes(justiceCase.status),
+        `Stato giudiziario non valido per la causa ${justiceCase.id}`);
+      if (justiceCase.status === "in_attesa_di_norma") {
+        assert(justiceCase.resolvedDay === null && justiceCase.resolution === null
+          && !settlement.governance.laws.some((law) => law.code === "successione_familiare" && law.active),
+          `Causa sospesa incoerente: ${justiceCase.id}`);
+      } else {
+        assert(Number.isSafeInteger(justiceCase.resolvedDay) && justiceCase.resolvedDay >= justiceCase.openedDay
+          && justiceCase.resolvedDay <= world.day && justiceCase.resolution?.lawCode === "successione_familiare"
+          && settlement.governance.laws.some((law) => law.code === justiceCase.resolution.lawCode && law.active),
+          `Sentenza non valida per la causa ${justiceCase.id}`);
+        assert(Array.isArray(justiceCase.resolution.recipientIds)
+          && justiceCase.resolution.recipientIds.every((id) => personIds.has(id))
+          && Number.isFinite(justiceCase.resolution.amountPerHeir)
+          && Number.isFinite(justiceCase.resolution.transferredToCommunity),
+          `Esito successorio non valido per la causa ${justiceCase.id}`);
+      }
+    }
     for (const [resource, value] of Object.entries(settlement.resources)) {
       assert(Number.isFinite(value) && value >= 0, `Risorsa ${resource} non valida nell'insediamento ${settlement.id}`);
     }
@@ -973,6 +1137,7 @@ export function assertWorldInvariants(world) {
     assert(world.settlements.find((settlement) => settlement.id === religion.settlementId).religionIds.includes(religion.id),
       `Tradizione non registrata nell'insediamento ${religion.id}`);
   }
+  assert(world.nextIds.case > maximumCaseId, "Contatore delle cause successorie non valido");
   for (const [kind, next] of Object.entries(world.nextIds)) {
     assert(Number.isSafeInteger(next) && next > 0, `Contatore ${kind} non valido`);
   }
@@ -996,7 +1161,8 @@ export const SIMULATION_CAPABILITIES = Object.freeze({
   structuredHistoricalEvents: true,
   jsonSnapshot: true,
   institutions: "partial",
-  lawsAndJustice: "not_implemented",
+  lawsAndJustice: "basic",
+  inheritanceAndSuccession: "basic",
   emergentCultureAndReligion: "basic",
   religiousAffiliationChanges: true,
   settlements: "single_settlement",
