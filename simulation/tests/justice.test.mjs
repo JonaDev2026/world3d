@@ -128,7 +128,7 @@ test("uno snapshot dello schema 4 viene migrato allo schema 5", () => {
   delete legacy.nextIds.case;
 
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 5);
+  assert.equal(restored.schemaVersion, 6);
   assert.equal(restored.nextIds.case, 1);
   assert.deepEqual(restored.settlements[0].governance.justiceCases, []);
   assertWorldInvariants(restored);

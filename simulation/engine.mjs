@@ -1,6 +1,7 @@
 import { isAdult, isValidGuardian, reassignGuardianships, selectGuardian } from "./kinship.mjs";
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
+const MAX_SETTLEMENTS = 16;
 const DAYS_PER_COMMON_YEAR = 365.2425;
 const MONTH_LENGTHS_COMMON = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const MONTH_LENGTHS_LEAP = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -144,6 +145,7 @@ function createSettlement(world, population) {
     x: randomInt(world, 8, 92),
     y: randomInt(world, 8, 92),
     foundedDay: world.day,
+    migrationCooldownUntil: 0,
     resources: {
       food: population * 7,
       water: population * 7,
@@ -844,6 +846,184 @@ function updateCulture(world, settlement, residents) {
   }
 }
 
+
+function familyComponents(world, settlementId) {
+  const residents = livingInSettlement(world, settlementId).sort((a, b) => a.id - b.id);
+  const byId = new Map(residents.map((person) => [person.id, person]));
+  const wardsByGuardian = new Map();
+  for (const person of residents) {
+    if (person.guardianId === null) continue;
+    if (!wardsByGuardian.has(person.guardianId)) wardsByGuardian.set(person.guardianId, []);
+    wardsByGuardian.get(person.guardianId).push(person.id);
+  }
+  const visited = new Set();
+  const components = [];
+  for (const resident of residents) {
+    if (visited.has(resident.id)) continue;
+    const pending = [resident.id], component = [];
+    visited.add(resident.id);
+    while (pending.length > 0) {
+      const id = pending.pop(), person = byId.get(id);
+      if (!person) continue;
+      component.push(person);
+      const linked = [person.partnerId, person.guardianId, ...person.parentIds, ...person.childIds,
+        ...(wardsByGuardian.get(person.id) ?? [])];
+      for (const linkedId of linked) {
+        if (linkedId === null || visited.has(linkedId) || !byId.has(linkedId)) continue;
+        visited.add(linkedId);
+        pending.push(linkedId);
+      }
+    }
+    component.sort((a, b) => a.id - b.id);
+    components.push(component);
+  }
+  return components;
+}
+
+function selectMigrationCohort(world, settlement, residents) {
+  const minimum = 12;
+  const maximum = Math.min(24, Math.max(minimum, Math.floor(residents.length * 0.2)));
+  const protectedPeople = new Set();
+  for (const justiceCase of settlement.governance.justiceCases) {
+    if (justiceCase.status !== "in_attesa_di_norma") continue;
+    protectedPeople.add(justiceCase.deceasedPersonId);
+    for (const id of justiceCase.heirIds) protectedPeople.add(id);
+  }
+  const cohort = [];
+  for (const component of familyComponents(world, settlement.id)) {
+    if (component.length > maximum || component.some((person) => protectedPeople.has(person.id))) continue;
+    if (!component.some(isAdult) || cohort.length + component.length > maximum) continue;
+    cohort.push(...component);
+    if (cohort.length >= minimum) break;
+  }
+  return cohort.length >= minimum ? cohort.sort((a, b) => a.id - b.id) : null;
+}
+
+function placeNewSettlement(world, origin, destination) {
+  let best = null, bestDistance = -1;
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const angle = random(world) * Math.PI * 2, radius = 14 + random(world) * 22;
+    const x = clamp(origin.x + Math.cos(angle) * radius, 4, 96);
+    const y = clamp(origin.y + Math.sin(angle) * radius, 4, 96);
+    const nearest = Math.min(...world.settlements
+      .filter((settlement) => settlement.id !== destination.id)
+      .map((settlement) => Math.hypot(settlement.x - x, settlement.y - y)));
+    if (nearest > bestDistance) best = { x, y };
+    bestDistance = Math.max(bestDistance, nearest);
+    if (nearest >= 12) { best = { x, y }; break; }
+  }
+  if (best) { destination.x = best.x; destination.y = best.y; }
+}
+
+function maybeFoundSettlement(world, settlement, residents) {
+  if (world.settlements.length >= MAX_SETTLEMENTS || residents.length < 120) return null;
+  if (world.day < settlement.migrationCooldownUntil) return null;
+  if (!settlement.technologies.includes("agricoltura") || settlement.fields < 2) return null;
+  const cohort = selectMigrationCohort(world, settlement, residents);
+  if (!cohort) return null;
+
+  const transfer = {
+    food: cohort.length * 7, water: cohort.length * 7, wood: cohort.length * 1.5,
+    stone: cohort.length * 0.6, tools: cohort.length * 0.04, treasury: cohort.length * 0.05
+  };
+  const reserves = {
+    food: residents.length * 6, water: residents.length * 6, wood: residents.length * 1.5,
+    stone: residents.length * 0.5, tools: 1, treasury: 1
+  };
+  for (const [resource, amount] of Object.entries(transfer)) {
+    if (settlement.resources[resource] < amount + reserves[resource]) return null;
+  }
+
+  const previousPopulation = residents.length, cohortIds = cohort.map((person) => person.id);
+  const destination = createSettlement(world, cohort.length);
+  placeNewSettlement(world, settlement, destination);
+  for (const [resource, amount] of Object.entries(transfer)) {
+    settlement.resources[resource] -= amount;
+    destination.resources[resource] = amount;
+  }
+
+  const knowledgeTransfer = settlement.knowledge * (cohort.length / previousPopulation) * 0.5;
+  settlement.knowledge = Math.max(0, settlement.knowledge - knowledgeTransfer);
+  destination.knowledge = knowledgeTransfer;
+  destination.technologies = [...settlement.technologies];
+  const fieldTransfer = destination.technologies.includes("agricoltura")
+    ? Math.min(settlement.fields, Math.max(2, Math.floor(settlement.fields * cohort.length / previousPopulation)))
+    : 0;
+  settlement.fields -= fieldTransfer;
+  destination.fields = fieldTransfer;
+  destination.fertility = clamp(settlement.fertility * (0.9 + random(world) * 0.2), 0.5, 1.8);
+  for (const key of CULTURAL_TRAITS) {
+    destination.culture[key] = cohort.reduce((sum, person) => sum + person.culture[key], 0) / cohort.length;
+  }
+  destination.governance.legitimacy = clamp(settlement.governance.legitimacy * 0.8, 0.2, 0.8);
+  destination.governance.publicOrder = settlement.governance.publicOrder;
+  for (const person of cohort) person.settlementId = destination.id;
+
+  const migratingReligions = [...new Set(cohort.map((person) => person.religionId).filter((id) => id !== null))];
+  for (const religionId of migratingReligions) {
+    const sourceReligion = world.religions.find((religion) => religion.id === religionId);
+    if (!sourceReligion) continue;
+    const adherents = cohort.filter((person) => person.religionId === religionId);
+    const branch = {
+      ...sourceReligion,
+      id: nextId(world, "religion"),
+      settlementId: destination.id,
+      name: sourceReligion.name + " (ramo " + destination.id + ")",
+      foundedDay: world.day,
+      extinctDay: null,
+      founderIds: adherents.map((person) => person.id),
+      tenets: { ...sourceReligion.tenets },
+      lastAdherentCount: adherents.length
+    };
+    world.religions.push(branch);
+    destination.religionIds.push(branch.id);
+    for (const person of adherents) person.religionId = branch.id;
+  }
+
+  for (const child of world.people) {
+    if (!child.alive || isAdult(child)) continue;
+    const previousGuardianId = child.guardianId;
+    if (previousGuardianId !== null && isValidGuardian(world, child, previousGuardianId)) continue;
+    const guardianId = selectGuardian(world, child);
+    child.guardianId = guardianId;
+    if (guardianId !== null && guardianId !== previousGuardianId) {
+      recordEvent(world, "tutela_affidata", "La tutela di " + child.name + " è stata riassegnata dopo una migrazione",
+        [{ kind: "separazione_dovuta_a_migrazione", previousGuardianId }],
+        [{ kind: "tutela_assegnata", guardianId }],
+        [child.id, previousGuardianId, guardianId].filter((id) => id !== null), [settlement.id, destination.id]);
+    } else if (guardianId === null && previousGuardianId !== null) {
+      recordEvent(world, "minore_senza_tutore", child.name + " non ha un tutore disponibile dopo una migrazione",
+        [{ kind: "separazione_dovuta_a_migrazione", previousGuardianId }],
+        [{ kind: "tutela_non_disponibile" }], [child.id, previousGuardianId], [settlement.id, destination.id]);
+    }
+  }
+
+  destination.governance.councilMemberIds = cohort.filter(isAdult)
+    .sort((a, b) => b.skills.leadership - a.skills.leadership || a.id - b.id)
+    .slice(0, Math.min(3, Math.max(1, Math.ceil(cohort.length / 20))))
+    .map((person) => person.id);
+  const cooldown = world.day + 5 * 365;
+  settlement.migrationCooldownUntil = cooldown;
+  destination.migrationCooldownUntil = cooldown;
+
+  recordEvent(world, "fondazione_insediamento",
+    "È stato fondato " + destination.name + " da una comunità migrante",
+    [{ kind: "pressione_demografica", popolazionePrecedente: previousPopulation },
+      { kind: "surplus_di_risorse", risorseTrasferite: { ...transfer } }],
+    [{ kind: "nuovo_insediamento", settlementId: destination.id },
+      { kind: "conoscenza_trasferita", valore: knowledgeTransfer }],
+    cohortIds, [settlement.id, destination.id]);
+  recordEvent(world, "migrazione",
+    cohort.length + " abitanti si sono trasferiti da " + settlement.name + " a " + destination.name,
+    [{ kind: "fondazione_di_una_nuova_comunita", popolazioneOrigine: previousPopulation },
+      { kind: "risorse_disponibili", cibo: transfer.food, acqua: transfer.water }],
+    [{ kind: "popolazione_trasferita", personIds: cohortIds, numero: cohort.length },
+      { kind: "risorse_trasferite", ...transfer },
+      { kind: "popolazione_residua", numero: previousPopulation - cohort.length }],
+    cohortIds, [settlement.id, destination.id]);
+  return destination;
+}
+
 function advanceSettlement(world, settlement) {
   const residents = livingInSettlement(world, settlement.id);
   if (residents.length === 0) return;
@@ -866,6 +1046,7 @@ function advanceSettlement(world, settlement) {
   if (date.dayOfYear === 0 && date.year > 0) {
     reviewLegislation(world, settlement, currentResidents);
     updateCulture(world, settlement, currentResidents);
+    maybeFoundSettlement(world, settlement, currentResidents);
   }
   if (date.dayOfYear === 0 && date.year > 0) {
     recordEvent(world, "anniversario", `È trascorso un anno a ${settlement.name}`,
@@ -878,7 +1059,7 @@ export function advanceDays(world, count = 1) {
   assertWorldInvariants(world);
   assert(Number.isSafeInteger(count) && count >= 0 && count <= 1_000_000, "Numero di giorni non valido");
   for (let i = 0; i < count; i += 1) {
-    for (const settlement of world.settlements) advanceSettlement(world, settlement);
+    for (const settlement of [...world.settlements]) advanceSettlement(world, settlement);
     world.day += 1;
     if (world.day % 30 === 0) assertWorldInvariants(world);
   }
@@ -964,6 +1145,10 @@ function migrateWorld(world) {
     world.nextIds.case = Math.max(world.nextIds.case ?? 1, maximumCaseId + 1);
     world.schemaVersion = 5;
   }
+  if (world.schemaVersion === 5) {
+    for (const settlement of world.settlements ?? []) settlement.migrationCooldownUntil ??= world.day + 365;
+    world.schemaVersion = 6;
+  }
   return world;
 }
 
@@ -989,7 +1174,8 @@ export function worldSummary(world) {
     pendingJusticeCases: world.settlements.reduce((sum, settlement) =>
       sum + settlement.governance.justiceCases.filter((item) => item.status === "in_attesa_di_norma").length, 0),
     resolvedJusticeCases: world.settlements.reduce((sum, settlement) =>
-      sum + settlement.governance.justiceCases.filter((item) => item.status === "risolta").length, 0)
+      sum + settlement.governance.justiceCases.filter((item) => item.status === "risolta").length, 0),
+    migrations: world.events.filter((event) => event.type === "migrazione").length
   };
 }
 
@@ -1012,6 +1198,7 @@ export function assertWorldInvariants(world) {
   const eventIds = new Set(world.events.map((event) => event.id));
   assert(personIds.size === world.people.length, "Identificativi delle persone duplicati");
   assert(settlementIds.size === world.settlements.length, "Identificativi degli insediamenti duplicati");
+  assert(world.settlements.length <= MAX_SETTLEMENTS, "Limite massimo di insediamenti superato");
   assert(eventIds.size === world.events.length, "Identificativi degli eventi duplicati");
   for (const person of world.people) {
     assert(personIds.has(person.id), "Persona senza identificativo");
@@ -1052,7 +1239,8 @@ export function assertWorldInvariants(world) {
     }
     if (person.partnerId !== null) {
       const partner = world.people.find((candidate) => candidate.id === person.partnerId);
-      assert(partner && partner.partnerId === person.id, `Relazione di coppia non reciproca per la persona ${person.id}`);
+      assert(partner && partner.partnerId === person.id && partner.settlementId === person.settlementId,
+        `Relazione di coppia non reciproca o separata per la persona ${person.id}`);
     }
     for (const value of [...Object.values(person.needs), person.health, person.wealth, ...Object.values(person.skills)]) {
       assert(Number.isFinite(value), `Valore numerico non valido per la persona ${person.id}`);
@@ -1061,6 +1249,8 @@ export function assertWorldInvariants(world) {
   let maximumCaseId = 0;
   const justiceCaseIds = new Set();
   for (const settlement of world.settlements) {
+    assert(Number.isSafeInteger(settlement.migrationCooldownUntil) && settlement.migrationCooldownUntil >= 0,
+      `Scadenza migrazione non valida nell'insediamento ${settlement.id}`);
     assert(Array.isArray(settlement.governance.laws) && Array.isArray(settlement.governance.justiceCases),
       `Registro normativo o giudiziario mancante nell'insediamento ${settlement.id}`);
     const lawCodes = settlement.governance.laws.map((law) => law.code);
@@ -1167,7 +1357,10 @@ export const SIMULATION_CAPABILITIES = Object.freeze({
   civilDisputes: "not_implemented",
   emergentCultureAndReligion: "basic",
   religiousAffiliationChanges: true,
-  settlements: "single_settlement",
-  diplomacyWarAndMigration: "not_implemented",
+  settlements: "multiple_settlements_basic",
+  familyMigration: "basic",
+  migration: "basic",
+  diplomacyAndWar: "not_implemented",
+  diplomacyWarAndMigration: "partial",
   browserPersistenceAndOfflineCatchup: "not_implemented"
 });
