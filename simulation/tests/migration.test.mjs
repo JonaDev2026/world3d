@@ -92,12 +92,12 @@ test("le cause successorie pendenti impediscono di selezionare i relativi famili
   assertWorldInvariants(world);
 });
 
-test("i salvataggi schema 5 ricevono una finestra di assestamento prima delle migrazioni", () => {
+test("i salvataggi schema 5 vengono migrati e ricevono una finestra di assestamento", () => {
   const world = createWorld({ seed: "migration-schema", population: 16 });
   world.day = 100;
   const legacy = JSON.parse(serializeWorld(world)); legacy.schemaVersion = 5;
   for (const settlement of legacy.settlements) delete settlement.migrationCooldownUntil;
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 6); assert.equal(restored.settlements[0].migrationCooldownUntil, 465);
+  assert.equal(restored.schemaVersion, 7); assert.equal(restored.settlements[0].migrationCooldownUntil, 465);
   assert.equal(SIMULATION_CAPABILITIES.migration, "basic"); assertWorldInvariants(restored);
 });

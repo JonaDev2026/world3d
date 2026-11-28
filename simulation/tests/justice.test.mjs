@@ -121,14 +121,14 @@ test("senza eredi la sentenza trasferisce il patrimonio al fondo comunitario", (
   assertWorldInvariants(world);
 });
 
-test("uno snapshot dello schema 4 viene migrato allo schema 5", () => {
+test("uno snapshot dello schema 4 viene migrato allo schema 7", () => {
   const world = createWorld({ seed: "justice-migration", population: 12 });
   const legacy = JSON.parse(serializeWorld(world));
   legacy.schemaVersion = 4;
   delete legacy.nextIds.case;
 
   const restored = deserializeWorld(JSON.stringify(legacy));
-  assert.equal(restored.schemaVersion, 6);
+  assert.equal(restored.schemaVersion, 7);
   assert.equal(restored.nextIds.case, 1);
   assert.deepEqual(restored.settlements[0].governance.justiceCases, []);
   assertWorldInvariants(restored);

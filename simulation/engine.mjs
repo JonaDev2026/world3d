@@ -1,6 +1,6 @@
 import { isAdult, isValidGuardian, reassignGuardianships, selectGuardian } from "./kinship.mjs";
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const MAX_SETTLEMENTS = 16;
 const DAYS_PER_COMMON_YEAR = 365.2425;
 const MONTH_LENGTHS_COMMON = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -173,7 +173,7 @@ function createSettlement(world, population) {
     },
     religionIds: [],
     health: { activeOutbreaks: [] },
-    statistics: { births: 0, deaths: 0, production: 0, consumed: 0 }
+    statistics: { births: 0, deaths: 0, production: 0, consumed: 0, tradeImported: 0, tradeExported: 0, tradeIncome: 0, tradeSpending: 0 }
   };
   world.settlements.push(settlement);
   return settlement;
@@ -219,10 +219,11 @@ export function createWorld({ seed = "world3d", population = 48 } = {}) {
     seed: String(seed),
     rngState: hashSeed(seed),
     day: 0,
-    nextIds: { person: 1, settlement: 1, event: 1, religion: 1, case: 1 },
+    nextIds: { person: 1, settlement: 1, event: 1, religion: 1, case: 1, route: 1 },
     people: [],
     settlements: [],
     religions: [],
+    tradeRoutes: [],
     pathogens: PATHOGENS.map((pathogen) => ({ ...pathogen })),
     events: [],
     createdAt: null,
@@ -1024,6 +1025,104 @@ function maybeFoundSettlement(world, settlement, residents) {
   return destination;
 }
 
+const TRADE_GOODS = [
+  { id: "food", basePrice: 0.14, reservePerPerson: 5.5, maxShipment: 30 },
+  { id: "water", basePrice: 0.11, reservePerPerson: 5.5, maxShipment: 30 },
+  { id: "wood", basePrice: 0.18, reservePerPerson: 1.2, maxShipment: 18 },
+  { id: "stone", basePrice: 0.16, reservePerPerson: 0.4, maxShipment: 14 },
+  { id: "tools", basePrice: 0.72, reservePerPerson: 0.06, maxShipment: 8 }
+];
+
+function tradeCandidate(seller, buyer, good, distance, sellerPopulation, buyerPopulation) {
+  const sellerReserve = Math.max(1, sellerPopulation * good.reservePerPerson);
+  const buyerReserve = Math.max(1, buyerPopulation * good.reservePerPerson);
+  const surplus = Math.max(0, seller.resources[good.id] - sellerReserve * 1.2);
+  const deficit = Math.max(0, buyerReserve * 1.1 - buyer.resources[good.id]);
+  if (surplus < 1 || deficit < 1) return null;
+  const transportLoss = clamp(distance / 1800, 0, 0.08);
+  const unitPrice = good.basePrice * (1 + 0.55 * clamp(deficit / buyerReserve, 0, 1)) * (1 + distance / 220);
+  const amount = Math.min(surplus, deficit * 0.45, good.maxShipment, buyer.resources.treasury / unitPrice);
+  if (amount < 0.25) return null;
+  const delivered = amount * (1 - transportLoss);
+  const payment = Math.min(buyer.resources.treasury, amount * unitPrice);
+  return { seller, buyer, good: good.id, amount, delivered, transportLoss, unitPrice, payment,
+    score: delivered * clamp(deficit / buyerReserve, 0, 1) * good.basePrice };
+}
+
+function advanceTrade(world) {
+  const settlements = world.settlements.map((settlement) => ({
+    settlement, residents: livingInSettlement(world, settlement.id)
+  })).filter((entry) => entry.residents.length >= 4).sort((a, b) => a.settlement.id - b.settlement.id);
+  const routesByPair = new Map(world.tradeRoutes.map((route) => [route.settlementIds.join(":"), route]));
+  for (const route of world.tradeRoutes) {
+    if (route.status === "active" && world.day - route.lastTradeDay > 5 * 365) {
+      route.status = "dormant";
+      recordEvent(world, "rotta_commerciale_inattiva",
+        "La rotta commerciale tra due insediamenti non registra scambi da cinque anni",
+        [{ kind: "assenza_di_scambi", ultimoScambio: route.lastTradeDay }],
+        [{ kind: "rotta_sospesa", routeId: route.id }], [], route.settlementIds);
+    }
+  }
+  for (let i = 0; i < settlements.length; i += 1) {
+    for (let j = i + 1; j < settlements.length; j += 1) {
+      const left = settlements[i], right = settlements[j];
+      const distance = Math.hypot(left.settlement.x - right.settlement.x, left.settlement.y - right.settlement.y);
+      if (distance > 55) continue;
+      let best = null;
+      for (const good of TRADE_GOODS) {
+        const candidates = [
+          tradeCandidate(left.settlement, right.settlement, good, distance, left.residents.length, right.residents.length),
+          tradeCandidate(right.settlement, left.settlement, good, distance, right.residents.length, left.residents.length)
+        ];
+        for (const candidate of candidates) if (candidate && (!best || candidate.score > best.score + 1e-12)) best = candidate;
+      }
+      if (!best) continue;
+      const firstId = Math.min(left.settlement.id, right.settlement.id);
+      const secondId = Math.max(left.settlement.id, right.settlement.id);
+      const pairKey = firstId + ":" + secondId;
+      let route = routesByPair.get(pairKey);
+      if (!route) {
+        route = { id: nextId(world, "route"), settlementIds: [firstId, secondId], openedDay: world.day,
+          lastTradeDay: world.day, distance, tradeCount: 0, totalValue: 0, totalGoods: 0, status: "active" };
+        world.tradeRoutes.push(route);
+        routesByPair.set(pairKey, route);
+        recordEvent(world, "rotta_commerciale_aperta",
+          "È stata attivata una rotta di scambio tra " + left.settlement.name + " e " + right.settlement.name,
+          [{ kind: "prossimita_geografica", distanza: distance }],
+          [{ kind: "rotta_creata", routeId: route.id }], [], route.settlementIds);
+      } else if (route.status === "dormant") {
+        route.status = "active";
+        recordEvent(world, "rotta_commerciale_riattivata",
+          "È ripreso il commercio lungo una rotta tra " + left.settlement.name + " e " + right.settlement.name,
+          [{ kind: "nuova_domanda_e_offerta" }],
+          [{ kind: "rotta_riattivata", routeId: route.id }], [], route.settlementIds);
+      }
+      best.seller.resources[best.good] -= best.amount;
+      best.buyer.resources[best.good] += best.delivered;
+      best.buyer.resources.treasury = Math.max(0, best.buyer.resources.treasury - best.payment);
+      best.seller.resources.treasury += best.payment;
+      best.seller.statistics.tradeExported += best.amount;
+      best.buyer.statistics.tradeImported += best.delivered;
+      best.seller.statistics.tradeIncome += best.payment;
+      best.buyer.statistics.tradeSpending += best.payment;
+      route.lastTradeDay = world.day;
+      route.distance = distance;
+      route.tradeCount += 1;
+      route.totalValue += best.payment;
+      route.totalGoods += best.delivered;
+      recordEvent(world, "scambio_commerciale",
+        best.seller.name + " ha ceduto " + best.amount.toFixed(2) + " unità di " + best.good + " a " + best.buyer.name,
+        [{ kind: "surplus_locale", settlementId: best.seller.id, risorsa: best.good, quantita: best.amount },
+          { kind: "carenza_locale", settlementId: best.buyer.id, risorsa: best.good },
+          { kind: "distanza_commerciale", valore: distance }],
+        [{ kind: "scambio_registrato", routeId: route.id, venditore: best.seller.id, acquirente: best.buyer.id,
+          risorsa: best.good, quantitaCaricata: best.amount, quantitaConsegnata: best.delivered,
+          perditaTrasporto: best.transportLoss, prezzoUnitario: best.unitPrice, pagamento: best.payment }],
+        [], route.settlementIds);
+    }
+  }
+}
+
 function advanceSettlement(world, settlement) {
   const residents = livingInSettlement(world, settlement.id);
   if (residents.length === 0) return;
@@ -1059,7 +1158,9 @@ export function advanceDays(world, count = 1) {
   assertWorldInvariants(world);
   assert(Number.isSafeInteger(count) && count >= 0 && count <= 1_000_000, "Numero di giorni non valido");
   for (let i = 0; i < count; i += 1) {
+    const date = calendarDate(world.day);
     for (const settlement of [...world.settlements]) advanceSettlement(world, settlement);
+    if (date.dayOfYear === 0 && date.year > 0) advanceTrade(world);
     world.day += 1;
     if (world.day % 30 === 0) assertWorldInvariants(world);
   }
@@ -1149,6 +1250,18 @@ function migrateWorld(world) {
     for (const settlement of world.settlements ?? []) settlement.migrationCooldownUntil ??= world.day + 365;
     world.schemaVersion = 6;
   }
+  if (world.schemaVersion === 6) {
+    world.nextIds ??= {};
+    world.tradeRoutes ??= [];
+    let maximumRouteId = 0;
+    for (const settlement of world.settlements ?? []) {
+      settlement.statistics ??= {};
+      for (const key of ["tradeImported", "tradeExported", "tradeIncome", "tradeSpending"]) settlement.statistics[key] ??= 0;
+    }
+    for (const route of world.tradeRoutes) maximumRouteId = Math.max(maximumRouteId, route.id ?? 0);
+    world.nextIds.route = Math.max(world.nextIds.route ?? 1, maximumRouteId + 1);
+    world.schemaVersion = 7;
+  }
   return world;
 }
 
@@ -1175,7 +1288,10 @@ export function worldSummary(world) {
       sum + settlement.governance.justiceCases.filter((item) => item.status === "in_attesa_di_norma").length, 0),
     resolvedJusticeCases: world.settlements.reduce((sum, settlement) =>
       sum + settlement.governance.justiceCases.filter((item) => item.status === "risolta").length, 0),
-    migrations: world.events.filter((event) => event.type === "migrazione").length
+    migrations: world.events.filter((event) => event.type === "migrazione").length,
+    tradeRoutes: world.tradeRoutes.filter((route) => route.status === "active").length,
+    dormantTradeRoutes: world.tradeRoutes.filter((route) => route.status === "dormant").length,
+    tradeExchanges: world.events.filter((event) => event.type === "scambio_commerciale").length
   };
 }
 
@@ -1191,15 +1307,17 @@ export function assertWorldInvariants(world) {
   assert(Number.isSafeInteger(world.day) && world.day >= 0, "Giorno del mondo non valido");
   assert(Number.isInteger(world.rngState) && world.rngState >= 0 && world.rngState <= 0xffffffff, "Stato del generatore casuale non valido");
   assert(Array.isArray(world.people) && Array.isArray(world.settlements) && Array.isArray(world.events)
-    && Array.isArray(world.pathogens) && Array.isArray(world.religions), "Collezioni del mondo mancanti");
+    && Array.isArray(world.pathogens) && Array.isArray(world.religions) && Array.isArray(world.tradeRoutes), "Collezioni del mondo mancanti");
   const personIds = new Set(world.people.map((person) => person.id));
   const peopleById = new Map(world.people.map((person) => [person.id, person]));
   const settlementIds = new Set(world.settlements.map((settlement) => settlement.id));
   const eventIds = new Set(world.events.map((event) => event.id));
+  const tradeRouteIds = new Set(world.tradeRoutes.map((route) => route.id));
   assert(personIds.size === world.people.length, "Identificativi delle persone duplicati");
   assert(settlementIds.size === world.settlements.length, "Identificativi degli insediamenti duplicati");
   assert(world.settlements.length <= MAX_SETTLEMENTS, "Limite massimo di insediamenti superato");
   assert(eventIds.size === world.events.length, "Identificativi degli eventi duplicati");
+  assert(tradeRouteIds.size === world.tradeRoutes.length, "Identificativi delle rotte commerciali duplicati");
   for (const person of world.people) {
     assert(personIds.has(person.id), "Persona senza identificativo");
     assert(settlementIds.has(person.settlementId), `Insediamento mancante per la persona ${person.id}`);
@@ -1247,6 +1365,7 @@ export function assertWorldInvariants(world) {
     }
   }
   let maximumCaseId = 0;
+  let maximumRouteId = 0;
   const justiceCaseIds = new Set();
   for (const settlement of world.settlements) {
     assert(Number.isSafeInteger(settlement.migrationCooldownUntil) && settlement.migrationCooldownUntil >= 0,
@@ -1296,6 +1415,10 @@ export function assertWorldInvariants(world) {
     for (const [resource, value] of Object.entries(settlement.resources)) {
       assert(Number.isFinite(value) && value >= 0, `Risorsa ${resource} non valida nell'insediamento ${settlement.id}`);
     }
+    for (const key of ["tradeImported", "tradeExported", "tradeIncome", "tradeSpending"]) {
+      assert(Number.isFinite(settlement.statistics?.[key]) && settlement.statistics[key] >= 0,
+        `Statistica commerciale ${key} non valida nell'insediamento ${settlement.id}`);
+    }
     assert(Number.isFinite(settlement.knowledge) && settlement.knowledge >= 0, `Conoscenza non valida nell'insediamento ${settlement.id}`);
     assert(settlement.governance.councilMemberIds.every((id) => personIds.has(id)), `Consigliere inesistente nell'insediamento ${settlement.id}`);
     assert(Array.isArray(settlement.religionIds) && new Set(settlement.religionIds).size === settlement.religionIds.length,
@@ -1306,10 +1429,27 @@ export function assertWorldInvariants(world) {
     assert(new Set(settlement.health.activeOutbreaks).size === settlement.health.activeOutbreaks.length, `Focolai duplicati nell'insediamento ${settlement.id}`);
     assert(settlement.health.activeOutbreaks.every((id) => world.pathogens.some((pathogen) => pathogen.id === id)), `Patogeno sconosciuto nell'insediamento ${settlement.id}`);
   }
+  for (const route of world.tradeRoutes) {
+    maximumRouteId = Math.max(maximumRouteId, route.id);
+    assert(Number.isSafeInteger(route.id) && route.id > 0 && Array.isArray(route.settlementIds)
+      && route.settlementIds.length === 2 && route.settlementIds[0] !== route.settlementIds[1]
+      && route.settlementIds.every((id) => settlementIds.has(id)), `Rotta commerciale non valida: ${route.id}`);
+    assert(Number.isSafeInteger(route.openedDay) && route.openedDay >= 0 && route.openedDay <= world.day
+      && Number.isSafeInteger(route.lastTradeDay) && route.lastTradeDay >= route.openedDay
+      && route.lastTradeDay <= world.day, `Date della rotta non valide: ${route.id}`);
+    assert(Number.isFinite(route.distance) && route.distance >= 0 && Number.isInteger(route.tradeCount)
+      && route.tradeCount >= 1 && Number.isFinite(route.totalValue) && route.totalValue >= 0
+      && Number.isFinite(route.totalGoods) && route.totalGoods >= 0
+      && ["active", "dormant"].includes(route.status), `Contabilità della rotta non valida: ${route.id}`);
+  }
   for (const event of world.events) {
     assert(Number.isSafeInteger(event.day) && event.day <= world.day, `Data evento non valida per l'evento ${event.id}`);
     assert(event.personIds.every((id) => personIds.has(id)), `Persona storica inesistente nell'evento ${event.id}`);
     assert(event.settlementIds.every((id) => settlementIds.has(id)), `Insediamento storico inesistente nell'evento ${event.id}`);
+    if (event.type === "scambio_commerciale") {
+      const routeId = event.effects.find((effect) => effect.kind === "scambio_registrato")?.routeId;
+      assert(tradeRouteIds.has(routeId), `Rotta mancante per lo scambio storico ${event.id}`);
+    }
   }
   const religionIds = new Set(world.religions.map((religion) => religion.id));
   assert(religionIds.size === world.religions.length, "Identificativi religiosi duplicati");
@@ -1328,6 +1468,7 @@ export function assertWorldInvariants(world) {
       `Tradizione non registrata nell'insediamento ${religion.id}`);
   }
   assert(world.nextIds.case > maximumCaseId, "Contatore delle cause successorie non valido");
+  assert(world.nextIds.route > maximumRouteId, "Contatore delle rotte commerciali non valido");
   for (const [kind, next] of Object.entries(world.nextIds)) {
     assert(Number.isSafeInteger(next) && next > 0, `Contatore ${kind} non valido`);
   }
@@ -1344,7 +1485,8 @@ export const SIMULATION_CAPABILITIES = Object.freeze({
   basicNeedsAndWorkDecisions: true,
   resourceProductionAndConsumption: "basic",
   agriculture: "basic",
-  economyAndTrade: "partial",
+  economyAndTrade: "basic",
+  interSettlementTrade: "basic",
   diseaseTransmission: true,
   outbreakLifecycle: true,
   researchAndTechnology: true,
